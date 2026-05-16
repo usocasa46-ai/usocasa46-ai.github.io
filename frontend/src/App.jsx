@@ -1370,42 +1370,6 @@ function InventoryLotsSeries() {
 function InventoryLocationsWarehouses() {
   const [searchTerm, setSearchTerm] = useState('')
   const [showLocationForm, setShowLocationForm] = useState(false)
-  const [showTransferForm, setShowTransferForm] = useState(false)
-
-  const [warehouses] = useState([
-    {
-      name: 'Almacen Principal',
-      code: 'WH-001',
-      location: 'Sucursal Central',
-      capacity: 1000,
-      used: 680,
-      status: 'Activo',
-    },
-    {
-      name: 'Almacen 2',
-      code: 'WH-002',
-      location: 'Zona Norte',
-      capacity: 600,
-      used: 250,
-      status: 'Activo',
-    },
-    {
-      name: 'Almacen 3',
-      code: 'WH-003',
-      location: 'Zona Este',
-      capacity: 400,
-      used: 95,
-      status: 'Activo',
-    },
-    {
-      name: 'Almacen Cuarentena',
-      code: 'WH-QA',
-      location: 'Control de calidad',
-      capacity: 180,
-      used: 42,
-      status: 'Restringido',
-    },
-  ])
 
   const [locations, setLocations] = useState([
     {
@@ -1458,18 +1422,6 @@ function InventoryLocationsWarehouses() {
     },
   ])
 
-  const [transfers, setTransfers] = useState([
-    {
-      date: '15/05/2026',
-      product: 'Laptop HP Pavilion',
-      fromLocation: 'A-01-R01-N01',
-      toLocation: 'B-02-R03-N01',
-      quantity: 5,
-      user: 'Administrador',
-      status: 'Completada',
-    },
-  ])
-
   const [newLocation, setNewLocation] = useState({
     warehouse: 'Almacen Principal',
     zone: '',
@@ -1482,15 +1434,6 @@ function InventoryLocationsWarehouses() {
     status: 'Disponible',
   })
 
-  const [newTransfer, setNewTransfer] = useState({
-    product: '',
-    fromLocation: '',
-    toLocation: '',
-    quantity: '',
-    user: 'Administrador',
-    status: 'Completada',
-  })
-
   const updateLocationField = (field, value) => {
     setNewLocation((current) => ({
       ...current,
@@ -1498,11 +1441,9 @@ function InventoryLocationsWarehouses() {
     }))
   }
 
-  const updateTransferField = (field, value) => {
-    setNewTransfer((current) => ({
-      ...current,
-      [field]: value,
-    }))
+  const getUsagePercent = (used, capacity) => {
+    if (!capacity) return 0
+    return Math.min(100, Math.round((Number(used || 0) / Number(capacity || 1)) * 100))
   }
 
   const buildLocationCode = (location) => {
@@ -1529,17 +1470,6 @@ function InventoryLocationsWarehouses() {
     })
   }
 
-  const resetTransferForm = () => {
-    setNewTransfer({
-      product: '',
-      fromLocation: '',
-      toLocation: '',
-      quantity: '',
-      user: 'Administrador',
-      status: 'Completada',
-    })
-  }
-
   const createLocation = (event) => {
     event.preventDefault()
 
@@ -1548,45 +1478,18 @@ function InventoryLocationsWarehouses() {
       return
     }
 
-    const createdLocation = {
-      ...newLocation,
-      code: buildLocationCode(newLocation),
-      capacity: Number(newLocation.capacity || 0),
-      used: Number(newLocation.used || 0),
-    }
+    setLocations((current) => [
+      {
+        ...newLocation,
+        code: buildLocationCode(newLocation),
+        capacity: Number(newLocation.capacity || 0),
+        used: Number(newLocation.used || 0),
+      },
+      ...current,
+    ])
 
-    setLocations((current) => [createdLocation, ...current])
     resetLocationForm()
     setShowLocationForm(false)
-  }
-
-  const createTransfer = (event) => {
-    event.preventDefault()
-
-    if (!newTransfer.product || !newTransfer.fromLocation || !newTransfer.toLocation || !newTransfer.quantity) {
-      alert('Debes completar producto, ubicacion origen, ubicacion destino y cantidad.')
-      return
-    }
-
-    if (newTransfer.fromLocation === newTransfer.toLocation) {
-      alert('La ubicacion origen y destino no pueden ser iguales.')
-      return
-    }
-
-    const createdTransfer = {
-      ...newTransfer,
-      date: new Date().toLocaleDateString('es-DO'),
-      quantity: Number(newTransfer.quantity || 0),
-    }
-
-    setTransfers((current) => [createdTransfer, ...current])
-    resetTransferForm()
-    setShowTransferForm(false)
-  }
-
-  const getUsagePercent = (used, capacity) => {
-    if (!capacity) return 0
-    return Math.min(100, Math.round((Number(used || 0) / Number(capacity || 1)) * 100))
   }
 
   const filteredLocations = locations.filter((location) => {
@@ -1615,14 +1518,10 @@ function InventoryLocationsWarehouses() {
         <div>
           <span>Inventario avanzado</span>
           <h3>Gestion Multialmacen y Multiubicacion</h3>
-          <p>Administra almacenes, zonas, pasillos, racks, niveles, posiciones exactas, capacidad y transferencias internas.</p>
+          <p>Administra almacenes, zonas, pasillos, racks, niveles, posiciones exactas y capacidad disponible.</p>
         </div>
 
         <div className="locations-header-actions">
-          <button className="secondary-button" onClick={() => setShowTransferForm(true)}>
-            Transferencia
-          </button>
-
           <button className="primary-button small" onClick={() => setShowLocationForm(true)}>
             Nueva ubicacion
           </button>
@@ -1631,21 +1530,21 @@ function InventoryLocationsWarehouses() {
 
       <div className="locations-kpi-grid">
         <article>
-          <span>Almacenes</span>
-          <strong>{warehouses.length}</strong>
-          <p>Registrados</p>
-        </article>
-
-        <article>
           <span>Ubicaciones</span>
           <strong>{locations.length}</strong>
           <p>Posiciones internas</p>
         </article>
 
         <article>
+          <span>Capacidad total</span>
+          <strong>{totalCapacity}</strong>
+          <p>Unidades configuradas</p>
+        </article>
+
+        <article>
           <span>Uso promedio</span>
           <strong>{averageUsage}%</strong>
-          <p>Capacidad utilizada</p>
+          <p>Capacidad ocupada</p>
         </article>
 
         <article>
@@ -1655,37 +1554,12 @@ function InventoryLocationsWarehouses() {
         </article>
       </div>
 
-      <div className="warehouse-overview-grid">
-        {warehouses.map((warehouse) => {
-              <p>{warehouse.used} de {warehouse.capacity} ocupados - {percent}%</p>
-
-          return (
-            <article key={warehouse.code} className="warehouse-overview-card">
-              <div>
-                <strong>{warehouse.name}</strong>
-                <span>{warehouse.code} - {warehouse.location}</span>
-              </div>
-
-              <em className={warehouse.status === 'Activo' ? 'status-ok' : 'status-low'}>
-                {warehouse.status}
-              </em>
-
-              <div className="warehouse-progress">
-                <div style={{ width: `${percent}%` }} />
-              </div>
-
-              <p>{warehouse.used} de {warehouse.capacity} ocupados - {percent}%</p>
-            </article>
-          )
-        })}
-      </div>
-
       <div className="locations-toolbar">
         <div className="product-search-box">
           <input
             value={searchTerm}
             onChange={(event) => setSearchTerm(event.target.value)}
-            placeholder="Buscar por almacen, ubicacion, zona, pasillo, rack, nivel o estado..."
+            placeholder="Buscar por almacen, ubicacion, zona, pasillo, rack o estado..."
           />
         </div>
       </div>
@@ -1706,87 +1580,52 @@ function InventoryLocationsWarehouses() {
           <div className="location-form-grid">
             <label>
               Almacen
-              <select
-                value={newLocation.warehouse}
-                onChange={(event) => updateLocationField('warehouse', event.target.value)}
-              >
-                {warehouses.map((warehouse) => (
-                  <option key={warehouse.code}>{warehouse.name}</option>
-                ))}
+              <select value={newLocation.warehouse} onChange={(event) => updateLocationField('warehouse', event.target.value)}>
+                <option>Almacen Principal</option>
+                <option>Almacen 2</option>
+                <option>Almacen 3</option>
+                <option>Almacen Cuarentena</option>
               </select>
             </label>
 
             <label>
               Zona
-              <input
-                value={newLocation.zone}
-                onChange={(event) => updateLocationField('zone', event.target.value)}
-                placeholder="Zona A"
-              />
+              <input value={newLocation.zone} onChange={(event) => updateLocationField('zone', event.target.value)} placeholder="Zona A" />
             </label>
 
             <label>
               Pasillo
-              <input
-                value={newLocation.aisle}
-                onChange={(event) => updateLocationField('aisle', event.target.value)}
-                placeholder="01"
-              />
+              <input value={newLocation.aisle} onChange={(event) => updateLocationField('aisle', event.target.value)} placeholder="01" />
             </label>
 
             <label>
               Rack
-              <input
-                value={newLocation.rack}
-                onChange={(event) => updateLocationField('rack', event.target.value)}
-                placeholder="R01"
-              />
+              <input value={newLocation.rack} onChange={(event) => updateLocationField('rack', event.target.value)} placeholder="R01" />
             </label>
 
             <label>
               Nivel
-              <input
-                value={newLocation.level}
-                onChange={(event) => updateLocationField('level', event.target.value)}
-                placeholder="N01"
-              />
+              <input value={newLocation.level} onChange={(event) => updateLocationField('level', event.target.value)} placeholder="N01" />
             </label>
 
             <label>
               Posicion
-              <input
-                value={newLocation.position}
-                onChange={(event) => updateLocationField('position', event.target.value)}
-                placeholder="P01"
-              />
+              <input value={newLocation.position} onChange={(event) => updateLocationField('position', event.target.value)} placeholder="P01" />
             </label>
 
             <label>
               Capacidad
-              <input
-                type="number"
-                value={newLocation.capacity}
-                onChange={(event) => updateLocationField('capacity', event.target.value)}
-                placeholder="0"
-              />
+              <input type="number" value={newLocation.capacity} onChange={(event) => updateLocationField('capacity', event.target.value)} placeholder="0" />
             </label>
 
             <label>
               Ocupado
-              <input
-                type="number"
-                value={newLocation.used}
-                onChange={(event) => updateLocationField('used', event.target.value)}
-                placeholder="0"
-              />
+              <input type="number" value={newLocation.used} onChange={(event) => updateLocationField('used', event.target.value)} placeholder="0" />
             </label>
 
             <label>
               Estado
-              <select
-                value={newLocation.status}
-                onChange={(event) => updateLocationField('status', event.target.value)}
-              >
+              <select value={newLocation.status} onChange={(event) => updateLocationField('status', event.target.value)}>
                 <option>Disponible</option>
                 <option>Alta ocupacion</option>
                 <option>Bloqueado</option>
@@ -1802,78 +1641,6 @@ function InventoryLocationsWarehouses() {
 
             <button type="submit" className="primary-button small">
               Guardar ubicacion
-            </button>
-          </div>
-        </form>
-      )}
-
-      {showTransferForm && (
-        <form className="location-form-card" onSubmit={createTransfer}>
-          <div className="product-form-header">
-            <div>
-              <h4>Transferencia entre ubicaciones</h4>
-              <p>Registra un movimiento interno entre posiciones del almacen.</p>
-            </div>
-
-            <button type="button" className="close-form-button" onClick={() => setShowTransferForm(false)}>
-              Cerrar
-            </button>
-          </div>
-
-          <div className="location-form-grid">
-            <label className="location-wide-field">
-              Producto
-              <input
-                value={newTransfer.product}
-                onChange={(event) => updateTransferField('product', event.target.value)}
-                placeholder="Nombre del producto"
-              />
-            </label>
-
-            <label>
-              Desde ubicacion
-              <select
-                value={newTransfer.fromLocation}
-                onChange={(event) => updateTransferField('fromLocation', event.target.value)}
-              >
-                <option value="">Seleccionar</option>
-                {locations.map((location) => (
-                  <option key={`from-${location.code}`} value={location.code}>{location.code}</option>
-                ))}
-              </select>
-            </label>
-
-            <label>
-              Hacia ubicacion
-              <select
-                value={newTransfer.toLocation}
-                onChange={(event) => updateTransferField('toLocation', event.target.value)}
-              >
-                <option value="">Seleccionar</option>
-                {locations.map((location) => (
-                  <option key={`to-${location.code}`} value={location.code}>{location.code}</option>
-                ))}
-              </select>
-            </label>
-
-            <label>
-              Cantidad
-              <input
-                type="number"
-                value={newTransfer.quantity}
-                onChange={(event) => updateTransferField('quantity', event.target.value)}
-                placeholder="0"
-              />
-            </label>
-          </div>
-
-          <div className="product-form-actions">
-            <button type="button" className="secondary-button" onClick={resetTransferForm}>
-              Limpiar
-            </button>
-
-            <button type="submit" className="primary-button small">
-              Registrar transferencia
             </button>
           </div>
         </form>
@@ -1898,7 +1665,7 @@ function InventoryLocationsWarehouses() {
           const percent = getUsagePercent(location.used, location.capacity)
 
           return (
-            <div key={`${location.warehouse}-${location.code}`} className="locations-table-row">
+            <div key={location.code} className="locations-table-row">
               <strong>{location.warehouse}</strong>
               <span>{location.code}</span>
               <span>{location.zone}</span>
@@ -1922,30 +1689,10 @@ function InventoryLocationsWarehouses() {
           </div>
         )}
       </div>
-
-      <div className="transfers-mini-panel">
-        <div className="card-header">
-          <h3>Ultimas transferencias internas</h3>
-          <button onClick={() => setShowTransferForm(true)}>Nueva</button>
-        </div>
-
-        <div className="transfer-list">
-  {transfers.map((transfer, index) => (
-    <article key={index}>
-      <div>
-        <strong>{transfer.product}</strong>
-        <span>Transferencia interna</span>
-      </div>
-
-      <b>{transfer.quantity}</b>
-      <em className="status-ok">{transfer.status}</em>
-    </article>
-  ))}
-</div>
-      </div>
     </section>
   )
 }
+
 
 function InventoryVariantsKits() {
   const [searchTerm, setSearchTerm] = useState('')
