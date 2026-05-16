@@ -28,9 +28,7 @@ function loadUsers() {
     if (Array.isArray(parsedUsers) && parsedUsers.length > 0) {
       const hasMainAdmin = parsedUsers.some((user) => user.isMainAdmin)
 
-      if (hasMainAdmin) {
-        return parsedUsers
-      }
+      if (hasMainAdmin) return parsedUsers
 
       const usersWithAdmin = [MAIN_ADMIN, ...parsedUsers]
       saveUsers(usersWithAdmin)
@@ -74,6 +72,7 @@ export default function AuthGate() {
   const [session, setSession] = useState(() => loadValidSession())
   const [showUsersPanel, setShowUsersPanel] = useState(false)
   const [showFileMenu, setShowFileMenu] = useState(false)
+  const [showAdminMenu, setShowAdminMenu] = useState(false)
   const [fileMenuPosition, setFileMenuPosition] = useState({ top: 52, left: 430 })
   const [userError, setUserError] = useState('')
   const [newUser, setNewUser] = useState({
@@ -121,7 +120,6 @@ export default function AuthGate() {
     }
 
     setSession(nextSession)
-
     return { ok: true }
   }
 
@@ -130,18 +128,21 @@ export default function AuthGate() {
     setSession(null)
     setShowUsersPanel(false)
     setShowFileMenu(false)
+    setShowAdminMenu(false)
   }
 
   useEffect(() => {
     if (!session) return undefined
 
+    let removeFileMenu = () => {}
+
     const connectFileMenu = () => {
       const buttons = Array.from(document.querySelectorAll('button'))
       const fileButton = buttons.find((button) => button.textContent.trim() === 'Archivo')
 
-      if (!fileButton) return undefined
+      if (!fileButton) return
 
-      const openMenu = (event) => {
+      const openFileMenu = (event) => {
         event.preventDefault()
         event.stopPropagation()
 
@@ -152,33 +153,38 @@ export default function AuthGate() {
           left: rect.left,
         })
 
+        setShowAdminMenu(false)
         setShowFileMenu((current) => !current)
       }
 
-      const closeMenu = (event) => {
-        if (
-          event.target.closest('.auth-file-dropdown') ||
-          event.target.textContent?.trim() === 'Archivo'
-        ) {
-          return
-        }
+      fileButton.addEventListener('click', openFileMenu)
 
-        setShowFileMenu(false)
-      }
-
-      fileButton.addEventListener('click', openMenu)
-      document.addEventListener('click', closeMenu)
-
-      return () => {
-        fileButton.removeEventListener('click', openMenu)
-        document.removeEventListener('click', closeMenu)
+      removeFileMenu = () => {
+        fileButton.removeEventListener('click', openFileMenu)
       }
     }
 
+    const closeMenus = (event) => {
+      if (
+        event.target.closest('.auth-file-dropdown') ||
+        event.target.closest('.auth-admin-dropdown') ||
+        event.target.closest('.auth-admin-hitbox') ||
+        event.target.textContent?.trim() === 'Archivo'
+      ) {
+        return
+      }
+
+      setShowFileMenu(false)
+      setShowAdminMenu(false)
+    }
+
     const timer = setTimeout(connectFileMenu, 300)
+    document.addEventListener('click', closeMenus)
 
     return () => {
       clearTimeout(timer)
+      removeFileMenu()
+      document.removeEventListener('click', closeMenus)
     }
   }, [session])
 
@@ -282,33 +288,13 @@ export default function AuthGate() {
             left: `${fileMenuPosition.left}px`,
           }}
         >
-          <button type="button">
-            Nuevo
-          </button>
-
-          <button type="button">
-            Abrir
-          </button>
-
-          <button type="button">
-            Guardar
-          </button>
-
-          <button type="button">
-            Guardar como
-          </button>
-
-          <button type="button" onClick={() => window.print()}>
-            Imprimir
-          </button>
-
-          <button type="button">
-            Exportar PDF
-          </button>
-
-          <button type="button">
-            Configurar pagina
-          </button>
+          <button type="button">Nuevo</button>
+          <button type="button">Abrir</button>
+          <button type="button">Guardar</button>
+          <button type="button">Guardar como</button>
+          <button type="button" onClick={() => window.print()}>Imprimir</button>
+          <button type="button">Exportar PDF</button>
+          <button type="button">Configurar pagina</button>
 
           <div className="auth-file-separator" />
 
@@ -318,18 +304,42 @@ export default function AuthGate() {
         </div>
       )}
 
-      <div className="auth-session-panel">
-        <div>
-          <strong>{session.fullName}</strong>
-          <span>{session.role}</span>
-        </div>
+      {session.isMainAdmin && !showUsersPanel && (
+        <button
+          type="button"
+          className="auth-admin-hitbox"
+          onClick={(event) => {
+            event.preventDefault()
+            event.stopPropagation()
+            setShowFileMenu(false)
+            setShowAdminMenu((current) => !current)
+          }}
+          title="Menu administrador"
+        />
+      )}
 
-        {session.isMainAdmin && (
-          <button type="button" onClick={() => setShowUsersPanel((current) => !current)}>
-            Usuarios
-          </button>
-        )}
-      </div>
+      {showAdminMenu && session.isMainAdmin && !showUsersPanel && (
+        <>
+          <button
+            type="button"
+            className="auth-admin-backdrop"
+            onClick={() => setShowAdminMenu(false)}
+            aria-label="Cerrar menu administrador"
+          />
+
+          <div className="auth-admin-dropdown">
+            <button
+              type="button"
+              onClick={() => {
+                setShowAdminMenu(false)
+                setShowUsersPanel(true)
+              }}
+            >
+              Crear usuario
+            </button>
+          </div>
+        </>
+      )}
 
       {showUsersPanel && session.isMainAdmin && (
         <section className="auth-users-panel">
