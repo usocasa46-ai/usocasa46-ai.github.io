@@ -681,6 +681,24 @@ function Sidebar({ activeModule, setActiveModule, isMobileOpen, closeMobileMenu 
 function Navbar({ theme, toggleTheme, onOpenSidebar }) {
   return (
     <header className="topbar">
+      <div className="topbar-menu-strip">
+        <div className="topbar-menu-main">
+          <button type="button" title="Archivo">Archivo</button>
+          <button type="button" title="Editar">Editar</button>
+          <button type="button" title="Ver">Ver</button>
+          <button type="button" title="Ventana">Ventana</button>
+          <button type="button" title="Ayuda">Ayuda</button>
+        </div>
+
+        <div className="topbar-menu-actions">
+          <button type="button" title="Buscar en el sistema">Buscar</button>
+          <button type="button" title="Crear nuevo registro">Nuevo</button>
+          <button type="button" title="Guardar cambios">Guardar</button>
+          <button type="button" title="Imprimir documento">Imprimir</button>
+          <button type="button" title="Ver reportes">Reportes</button>
+          <button type="button" title="Configuracion del sistema">Config</button>
+        </div>
+      </div>
       <button
         className="menu-button"
         onClick={() => {
