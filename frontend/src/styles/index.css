@@ -10199,3 +10199,233 @@ body.sidebar-collapsed-mode .topbar {
     height: 100vh !important;
   }
 }
+
+
+/* CONTROL DE CALIDAD Y CUARENTENA */
+.inventory-quality-card {
+  min-height: 640px;
+}
+
+.quality-kpi-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 12px;
+  margin-bottom: 14px;
+}
+
+.quality-kpi-grid article {
+  border-radius: 17px;
+  padding: 15px;
+  background: #f8fafc;
+  border: 1px solid rgba(15, 61, 74, 0.10);
+}
+
+.quality-kpi-grid span {
+  display: block;
+  color: #64748b;
+  font-size: 12px;
+  font-weight: 850;
+}
+
+.quality-kpi-grid strong {
+  display: block;
+  margin: 7px 0 3px;
+  color: #0f172a;
+  font-size: 25px;
+  font-weight: 950;
+}
+
+.quality-kpi-grid p {
+  margin: 0;
+  color: #64748b;
+  font-size: 12px;
+  font-weight: 650;
+}
+
+.quality-toolbar {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 14px;
+}
+
+.quality-toolbar .product-search-box {
+  width: 100%;
+  max-width: 780px;
+}
+
+.quality-form-card {
+  border-radius: 18px;
+  padding: 16px;
+  margin-bottom: 16px;
+  background: #f8fafc;
+  border: 1px solid rgba(15, 61, 74, 0.10);
+}
+
+.quality-form-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.quality-form-grid label {
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+  color: #334155;
+  font-size: 12px;
+  font-weight: 850;
+}
+
+.quality-form-grid input,
+.quality-form-grid select {
+  height: 42px;
+  border: 1px solid rgba(15, 61, 74, 0.13);
+  border-radius: 12px;
+  outline: 0;
+  padding: 0 12px;
+  background: #ffffff;
+  color: #0f172a;
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.quality-wide-field {
+  grid-column: span 2;
+}
+
+.quality-table {
+  width: 100%;
+  overflow-x: auto;
+}
+
+.quality-table-head,
+.quality-table-row {
+  min-width: 1180px;
+  display: grid;
+  grid-template-columns: 90px 1.3fr 120px 90px 150px 140px 130px 110px 120px 150px;
+  gap: 12px;
+  align-items: center;
+}
+
+.quality-table-head {
+  padding: 12px 14px;
+  border-radius: 12px;
+  background: var(--color-primary-soft, #e6f1f4);
+  color: var(--color-primary, #0f3d4a);
+  font-size: 12px;
+  font-weight: 950;
+}
+
+.quality-table-row {
+  padding: 14px;
+  border-bottom: 1px solid rgba(15, 61, 74, 0.10);
+  color: #475569;
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.quality-table-row strong,
+.quality-table-row small {
+  display: block;
+}
+
+.quality-table-row strong {
+  color: #0f172a;
+  font-size: 13px;
+  font-weight: 950;
+}
+
+.quality-table-row small {
+  margin-top: 3px;
+  color: #64748b;
+  font-size: 11px;
+  font-weight: 750;
+}
+
+.quality-table-row b {
+  color: #0f172a;
+  font-weight: 950;
+}
+
+.quality-table-row em {
+  width: max-content;
+  border-radius: 999px;
+  padding: 6px 10px;
+  font-style: normal;
+  font-size: 11px;
+  font-weight: 950;
+}
+
+.quality-actions {
+  display: flex;
+  gap: 6px;
+}
+
+.quality-actions button {
+  min-height: 32px;
+  border-radius: 10px;
+  padding: 0 9px;
+  background: var(--color-primary, #0f3d4a);
+  color: #ffffff;
+  font-size: 11px;
+  font-weight: 950;
+}
+
+.quality-actions button:last-child {
+  background: #f97316;
+}
+
+.app-shell.dark-theme .quality-kpi-grid article,
+.app-shell.dark-theme .quality-form-card {
+  background: rgba(6, 26, 34, 0.82);
+  border-color: rgba(255, 255, 255, 0.10);
+}
+
+.app-shell.dark-theme .quality-kpi-grid strong,
+.app-shell.dark-theme .quality-table-row strong,
+.app-shell.dark-theme .quality-table-row b {
+  color: #f8fafc;
+}
+
+.app-shell.dark-theme .quality-kpi-grid span,
+.app-shell.dark-theme .quality-kpi-grid p,
+.app-shell.dark-theme .quality-form-grid label,
+.app-shell.dark-theme .quality-table-row,
+.app-shell.dark-theme .quality-table-row small {
+  color: #cbd5e1;
+}
+
+.app-shell.dark-theme .quality-form-grid input,
+.app-shell.dark-theme .quality-form-grid select {
+  background: rgba(3, 17, 23, 0.92);
+  border-color: rgba(255, 255, 255, 0.12);
+  color: #f8fafc;
+}
+
+.app-shell.dark-theme .quality-table-head {
+  background: rgba(249, 115, 22, 0.16);
+  color: #fdba74;
+}
+
+.app-shell.dark-theme .quality-table-row {
+  border-bottom-color: rgba(255, 255, 255, 0.10);
+}
+
+@media (max-width: 1200px) {
+  .quality-kpi-grid,
+  .quality-form-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 700px) {
+  .quality-kpi-grid,
+  .quality-form-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .quality-wide-field {
+    grid-column: span 1;
+  }
+}

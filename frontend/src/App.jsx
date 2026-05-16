@@ -4786,6 +4786,338 @@ function InventoryReorderSafetyStock() {
   )
 }
 
+
+function InventoryQualityControl() {
+  const [searchTerm, setSearchTerm] = useState('')
+  const [showForm, setShowForm] = useState(false)
+
+  const [inspections, setInspections] = useState([
+    {
+      id: 'QC-001',
+      productCode: 'PRO-001',
+      productName: 'Laptop HP Pavilion',
+      lot: 'LOT-2026-001',
+      quantity: 6,
+      warehouse: 'Almacen Principal',
+      location: 'A-01-R01-N01',
+      status: 'Aprobado',
+      reason: 'Inspeccion correcta',
+      inspector: 'Carlos Medina',
+      date: '2026-05-14',
+    },
+    {
+      id: 'QC-002',
+      productCode: 'PRO-003',
+      productName: 'Monitor Samsung 24',
+      lot: 'LOT-2026-003',
+      quantity: 12,
+      warehouse: 'Almacen Cuarentena',
+      location: 'QA-01-R01-N01',
+      status: 'Cuarentena',
+      reason: 'Pendiente de revision fisica',
+      inspector: 'Ana Gomez',
+      date: '2026-05-15',
+    },
+    {
+      id: 'QC-003',
+      productCode: 'PRO-020',
+      productName: 'Caja de Lapices',
+      lot: 'LOT-2026-011',
+      quantity: 4,
+      warehouse: 'Almacen 2',
+      location: 'B-02-R03-N01',
+      status: 'Rechazado',
+      reason: 'Empaque danado',
+      inspector: 'Jose Perez',
+      date: '2026-05-15',
+    },
+  ])
+
+  const [newInspection, setNewInspection] = useState({
+    id: '',
+    productCode: '',
+    productName: '',
+    lot: '',
+    quantity: '',
+    warehouse: 'Almacen Principal',
+    location: '',
+    status: 'En revision',
+    reason: '',
+    inspector: '',
+    date: '',
+  })
+
+  const updateField = (field, value) => {
+    setNewInspection((current) => ({
+      ...current,
+      [field]: value,
+    }))
+  }
+
+  const resetForm = () => {
+    setNewInspection({
+      id: '',
+      productCode: '',
+      productName: '',
+      lot: '',
+      quantity: '',
+      warehouse: 'Almacen Principal',
+      location: '',
+      status: 'En revision',
+      reason: '',
+      inspector: '',
+      date: '',
+    })
+  }
+
+  const createInspection = (event) => {
+    event.preventDefault()
+
+    if (!newInspection.id || !newInspection.productCode || !newInspection.productName || !newInspection.quantity) {
+      alert('Debes completar codigo QC, producto y cantidad.')
+      return
+    }
+
+    setInspections((current) => [
+      {
+        ...newInspection,
+        quantity: Number(newInspection.quantity || 0),
+      },
+      ...current,
+    ])
+
+    resetForm()
+    setShowForm(false)
+  }
+
+  const changeStatus = (id, status) => {
+    setInspections((current) =>
+      current.map((item) =>
+        item.id === id
+          ? {
+              ...item,
+              status,
+              reason:
+                status === 'Aprobado'
+                  ? 'Producto liberado para inventario'
+                  : status === 'Cuarentena'
+                    ? 'Producto bloqueado para revision'
+                    : item.reason,
+            }
+          : item
+      )
+    )
+  }
+
+  const filteredInspections = inspections.filter((item) => {
+    const search = searchTerm.toLowerCase()
+
+    return (
+      item.id.toLowerCase().includes(search) ||
+      item.productCode.toLowerCase().includes(search) ||
+      item.productName.toLowerCase().includes(search) ||
+      item.lot.toLowerCase().includes(search) ||
+      item.warehouse.toLowerCase().includes(search) ||
+      item.location.toLowerCase().includes(search) ||
+      item.status.toLowerCase().includes(search) ||
+      item.inspector.toLowerCase().includes(search)
+    )
+  })
+
+  const approvedCount = inspections.filter((item) => item.status === 'Aprobado').length
+  const quarantineCount = inspections.filter((item) => item.status === 'Cuarentena').length
+  const rejectedCount = inspections.filter((item) => item.status === 'Rechazado').length
+  const reviewCount = inspections.filter((item) => item.status === 'En revision').length
+
+  return (
+    <section className="card inventory-quality-card">
+      <div className="inventory-advanced-header">
+        <div>
+          <span>Inventario avanzado</span>
+          <h3>Control de Calidad y Cuarentena</h3>
+          <p>Gestiona productos en revision, aprobados, rechazados y retenidos en cuarentena.</p>
+        </div>
+
+        <button className="primary-button small" onClick={() => setShowForm(true)}>
+          Nueva inspeccion
+        </button>
+      </div>
+
+      <div className="quality-kpi-grid">
+        <article>
+          <span>Aprobados</span>
+          <strong>{approvedCount}</strong>
+          <p>Liberados para inventario</p>
+        </article>
+
+        <article>
+          <span>Cuarentena</span>
+          <strong>{quarantineCount}</strong>
+          <p>Bloqueados temporalmente</p>
+        </article>
+
+        <article>
+          <span>Rechazados</span>
+          <strong>{rejectedCount}</strong>
+          <p>No disponibles</p>
+        </article>
+
+        <article>
+          <span>En revision</span>
+          <strong>{reviewCount}</strong>
+          <p>Pendientes de decision</p>
+        </article>
+      </div>
+
+      <div className="quality-toolbar">
+        <div className="product-search-box">
+          <input
+            value={searchTerm}
+            onChange={(event) => setSearchTerm(event.target.value)}
+            placeholder="Buscar por QC, producto, lote, almacen, ubicacion, estado o inspector..."
+          />
+        </div>
+      </div>
+
+      {showForm && (
+        <form className="quality-form-card" onSubmit={createInspection}>
+          <div className="product-form-header">
+            <div>
+              <h4>Nueva inspeccion de calidad</h4>
+              <p>Registra revision, cuarentena, rechazo o aprobacion de un producto.</p>
+            </div>
+
+            <button type="button" className="close-form-button" onClick={() => setShowForm(false)}>
+              Cerrar
+            </button>
+          </div>
+
+          <div className="quality-form-grid">
+            <label>
+              Codigo QC
+              <input value={newInspection.id} onChange={(event) => updateField('id', event.target.value)} placeholder="QC-000" />
+            </label>
+
+            <label>
+              Codigo producto
+              <input value={newInspection.productCode} onChange={(event) => updateField('productCode', event.target.value)} placeholder="PRO-000" />
+            </label>
+
+            <label className="quality-wide-field">
+              Producto
+              <input value={newInspection.productName} onChange={(event) => updateField('productName', event.target.value)} placeholder="Nombre del producto" />
+            </label>
+
+            <label>
+              Lote
+              <input value={newInspection.lot} onChange={(event) => updateField('lot', event.target.value)} placeholder="LOT-000" />
+            </label>
+
+            <label>
+              Cantidad
+              <input type="number" value={newInspection.quantity} onChange={(event) => updateField('quantity', event.target.value)} placeholder="0" />
+            </label>
+
+            <label>
+              Almacen
+              <select value={newInspection.warehouse} onChange={(event) => updateField('warehouse', event.target.value)}>
+                <option>Almacen Principal</option>
+                <option>Almacen 2</option>
+                <option>Almacen 3</option>
+                <option>Almacen Cuarentena</option>
+              </select>
+            </label>
+
+            <label>
+              Ubicacion
+              <input value={newInspection.location} onChange={(event) => updateField('location', event.target.value)} placeholder="A-01-R01-N01" />
+            </label>
+
+            <label>
+              Estado
+              <select value={newInspection.status} onChange={(event) => updateField('status', event.target.value)}>
+                <option>En revision</option>
+                <option>Aprobado</option>
+                <option>Cuarentena</option>
+                <option>Rechazado</option>
+              </select>
+            </label>
+
+            <label>
+              Inspector
+              <input value={newInspection.inspector} onChange={(event) => updateField('inspector', event.target.value)} placeholder="Responsable" />
+            </label>
+
+            <label>
+              Fecha
+              <input type="date" value={newInspection.date} onChange={(event) => updateField('date', event.target.value)} />
+            </label>
+
+            <label className="quality-wide-field">
+              Motivo / observacion
+              <input value={newInspection.reason} onChange={(event) => updateField('reason', event.target.value)} placeholder="Observacion de calidad" />
+            </label>
+          </div>
+
+          <div className="product-form-actions">
+            <button type="button" className="secondary-button" onClick={resetForm}>
+              Limpiar
+            </button>
+
+            <button type="submit" className="primary-button small">
+              Guardar inspeccion
+            </button>
+          </div>
+        </form>
+      )}
+
+      <div className="quality-table">
+        <div className="quality-table-head">
+          <span>QC</span>
+          <span>Producto</span>
+          <span>Lote</span>
+          <span>Cantidad</span>
+          <span>Almacen</span>
+          <span>Ubicacion</span>
+          <span>Inspector</span>
+          <span>Fecha</span>
+          <span>Estado</span>
+          <span>Acciones</span>
+        </div>
+
+        {filteredInspections.map((item) => (
+          <div key={item.id} className="quality-table-row">
+            <strong>{item.id}</strong>
+            <div>
+              <strong>{item.productName}</strong>
+              <small>{item.productCode}</small>
+            </div>
+            <span>{item.lot || 'N/A'}</span>
+            <b>{item.quantity}</b>
+            <span>{item.warehouse}</span>
+            <span>{item.location || 'N/A'}</span>
+            <span>{item.inspector || 'Sin asignar'}</span>
+            <span>{item.date || 'Sin fecha'}</span>
+            <em className={item.status === 'Aprobado' ? 'status-ok' : item.status === 'Cuarentena' ? 'status-neutral' : item.status === 'Rechazado' ? 'status-low' : 'status-neutral'}>
+              {item.status}
+            </em>
+            <div className="quality-actions">
+              <button type="button" onClick={() => changeStatus(item.id, 'Aprobado')}>Liberar</button>
+              <button type="button" onClick={() => changeStatus(item.id, 'Cuarentena')}>Bloquear</button>
+            </div>
+          </div>
+        ))}
+
+        {filteredInspections.length === 0 && (
+          <div className="empty-products">
+            No hay inspecciones para mostrar.
+          </div>
+        )}
+      </div>
+    </section>
+  )
+}
+
 function InventoryAdvancedSection({ section }) {
   const data = advancedInventorySections.find((item) => item.id === section)
 
@@ -4876,8 +5208,9 @@ function InventoryModule() {
       {inventoryView === 'dispatch' && <InventoryDispatchMethods />}
       {inventoryView === 'picking' && <InventoryPickingRoutes />}
       {inventoryView === 'reorder' && <InventoryReorderSafetyStock />}
+      {inventoryView === 'quality' && <InventoryQualityControl />}
       {advancedInventorySections
-        .filter((section) => section.id !== 'lots' && section.id !== 'locations' && section.id !== 'variants' && section.id !== 'codes' && section.id !== 'putaway' && section.id !== 'dispatch' && section.id !== 'picking' && section.id !== 'reorder')
+        .filter((section) => section.id !== 'lots' && section.id !== 'locations' && section.id !== 'variants' && section.id !== 'codes' && section.id !== 'putaway' && section.id !== 'dispatch' && section.id !== 'picking' && section.id !== 'reorder' && section.id !== 'quality')
         .map((section) =>
           inventoryView === section.id ? (
             <InventoryAdvancedSection key={section.id} section={section.id} />
