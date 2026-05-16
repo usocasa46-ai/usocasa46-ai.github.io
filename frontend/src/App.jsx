@@ -5118,6 +5118,322 @@ function InventoryQualityControl() {
   )
 }
 
+
+function InventoryWasteReturns() {
+  const [searchTerm, setSearchTerm] = useState('')
+  const [showForm, setShowForm] = useState(false)
+
+  const [records, setRecords] = useState([
+    {
+      id: 'MD-001',
+      type: 'Merma',
+      productCode: 'PRO-020',
+      productName: 'Caja de Lapices',
+      lot: 'LOT-2026-011',
+      warehouse: 'Almacen 2',
+      location: 'B-02-R03-N01',
+      quantity: 4,
+      reason: 'Empaque danado',
+      status: 'Aprobado',
+      responsible: 'Carlos Medina',
+      date: '2026-05-15',
+    },
+    {
+      id: 'MD-002',
+      type: 'Devolucion cliente',
+      productCode: 'PRO-002',
+      productName: 'Mouse Inalambrico Logitech',
+      lot: 'LOT-2026-002',
+      warehouse: 'Almacen Principal',
+      location: 'A-02-R03-N01',
+      quantity: 2,
+      reason: 'Defecto reportado por cliente',
+      status: 'Pendiente',
+      responsible: 'Ana Gomez',
+      date: '2026-05-16',
+    },
+  ])
+
+  const [newRecord, setNewRecord] = useState({
+    id: '',
+    type: 'Merma',
+    productCode: '',
+    productName: '',
+    lot: '',
+    warehouse: 'Almacen Principal',
+    location: '',
+    quantity: '',
+    reason: '',
+    status: 'Pendiente',
+    responsible: '',
+    date: '',
+  })
+
+  const updateField = (field, value) => {
+    setNewRecord((current) => ({
+      ...current,
+      [field]: value,
+    }))
+  }
+
+  const resetForm = () => {
+    setNewRecord({
+      id: '',
+      type: 'Merma',
+      productCode: '',
+      productName: '',
+      lot: '',
+      warehouse: 'Almacen Principal',
+      location: '',
+      quantity: '',
+      reason: '',
+      status: 'Pendiente',
+      responsible: '',
+      date: '',
+    })
+  }
+
+  const createRecord = (event) => {
+    event.preventDefault()
+
+    if (!newRecord.id || !newRecord.productCode || !newRecord.productName || !newRecord.quantity || !newRecord.reason) {
+      alert('Debes completar codigo, producto, cantidad y motivo.')
+      return
+    }
+
+    setRecords((current) => [
+      {
+        ...newRecord,
+        quantity: Number(newRecord.quantity || 0),
+      },
+      ...current,
+    ])
+
+    resetForm()
+    setShowForm(false)
+  }
+
+  const changeStatus = (id, status) => {
+    setRecords((current) =>
+      current.map((item) =>
+        item.id === id ? { ...item, status } : item
+      )
+    )
+  }
+
+  const filteredRecords = records.filter((item) => {
+    const search = searchTerm.toLowerCase()
+
+    return (
+      item.id.toLowerCase().includes(search) ||
+      item.type.toLowerCase().includes(search) ||
+      item.productCode.toLowerCase().includes(search) ||
+      item.productName.toLowerCase().includes(search) ||
+      item.lot.toLowerCase().includes(search) ||
+      item.warehouse.toLowerCase().includes(search) ||
+      item.location.toLowerCase().includes(search) ||
+      item.reason.toLowerCase().includes(search) ||
+      item.status.toLowerCase().includes(search) ||
+      item.responsible.toLowerCase().includes(search)
+    )
+  })
+
+  const wasteCount = records.filter((item) => item.type === 'Merma').length
+  const customerReturns = records.filter((item) => item.type === 'Devolucion cliente').length
+  const supplierReturns = records.filter((item) => item.type === 'Devolucion proveedor').length
+  const affectedUnits = records.reduce((sum, item) => sum + Number(item.quantity || 0), 0)
+
+  return (
+    <section className="card inventory-waste-card">
+      <div className="inventory-advanced-header">
+        <div>
+          <span>Inventario avanzado</span>
+          <h3>Gestion de Mermas y Devoluciones</h3>
+          <p>Registra mermas, averias, devoluciones de clientes y devoluciones a proveedores.</p>
+        </div>
+
+        <button className="primary-button small" onClick={() => setShowForm(true)}>
+          Nuevo registro
+        </button>
+      </div>
+
+      <div className="waste-kpi-grid">
+        <article>
+          <span>Mermas</span>
+          <strong>{wasteCount}</strong>
+          <p>Perdidas internas</p>
+        </article>
+
+        <article>
+          <span>Dev. clientes</span>
+          <strong>{customerReturns}</strong>
+          <p>Entradas por reclamo</p>
+        </article>
+
+        <article>
+          <span>Dev. proveedor</span>
+          <strong>{supplierReturns}</strong>
+          <p>Salidas a proveedor</p>
+        </article>
+
+        <article>
+          <span>Unidades afectadas</span>
+          <strong>{affectedUnits}</strong>
+          <p>Total registrado</p>
+        </article>
+      </div>
+
+      <div className="waste-toolbar">
+        <div className="product-search-box">
+          <input
+            value={searchTerm}
+            onChange={(event) => setSearchTerm(event.target.value)}
+            placeholder="Buscar por codigo, producto, lote, tipo, motivo, estado o responsable..."
+          />
+        </div>
+      </div>
+
+      {showForm && (
+        <form className="waste-form-card" onSubmit={createRecord}>
+          <div className="product-form-header">
+            <div>
+              <h4>Nuevo registro</h4>
+              <p>Registra una merma o devolucion.</p>
+            </div>
+
+            <button type="button" className="close-form-button" onClick={() => setShowForm(false)}>
+              Cerrar
+            </button>
+          </div>
+
+          <div className="waste-form-grid">
+            <label>
+              Codigo
+              <input value={newRecord.id} onChange={(event) => updateField('id', event.target.value)} placeholder="MD-000" />
+            </label>
+
+            <label>
+              Tipo
+              <select value={newRecord.type} onChange={(event) => updateField('type', event.target.value)}>
+                <option>Merma</option>
+                <option>Devolucion cliente</option>
+                <option>Devolucion proveedor</option>
+              </select>
+            </label>
+
+            <label>
+              Codigo producto
+              <input value={newRecord.productCode} onChange={(event) => updateField('productCode', event.target.value)} placeholder="PRO-000" />
+            </label>
+
+            <label className="waste-wide-field">
+              Producto
+              <input value={newRecord.productName} onChange={(event) => updateField('productName', event.target.value)} placeholder="Nombre del producto" />
+            </label>
+
+            <label>
+              Lote
+              <input value={newRecord.lot} onChange={(event) => updateField('lot', event.target.value)} placeholder="LOT-000" />
+            </label>
+
+            <label>
+              Almacen
+              <select value={newRecord.warehouse} onChange={(event) => updateField('warehouse', event.target.value)}>
+                <option>Almacen Principal</option>
+                <option>Almacen 2</option>
+                <option>Almacen 3</option>
+                <option>Almacen Cuarentena</option>
+              </select>
+            </label>
+
+            <label>
+              Ubicacion
+              <input value={newRecord.location} onChange={(event) => updateField('location', event.target.value)} placeholder="A-01-R01-N01" />
+            </label>
+
+            <label>
+              Cantidad
+              <input type="number" value={newRecord.quantity} onChange={(event) => updateField('quantity', event.target.value)} placeholder="0" />
+            </label>
+
+            <label className="waste-wide-field">
+              Motivo
+              <input value={newRecord.reason} onChange={(event) => updateField('reason', event.target.value)} placeholder="Motivo" />
+            </label>
+
+            <label>
+              Estado
+              <select value={newRecord.status} onChange={(event) => updateField('status', event.target.value)}>
+                <option>Pendiente</option>
+                <option>Aprobado</option>
+                <option>Rechazado</option>
+              </select>
+            </label>
+
+            <label>
+              Responsable
+              <input value={newRecord.responsible} onChange={(event) => updateField('responsible', event.target.value)} placeholder="Responsable" />
+            </label>
+
+            <label>
+              Fecha
+              <input type="date" value={newRecord.date} onChange={(event) => updateField('date', event.target.value)} />
+            </label>
+          </div>
+
+          <div className="product-form-actions">
+            <button type="button" className="secondary-button" onClick={resetForm}>
+              Limpiar
+            </button>
+
+            <button type="submit" className="primary-button small">
+              Guardar registro
+            </button>
+          </div>
+        </form>
+      )}
+
+      <div className="waste-table">
+        <div className="waste-table-head">
+          <span>Codigo</span>
+          <span>Tipo</span>
+          <span>Producto</span>
+          <span>Lote</span>
+          <span>Cantidad</span>
+          <span>Almacen</span>
+          <span>Ubicacion</span>
+          <span>Motivo</span>
+          <span>Estado</span>
+          <span>Acciones</span>
+        </div>
+
+        {filteredRecords.map((item) => (
+          <div key={item.id} className="waste-table-row">
+            <strong>{item.id}</strong>
+            <span>{item.type}</span>
+            <div>
+              <strong>{item.productName}</strong>
+              <small>{item.productCode}</small>
+            </div>
+            <span>{item.lot || 'N/A'}</span>
+            <b>{item.quantity}</b>
+            <span>{item.warehouse}</span>
+            <span>{item.location || 'N/A'}</span>
+            <span>{item.reason}</span>
+            <em className={item.status === 'Aprobado' ? 'status-ok' : item.status === 'Pendiente' ? 'status-neutral' : 'status-low'}>
+              {item.status}
+            </em>
+            <div className="waste-actions">
+              <button type="button" onClick={() => changeStatus(item.id, 'Aprobado')}>Aprobar</button>
+              <button type="button" onClick={() => changeStatus(item.id, 'Rechazado')}>Rechazar</button>
+            </div>
+          </div>
+        ))}
+      </div>
+    </section>
+  )
+}
+
 function InventoryAdvancedSection({ section }) {
   const data = advancedInventorySections.find((item) => item.id === section)
 
@@ -5209,8 +5525,9 @@ function InventoryModule() {
       {inventoryView === 'picking' && <InventoryPickingRoutes />}
       {inventoryView === 'reorder' && <InventoryReorderSafetyStock />}
       {inventoryView === 'quality' && <InventoryQualityControl />}
+      {inventoryView === 'waste' && <InventoryWasteReturns />}
       {advancedInventorySections
-        .filter((section) => section.id !== 'lots' && section.id !== 'locations' && section.id !== 'variants' && section.id !== 'codes' && section.id !== 'putaway' && section.id !== 'dispatch' && section.id !== 'picking' && section.id !== 'reorder' && section.id !== 'quality')
+        .filter((section) => section.id !== 'lots' && section.id !== 'locations' && section.id !== 'variants' && section.id !== 'codes' && section.id !== 'putaway' && section.id !== 'dispatch' && section.id !== 'picking' && section.id !== 'reorder' && section.id !== 'quality' && section.id !== 'waste')
         .map((section) =>
           inventoryView === section.id ? (
             <InventoryAdvancedSection key={section.id} section={section.id} />
