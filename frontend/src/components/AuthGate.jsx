@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import App from '../App.jsx'
 import LoginScreen from './LoginScreen.jsx'
 import './AuthGate.css'
@@ -73,6 +73,8 @@ export default function AuthGate() {
   const [users, setUsers] = useState(() => loadUsers())
   const [session, setSession] = useState(() => loadValidSession())
   const [showUsersPanel, setShowUsersPanel] = useState(false)
+  const [showFileMenu, setShowFileMenu] = useState(false)
+  const [fileMenuPosition, setFileMenuPosition] = useState({ top: 52, left: 430 })
   const [userError, setUserError] = useState('')
   const [newUser, setNewUser] = useState({
     fullName: '',
@@ -127,7 +129,58 @@ export default function AuthGate() {
     localStorage.removeItem('inveFatSession')
     setSession(null)
     setShowUsersPanel(false)
+    setShowFileMenu(false)
   }
+
+  useEffect(() => {
+    if (!session) return undefined
+
+    const connectFileMenu = () => {
+      const buttons = Array.from(document.querySelectorAll('button'))
+      const fileButton = buttons.find((button) => button.textContent.trim() === 'Archivo')
+
+      if (!fileButton) return undefined
+
+      const openMenu = (event) => {
+        event.preventDefault()
+        event.stopPropagation()
+
+        const rect = fileButton.getBoundingClientRect()
+
+        setFileMenuPosition({
+          top: rect.bottom + 8,
+          left: rect.left,
+        })
+
+        setShowFileMenu((current) => !current)
+      }
+
+      const closeMenu = (event) => {
+        if (
+          event.target.closest('.auth-file-dropdown') ||
+          event.target.textContent?.trim() === 'Archivo'
+        ) {
+          return
+        }
+
+        setShowFileMenu(false)
+      }
+
+      fileButton.addEventListener('click', openMenu)
+      document.addEventListener('click', closeMenu)
+
+      return () => {
+        fileButton.removeEventListener('click', openMenu)
+        document.removeEventListener('click', closeMenu)
+      }
+    }
+
+    const timer = setTimeout(connectFileMenu, 300)
+
+    return () => {
+      clearTimeout(timer)
+    }
+  }, [session])
 
   const updateNewUser = (field, value) => {
     setNewUser((current) => ({
@@ -221,6 +274,50 @@ export default function AuthGate() {
     <>
       <App />
 
+      {showFileMenu && (
+        <div
+          className="auth-file-dropdown"
+          style={{
+            top: `${fileMenuPosition.top}px`,
+            left: `${fileMenuPosition.left}px`,
+          }}
+        >
+          <button type="button">
+            Nuevo
+          </button>
+
+          <button type="button">
+            Abrir
+          </button>
+
+          <button type="button">
+            Guardar
+          </button>
+
+          <button type="button">
+            Guardar como
+          </button>
+
+          <button type="button" onClick={() => window.print()}>
+            Imprimir
+          </button>
+
+          <button type="button">
+            Exportar PDF
+          </button>
+
+          <button type="button">
+            Configurar pagina
+          </button>
+
+          <div className="auth-file-separator" />
+
+          <button type="button" className="auth-file-danger" onClick={handleLogout}>
+            Cerrar sesion
+          </button>
+        </div>
+      )}
+
       <div className="auth-session-panel">
         <div>
           <strong>{session.fullName}</strong>
@@ -232,10 +329,6 @@ export default function AuthGate() {
             Usuarios
           </button>
         )}
-
-        <button type="button" onClick={handleLogout}>
-          Cerrar sesion
-        </button>
       </div>
 
       {showUsersPanel && session.isMainAdmin && (
