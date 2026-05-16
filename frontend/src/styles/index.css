@@ -10622,3 +10622,196 @@ body.sidebar-collapsed-mode .topbar {
     grid-column: span 1;
   }
 }
+
+/* INVENTARIOS CICLICOS */
+.inventory-cycle-card {
+  min-height: 640px;
+}
+
+.cycle-kpi-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 12px;
+  margin-bottom: 14px;
+}
+
+.cycle-kpi-grid article {
+  border-radius: 17px;
+  padding: 15px;
+  background: #f8fafc;
+  border: 1px solid rgba(15, 61, 74, 0.10);
+}
+
+.cycle-kpi-grid span {
+  display: block;
+  color: #64748b;
+  font-size: 12px;
+  font-weight: 850;
+}
+
+.cycle-kpi-grid strong {
+  display: block;
+  margin: 7px 0 3px;
+  color: #0f172a;
+  font-size: 25px;
+  font-weight: 950;
+}
+
+.cycle-kpi-grid p {
+  margin: 0;
+  color: #64748b;
+  font-size: 12px;
+  font-weight: 650;
+}
+
+.cycle-toolbar {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 14px;
+}
+
+.cycle-toolbar .product-search-box {
+  width: 100%;
+  max-width: 780px;
+}
+
+.cycle-form-card {
+  border-radius: 18px;
+  padding: 16px;
+  margin-bottom: 16px;
+  background: #f8fafc;
+  border: 1px solid rgba(15, 61, 74, 0.10);
+}
+
+.cycle-form-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.cycle-form-grid label {
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+  color: #334155;
+  font-size: 12px;
+  font-weight: 850;
+}
+
+.cycle-form-grid input,
+.cycle-form-grid select {
+  height: 42px;
+  border: 1px solid rgba(15, 61, 74, 0.13);
+  border-radius: 12px;
+  outline: 0;
+  padding: 0 12px;
+  background: #ffffff;
+  color: #0f172a;
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.cycle-wide-field {
+  grid-column: span 2;
+}
+
+.cycle-table {
+  width: 100%;
+  overflow-x: auto;
+}
+
+.cycle-table-head,
+.cycle-table-row {
+  min-width: 1260px;
+  display: grid;
+  grid-template-columns: 90px 1.25fr 120px 150px 140px 90px 90px 100px 100px 110px 150px;
+  gap: 12px;
+  align-items: center;
+}
+
+.cycle-table-head {
+  padding: 12px 14px;
+  border-radius: 12px;
+  background: var(--color-primary-soft, #e6f1f4);
+  color: var(--color-primary, #0f3d4a);
+  font-size: 12px;
+  font-weight: 950;
+}
+
+.cycle-table-row {
+  padding: 14px;
+  border-bottom: 1px solid rgba(15, 61, 74, 0.10);
+  color: #475569;
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.cycle-table-row strong,
+.cycle-table-row small {
+  display: block;
+}
+
+.cycle-table-row strong {
+  color: #0f172a;
+  font-size: 13px;
+  font-weight: 950;
+}
+
+.cycle-table-row small {
+  margin-top: 3px;
+  color: #64748b;
+  font-size: 11px;
+  font-weight: 750;
+}
+
+.cycle-table-row b {
+  color: #0f172a;
+  font-weight: 950;
+}
+
+.cycle-table-row em {
+  width: max-content;
+  border-radius: 999px;
+  padding: 6px 10px;
+  font-style: normal;
+  font-size: 11px;
+  font-weight: 950;
+}
+
+.cycle-actions {
+  display: flex;
+  gap: 6px;
+}
+
+.cycle-actions button {
+  min-height: 32px;
+  border-radius: 10px;
+  padding: 0 9px;
+  background: var(--color-primary, #0f3d4a);
+  color: #ffffff;
+  font-size: 11px;
+  font-weight: 950;
+}
+
+.cycle-actions button:last-child {
+  background: #f97316;
+}
+
+@media (max-width: 1200px) {
+  .cycle-kpi-grid,
+  .cycle-form-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 700px) {
+  .cycle-kpi-grid,
+  .cycle-form-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .cycle-wide-field {
+    grid-column: span 1;
+  }
+}

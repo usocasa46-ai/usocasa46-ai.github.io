@@ -5434,6 +5434,364 @@ function InventoryWasteReturns() {
   )
 }
 
+
+function InventoryCycleCounting() {
+  const [searchTerm, setSearchTerm] = useState('')
+  const [showForm, setShowForm] = useState(false)
+
+  const [counts, setCounts] = useState([
+    {
+      id: 'CC-001',
+      productCode: 'PRO-001',
+      productName: 'Laptop HP Pavilion',
+      lot: 'LOT-2026-001',
+      warehouse: 'Almacen Principal',
+      location: 'A-01-R01-N01',
+      systemStock: 15,
+      physicalStock: 14,
+      responsible: 'Carlos Medina',
+      date: '2026-05-16',
+      status: 'Contado',
+      note: 'Diferencia menor detectada',
+    },
+    {
+      id: 'CC-002',
+      productCode: 'PRO-002',
+      productName: 'Mouse Inalambrico Logitech',
+      lot: 'LOT-2026-002',
+      warehouse: 'Almacen Principal',
+      location: 'A-02-R03-N01',
+      systemStock: 80,
+      physicalStock: 80,
+      responsible: 'Ana Gomez',
+      date: '2026-05-16',
+      status: 'Ajustado',
+      note: 'Inventario correcto',
+    },
+    {
+      id: 'CC-003',
+      productCode: 'PRO-020',
+      productName: 'Caja de Lapices',
+      lot: 'LOT-2026-011',
+      warehouse: 'Almacen 2',
+      location: 'B-02-R03-N01',
+      systemStock: 60,
+      physicalStock: 0,
+      responsible: 'Jose Perez',
+      date: '2026-05-17',
+      status: 'Pendiente',
+      note: 'Conteo pendiente',
+    },
+  ])
+
+  const [newCount, setNewCount] = useState({
+    id: '',
+    productCode: '',
+    productName: '',
+    lot: '',
+    warehouse: 'Almacen Principal',
+    location: '',
+    systemStock: '',
+    physicalStock: '',
+    responsible: '',
+    date: '',
+    status: 'Pendiente',
+    note: '',
+  })
+
+  const updateField = (field, value) => {
+    setNewCount((current) => ({
+      ...current,
+      [field]: value,
+    }))
+  }
+
+  const resetForm = () => {
+    setNewCount({
+      id: '',
+      productCode: '',
+      productName: '',
+      lot: '',
+      warehouse: 'Almacen Principal',
+      location: '',
+      systemStock: '',
+      physicalStock: '',
+      responsible: '',
+      date: '',
+      status: 'Pendiente',
+      note: '',
+    })
+  }
+
+  const getDifference = (item) => {
+    return Number(item.physicalStock || 0) - Number(item.systemStock || 0)
+  }
+
+  const getAccuracy = (item) => {
+    const systemStock = Number(item.systemStock || 0)
+    const physicalStock = Number(item.physicalStock || 0)
+
+    if (!systemStock && !physicalStock) return 100
+    if (!systemStock) return 0
+
+    const diff = Math.abs(systemStock - physicalStock)
+    return Math.max(0, Math.round((1 - diff / systemStock) * 100))
+  }
+
+  const createCount = (event) => {
+    event.preventDefault()
+
+    if (!newCount.id || !newCount.productCode || !newCount.productName || !newCount.systemStock) {
+      alert('Debes completar codigo, producto y stock sistema.')
+      return
+    }
+
+    setCounts((current) => [
+      {
+        ...newCount,
+        systemStock: Number(newCount.systemStock || 0),
+        physicalStock: Number(newCount.physicalStock || 0),
+      },
+      ...current,
+    ])
+
+    resetForm()
+    setShowForm(false)
+  }
+
+  const changeStatus = (id, status) => {
+    setCounts((current) =>
+      current.map((item) =>
+        item.id === id
+          ? { ...item, status }
+          : item
+      )
+    )
+  }
+
+  const filteredCounts = counts.filter((item) => {
+    const search = searchTerm.toLowerCase()
+
+    return (
+      item.id.toLowerCase().includes(search) ||
+      item.productCode.toLowerCase().includes(search) ||
+      item.productName.toLowerCase().includes(search) ||
+      item.lot.toLowerCase().includes(search) ||
+      item.warehouse.toLowerCase().includes(search) ||
+      item.location.toLowerCase().includes(search) ||
+      item.responsible.toLowerCase().includes(search) ||
+      item.status.toLowerCase().includes(search) ||
+      item.note.toLowerCase().includes(search)
+    )
+  })
+
+  const pendingCount = counts.filter((item) => item.status === 'Pendiente').length
+  const countedCount = counts.filter((item) => item.status === 'Contado').length
+  const adjustedCount = counts.filter((item) => item.status === 'Ajustado').length
+  const averageAccuracy = counts.length
+    ? Math.round(counts.reduce((sum, item) => sum + getAccuracy(item), 0) / counts.length)
+    : 0
+
+  return (
+    <section className="card inventory-cycle-card">
+      <div className="inventory-advanced-header">
+        <div>
+          <span>Inventario avanzado</span>
+          <h3>Inventarios Ciclicos / Cycle Counting</h3>
+          <p>Controla conteos fisicos por producto, almacen, lote y ubicacion para medir exactitud del inventario.</p>
+        </div>
+
+        <button className="primary-button small" onClick={() => setShowForm(true)}>
+          Nuevo conteo
+        </button>
+      </div>
+
+      <div className="cycle-kpi-grid">
+        <article>
+          <span>Pendientes</span>
+          <strong>{pendingCount}</strong>
+          <p>Conteos por realizar</p>
+        </article>
+
+        <article>
+          <span>Contados</span>
+          <strong>{countedCount}</strong>
+          <p>Revisados fisicamente</p>
+        </article>
+
+        <article>
+          <span>Ajustados</span>
+          <strong>{adjustedCount}</strong>
+          <p>Con cierre aplicado</p>
+        </article>
+
+        <article>
+          <span>Exactitud</span>
+          <strong>{averageAccuracy}%</strong>
+          <p>Promedio general</p>
+        </article>
+      </div>
+
+      <div className="cycle-toolbar">
+        <div className="product-search-box">
+          <input
+            value={searchTerm}
+            onChange={(event) => setSearchTerm(event.target.value)}
+            placeholder="Buscar por conteo, producto, lote, almacen, ubicacion, responsable o estado..."
+          />
+        </div>
+      </div>
+
+      {showForm && (
+        <form className="cycle-form-card" onSubmit={createCount}>
+          <div className="product-form-header">
+            <div>
+              <h4>Nuevo conteo ciclico</h4>
+              <p>Registra el stock del sistema y el stock fisico contado.</p>
+            </div>
+
+            <button type="button" className="close-form-button" onClick={() => setShowForm(false)}>
+              Cerrar
+            </button>
+          </div>
+
+          <div className="cycle-form-grid">
+            <label>
+              Codigo conteo
+              <input value={newCount.id} onChange={(event) => updateField('id', event.target.value)} placeholder="CC-000" />
+            </label>
+
+            <label>
+              Codigo producto
+              <input value={newCount.productCode} onChange={(event) => updateField('productCode', event.target.value)} placeholder="PRO-000" />
+            </label>
+
+            <label className="cycle-wide-field">
+              Producto
+              <input value={newCount.productName} onChange={(event) => updateField('productName', event.target.value)} placeholder="Nombre del producto" />
+            </label>
+
+            <label>
+              Lote
+              <input value={newCount.lot} onChange={(event) => updateField('lot', event.target.value)} placeholder="LOT-000" />
+            </label>
+
+            <label>
+              Almacen
+              <select value={newCount.warehouse} onChange={(event) => updateField('warehouse', event.target.value)}>
+                <option>Almacen Principal</option>
+                <option>Almacen 2</option>
+                <option>Almacen 3</option>
+                <option>Almacen Cuarentena</option>
+              </select>
+            </label>
+
+            <label>
+              Ubicacion
+              <input value={newCount.location} onChange={(event) => updateField('location', event.target.value)} placeholder="A-01-R01-N01" />
+            </label>
+
+            <label>
+              Stock sistema
+              <input type="number" value={newCount.systemStock} onChange={(event) => updateField('systemStock', event.target.value)} placeholder="0" />
+            </label>
+
+            <label>
+              Stock fisico
+              <input type="number" value={newCount.physicalStock} onChange={(event) => updateField('physicalStock', event.target.value)} placeholder="0" />
+            </label>
+
+            <label>
+              Responsable
+              <input value={newCount.responsible} onChange={(event) => updateField('responsible', event.target.value)} placeholder="Responsable" />
+            </label>
+
+            <label>
+              Fecha
+              <input type="date" value={newCount.date} onChange={(event) => updateField('date', event.target.value)} />
+            </label>
+
+            <label>
+              Estado
+              <select value={newCount.status} onChange={(event) => updateField('status', event.target.value)}>
+                <option>Pendiente</option>
+                <option>Contado</option>
+                <option>Ajustado</option>
+              </select>
+            </label>
+
+            <label className="cycle-wide-field">
+              Nota
+              <input value={newCount.note} onChange={(event) => updateField('note', event.target.value)} placeholder="Observacion del conteo" />
+            </label>
+          </div>
+
+          <div className="product-form-actions">
+            <button type="button" className="secondary-button" onClick={resetForm}>
+              Limpiar
+            </button>
+
+            <button type="submit" className="primary-button small">
+              Guardar conteo
+            </button>
+          </div>
+        </form>
+      )}
+
+      <div className="cycle-table">
+        <div className="cycle-table-head">
+          <span>Conteo</span>
+          <span>Producto</span>
+          <span>Lote</span>
+          <span>Almacen</span>
+          <span>Ubicacion</span>
+          <span>Sistema</span>
+          <span>Fisico</span>
+          <span>Diferencia</span>
+          <span>Exactitud</span>
+          <span>Estado</span>
+          <span>Acciones</span>
+        </div>
+
+        {filteredCounts.map((item) => {
+          const difference = getDifference(item)
+          const accuracy = getAccuracy(item)
+
+          return (
+            <div key={item.id} className="cycle-table-row">
+              <strong>{item.id}</strong>
+              <div>
+                <strong>{item.productName}</strong>
+                <small>{item.productCode}</small>
+              </div>
+              <span>{item.lot || 'N/A'}</span>
+              <span>{item.warehouse}</span>
+              <span>{item.location || 'N/A'}</span>
+              <b>{item.systemStock}</b>
+              <b>{item.physicalStock}</b>
+              <em className={difference === 0 ? 'status-ok' : 'status-low'}>{difference}</em>
+              <span>{accuracy}%</span>
+              <em className={item.status === 'Ajustado' ? 'status-ok' : item.status === 'Contado' ? 'status-neutral' : 'status-low'}>
+                {item.status}
+              </em>
+              <div className="cycle-actions">
+                <button type="button" onClick={() => changeStatus(item.id, 'Contado')}>Contado</button>
+                <button type="button" onClick={() => changeStatus(item.id, 'Ajustado')}>Ajustar</button>
+              </div>
+            </div>
+          )
+        })}
+
+        {filteredCounts.length === 0 && (
+          <div className="empty-products">
+            No hay conteos para mostrar.
+          </div>
+        )}
+      </div>
+    </section>
+  )
+}
+
 function InventoryAdvancedSection({ section }) {
   const data = advancedInventorySections.find((item) => item.id === section)
 
@@ -5526,8 +5884,9 @@ function InventoryModule() {
       {inventoryView === 'reorder' && <InventoryReorderSafetyStock />}
       {inventoryView === 'quality' && <InventoryQualityControl />}
       {inventoryView === 'waste' && <InventoryWasteReturns />}
+      {inventoryView === 'cycle' && <InventoryCycleCounting />}
       {advancedInventorySections
-        .filter((section) => section.id !== 'lots' && section.id !== 'locations' && section.id !== 'variants' && section.id !== 'codes' && section.id !== 'putaway' && section.id !== 'dispatch' && section.id !== 'picking' && section.id !== 'reorder' && section.id !== 'quality' && section.id !== 'waste')
+        .filter((section) => section.id !== 'lots' && section.id !== 'locations' && section.id !== 'variants' && section.id !== 'codes' && section.id !== 'putaway' && section.id !== 'dispatch' && section.id !== 'picking' && section.id !== 'reorder' && section.id !== 'quality' && section.id !== 'waste' && section.id !== 'cycle' && section.id !== 'counting' && section.id !== 'cycle-counting')
         .map((section) =>
           inventoryView === section.id ? (
             <InventoryAdvancedSection key={section.id} section={section.id} />
