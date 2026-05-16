@@ -4670,6 +4670,357 @@ function InventoryPickingRoutes() {
     </section>
   )
 }
+
+function InventoryReorderSafetyStock() {
+  const [searchTerm, setSearchTerm] = useState('')
+  const [showRuleForm, setShowRuleForm] = useState(false)
+
+  const [reorderRules, setReorderRules] = useState([
+    {
+      productCode: 'PRO-001',
+      productName: 'Laptop HP Pavilion',
+      currentStock: 24,
+      dailyDemand: 2,
+      leadTimeDays: 7,
+      safetyStock: 8,
+      minStock: 14,
+      maxStock: 60,
+      supplier: 'Suplidores del Caribe',
+      cost: 28500,
+      status: 'Activo',
+    },
+    {
+      productCode: 'PRO-002',
+      productName: 'Mouse Inalambrico Logitech',
+      currentStock: 18,
+      dailyDemand: 5,
+      leadTimeDays: 5,
+      safetyStock: 12,
+      minStock: 25,
+      maxStock: 120,
+      supplier: 'Distribuidora Nacional',
+      cost: 420,
+      status: 'Activo',
+    },
+    {
+      productCode: 'PRO-020',
+      productName: 'Caja de Lapices',
+      currentStock: 80,
+      dailyDemand: 8,
+      leadTimeDays: 4,
+      safetyStock: 20,
+      minStock: 52,
+      maxStock: 220,
+      supplier: 'Papeleria Mayorista RD',
+      cost: 95,
+      status: 'Activo',
+    },
+  ])
+
+  const [newRule, setNewRule] = useState({
+    productCode: '',
+    productName: '',
+    currentStock: '',
+    dailyDemand: '',
+    leadTimeDays: '',
+    safetyStock: '',
+    minStock: '',
+    maxStock: '',
+    supplier: '',
+    cost: '',
+    status: 'Activo',
+  })
+
+  const updateRuleField = (field, value) => {
+    setNewRule((current) => ({
+      ...current,
+      [field]: value,
+    }))
+  }
+
+  const resetRuleForm = () => {
+    setNewRule({
+      productCode: '',
+      productName: '',
+      currentStock: '',
+      dailyDemand: '',
+      leadTimeDays: '',
+      safetyStock: '',
+      minStock: '',
+      maxStock: '',
+      supplier: '',
+      cost: '',
+      status: 'Activo',
+    })
+  }
+
+  const getReorderPoint = (rule) => {
+    return Number(rule.dailyDemand || 0) * Number(rule.leadTimeDays || 0) + Number(rule.safetyStock || 0)
+  }
+
+  const getCoverageDays = (rule) => {
+    const demand = Number(rule.dailyDemand || 0)
+    if (!demand) return 0
+    return Math.floor(Number(rule.currentStock || 0) / demand)
+  }
+
+  const getSuggestedQty = (rule) => {
+    return Math.max(0, Number(rule.maxStock || 0) - Number(rule.currentStock || 0))
+  }
+
+  const getPriority = (rule) => {
+    const currentStock = Number(rule.currentStock || 0)
+    const reorderPoint = getReorderPoint(rule)
+    const minStock = Number(rule.minStock || 0)
+
+    if (currentStock <= minStock) return 'Critica'
+    if (currentStock <= reorderPoint) return 'Alta'
+    if (getCoverageDays(rule) <= 10) return 'Media'
+    return 'Normal'
+  }
+
+  const getSuggestedOrderValue = (rule) => {
+    return getSuggestedQty(rule) * Number(rule.cost || 0)
+  }
+
+  const createRule = (event) => {
+    event.preventDefault()
+
+    if (!newRule.productCode || !newRule.productName || !newRule.dailyDemand || !newRule.leadTimeDays || !newRule.maxStock) {
+      alert('Debes completar codigo, producto, demanda diaria, tiempo entrega y stock maximo.')
+      return
+    }
+
+    setReorderRules((current) => [
+      {
+        ...newRule,
+        currentStock: Number(newRule.currentStock || 0),
+        dailyDemand: Number(newRule.dailyDemand || 0),
+        leadTimeDays: Number(newRule.leadTimeDays || 0),
+        safetyStock: Number(newRule.safetyStock || 0),
+        minStock: Number(newRule.minStock || 0),
+        maxStock: Number(newRule.maxStock || 0),
+        cost: Number(newRule.cost || 0),
+      },
+      ...current,
+    ])
+
+    resetRuleForm()
+    setShowRuleForm(false)
+  }
+
+  const generateSuggestedOrder = (rule) => {
+    const qty = getSuggestedQty(rule)
+
+    if (qty <= 0) {
+      alert('Este producto no requiere reposicion por ahora.')
+      return
+    }
+
+    alert(`Orden sugerida: ${rule.productName} - Cantidad: ${qty} unidades - Proveedor: ${rule.supplier || 'Sin proveedor'}`)
+  }
+
+  const filteredRules = reorderRules.filter((rule) => {
+    const search = searchTerm.toLowerCase()
+
+    return (
+      rule.productCode.toLowerCase().includes(search) ||
+      rule.productName.toLowerCase().includes(search) ||
+      rule.supplier.toLowerCase().includes(search) ||
+      rule.status.toLowerCase().includes(search) ||
+      getPriority(rule).toLowerCase().includes(search)
+    )
+  })
+
+  const activeRules = reorderRules.filter((rule) => rule.status === 'Activo').length
+  const criticalItems = reorderRules.filter((rule) => getPriority(rule) === 'Critica').length
+  const highPriorityItems = reorderRules.filter((rule) => getPriority(rule) === 'Alta').length
+  const suggestedTotalValue = reorderRules.reduce((sum, rule) => sum + getSuggestedOrderValue(rule), 0)
+
+  return (
+    <section className="card inventory-reorder-card">
+      <div className="inventory-advanced-header">
+        <div>
+          <span>Inventario avanzado</span>
+          <h3>Puntos de Pedido Automaticos y Stock de Seguridad</h3>
+          <p>Calcula punto de pedido, cobertura, stock minimo, stock maximo, stock de seguridad y sugerencias de compra.</p>
+        </div>
+
+        <button className="primary-button small" onClick={() => setShowRuleForm(true)}>
+          Nueva regla
+        </button>
+      </div>
+
+      <div className="reorder-kpi-grid">
+        <article>
+          <span>Reglas activas</span>
+          <strong>{activeRules}</strong>
+          <p>Productos configurados</p>
+        </article>
+
+        <article>
+          <span>Criticos</span>
+          <strong>{criticalItems}</strong>
+          <p>Comprar urgente</p>
+        </article>
+
+        <article>
+          <span>Alta prioridad</span>
+          <strong>{highPriorityItems}</strong>
+          <p>Requieren reposicion</p>
+        </article>
+
+        <article>
+          <span>Valor sugerido</span>
+          <strong>RD$ {suggestedTotalValue.toLocaleString('es-DO')}</strong>
+          <p>Compra estimada</p>
+        </article>
+      </div>
+
+      <div className="reorder-toolbar">
+        <div className="product-search-box">
+          <input
+            value={searchTerm}
+            onChange={(event) => setSearchTerm(event.target.value)}
+            placeholder="Buscar por producto, codigo, proveedor, prioridad o estado..."
+          />
+        </div>
+      </div>
+
+      {showRuleForm && (
+        <form className="reorder-form-card" onSubmit={createRule}>
+          <div className="product-form-header">
+            <div>
+              <h4>Nueva regla de reposicion</h4>
+              <p>Define demanda, tiempo de entrega, stock de seguridad y stock maximo.</p>
+            </div>
+
+            <button type="button" className="close-form-button" onClick={() => setShowRuleForm(false)}>
+              Cerrar
+            </button>
+          </div>
+
+          <div className="reorder-form-grid">
+            <label>
+              Codigo producto
+              <input value={newRule.productCode} onChange={(event) => updateRuleField('productCode', event.target.value)} placeholder="PRO-000" />
+            </label>
+
+            <label className="reorder-wide-field">
+              Producto
+              <input value={newRule.productName} onChange={(event) => updateRuleField('productName', event.target.value)} placeholder="Nombre del producto" />
+            </label>
+
+            <label>
+              Stock actual
+              <input type="number" value={newRule.currentStock} onChange={(event) => updateRuleField('currentStock', event.target.value)} placeholder="0" />
+            </label>
+
+            <label>
+              Demanda diaria
+              <input type="number" value={newRule.dailyDemand} onChange={(event) => updateRuleField('dailyDemand', event.target.value)} placeholder="0" />
+            </label>
+
+            <label>
+              Tiempo entrega dias
+              <input type="number" value={newRule.leadTimeDays} onChange={(event) => updateRuleField('leadTimeDays', event.target.value)} placeholder="0" />
+            </label>
+
+            <label>
+              Stock seguridad
+              <input type="number" value={newRule.safetyStock} onChange={(event) => updateRuleField('safetyStock', event.target.value)} placeholder="0" />
+            </label>
+
+            <label>
+              Stock minimo
+              <input type="number" value={newRule.minStock} onChange={(event) => updateRuleField('minStock', event.target.value)} placeholder="0" />
+            </label>
+
+            <label>
+              Stock maximo
+              <input type="number" value={newRule.maxStock} onChange={(event) => updateRuleField('maxStock', event.target.value)} placeholder="0" />
+            </label>
+
+            <label className="reorder-wide-field">
+              Proveedor sugerido
+              <input value={newRule.supplier} onChange={(event) => updateRuleField('supplier', event.target.value)} placeholder="Proveedor" />
+            </label>
+
+            <label>
+              Costo unitario
+              <input type="number" value={newRule.cost} onChange={(event) => updateRuleField('cost', event.target.value)} placeholder="0.00" />
+            </label>
+
+            <label>
+              Estado
+              <select value={newRule.status} onChange={(event) => updateRuleField('status', event.target.value)}>
+                <option>Activo</option>
+                <option>Inactivo</option>
+              </select>
+            </label>
+          </div>
+
+          <div className="product-form-actions">
+            <button type="button" className="secondary-button" onClick={resetRuleForm}>
+              Limpiar
+            </button>
+
+            <button type="submit" className="primary-button small">
+              Guardar regla
+            </button>
+          </div>
+        </form>
+      )}
+
+      <div className="reorder-table">
+        <div className="reorder-table-head">
+          <span>Producto</span>
+          <span>Stock</span>
+          <span>Demanda</span>
+          <span>Lead time</span>
+          <span>Seguridad</span>
+          <span>Punto pedido</span>
+          <span>Cobertura</span>
+          <span>Sugerido</span>
+          <span>Proveedor</span>
+          <span>Prioridad</span>
+          <span>Accion</span>
+        </div>
+
+        {filteredRules.map((rule) => {
+          const reorderPoint = getReorderPoint(rule)
+          const coverageDays = getCoverageDays(rule)
+          const suggestedQty = getSuggestedQty(rule)
+          const priority = getPriority(rule)
+
+          return (
+            <div key={`${rule.productCode}-${rule.productName}`} className="reorder-table-row">
+              <div>
+                <strong>{rule.productName}</strong>
+                <small>{rule.productCode}</small>
+              </div>
+              <b>{rule.currentStock}</b>
+              <span>{rule.dailyDemand}/dia</span>
+              <span>{rule.leadTimeDays} dias</span>
+              <span>{rule.safetyStock}</span>
+              <b>{reorderPoint}</b>
+              <span>{coverageDays} dias</span>
+              <b>{suggestedQty}</b>
+              <span>{rule.supplier || 'Sin proveedor'}</span>
+              <em className={priority === 'Critica' ? 'status-low' : priority === 'Alta' ? 'status-neutral' : 'status-ok'}>
+                {priority}
+              </em>
+              <button type="button" onClick={() => generateSuggestedOrder(rule)}>
+                Generar
+              </button>
+            </div>
+          )
+        })}
+      </div>
+    </section>
+  )
+}
+
 function InventoryAdvancedSection({ section }) {
   const data = advancedInventorySections.find((item) => item.id === section)
 
@@ -4759,8 +5110,9 @@ function InventoryModule() {
       {inventoryView === 'putaway' && <InventoryPutawayStrategies />}
       {inventoryView === 'dispatch' && <InventoryDispatchMethods />}
       {inventoryView === 'picking' && <InventoryPickingRoutes />}
+      {inventoryView === 'reorder' && <InventoryReorderSafetyStock />}
       {advancedInventorySections
-        .filter((section) => section.id !== 'lots' && section.id !== 'locations' && section.id !== 'variants' && section.id !== 'codes' && section.id !== 'putaway' && section.id !== 'dispatch' && section.id !== 'picking')
+        .filter((section) => section.id !== 'lots' && section.id !== 'locations' && section.id !== 'variants' && section.id !== 'codes' && section.id !== 'putaway' && section.id !== 'dispatch' && section.id !== 'picking' && section.id !== 'reorder')
         .map((section) =>
           inventoryView === section.id ? (
             <InventoryAdvancedSection key={section.id} section={section.id} />

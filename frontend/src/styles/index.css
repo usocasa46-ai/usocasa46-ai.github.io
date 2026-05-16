@@ -9872,3 +9872,186 @@ body.sidebar-collapsed-mode .topbar {
     width: 100%;
   }
 }
+/* REPOSICION Y STOCK DE SEGURIDAD */
+.inventory-reorder-card {
+  min-height: 640px;
+}
+
+.reorder-kpi-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 12px;
+  margin-bottom: 14px;
+}
+
+.reorder-kpi-grid article {
+  border-radius: 17px;
+  padding: 15px;
+  background: #f8fafc;
+  border: 1px solid rgba(15, 61, 74, 0.10);
+}
+
+.reorder-kpi-grid span {
+  display: block;
+  color: #64748b;
+  font-size: 12px;
+  font-weight: 850;
+}
+
+.reorder-kpi-grid strong {
+  display: block;
+  margin: 7px 0 3px;
+  color: #0f172a;
+  font-size: 25px;
+  font-weight: 950;
+}
+
+.reorder-kpi-grid p {
+  margin: 0;
+  color: #64748b;
+  font-size: 12px;
+  font-weight: 650;
+}
+
+.reorder-toolbar {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 14px;
+}
+
+.reorder-toolbar .product-search-box {
+  width: 100%;
+  max-width: 780px;
+}
+
+.reorder-form-card {
+  border-radius: 18px;
+  padding: 16px;
+  margin-bottom: 16px;
+  background: #f8fafc;
+  border: 1px solid rgba(15, 61, 74, 0.10);
+}
+
+.reorder-form-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.reorder-form-grid label {
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+  color: #334155;
+  font-size: 12px;
+  font-weight: 850;
+}
+
+.reorder-form-grid input,
+.reorder-form-grid select {
+  height: 42px;
+  border: 1px solid rgba(15, 61, 74, 0.13);
+  border-radius: 12px;
+  outline: 0;
+  padding: 0 12px;
+  background: #ffffff;
+  color: #0f172a;
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.reorder-wide-field {
+  grid-column: span 2;
+}
+
+.reorder-table {
+  width: 100%;
+  overflow-x: auto;
+}
+
+.reorder-table-head,
+.reorder-table-row {
+  min-width: 1260px;
+  display: grid;
+  grid-template-columns: 1.35fr 80px 100px 90px 90px 110px 100px 90px 1.1fr 110px 90px;
+  gap: 12px;
+  align-items: center;
+}
+
+.reorder-table-head {
+  padding: 12px 14px;
+  border-radius: 12px;
+  background: var(--color-primary-soft, #e6f1f4);
+  color: var(--color-primary, #0f3d4a);
+  font-size: 12px;
+  font-weight: 950;
+}
+
+.reorder-table-row {
+  padding: 14px;
+  border-bottom: 1px solid rgba(15, 61, 74, 0.10);
+  color: #475569;
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.reorder-table-row strong,
+.reorder-table-row small {
+  display: block;
+}
+
+.reorder-table-row strong {
+  color: #0f172a;
+  font-size: 13px;
+  font-weight: 950;
+}
+
+.reorder-table-row small {
+  margin-top: 3px;
+  color: #64748b;
+  font-size: 11px;
+  font-weight: 750;
+}
+
+.reorder-table-row b {
+  color: #0f172a;
+  font-weight: 950;
+}
+
+.reorder-table-row em {
+  width: max-content;
+  border-radius: 999px;
+  padding: 6px 10px;
+  font-style: normal;
+  font-size: 11px;
+  font-weight: 950;
+}
+
+.reorder-table-row button {
+  min-height: 34px;
+  border-radius: 10px;
+  padding: 0 12px;
+  background: var(--color-primary, #0f3d4a);
+  color: #ffffff;
+  font-size: 12px;
+  font-weight: 950;
+}
+
+@media (max-width: 1200px) {
+  .reorder-kpi-grid,
+  .reorder-form-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 700px) {
+  .reorder-kpi-grid,
+  .reorder-form-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .reorder-wide-field {
+    grid-column: span 1;
+  }
+}
