@@ -10815,3 +10815,167 @@ body.sidebar-collapsed-mode .topbar {
     grid-column: span 1;
   }
 }
+
+/* =========================================================
+   BLOQUE 1 - SIDEBAR MODERNO + BOTON 3 RAYITAS
+   ========================================================= */
+
+/* Sidebar general */
+.sidebar {
+  width: 300px !important;
+  min-width: 300px !important;
+  background:
+    radial-gradient(circle at top left, rgba(249, 115, 22, 0.16), transparent 28%),
+    linear-gradient(180deg, #0d4250 0%, #082f39 100%) !important;
+  color: #ffffff !important;
+  border-right: 1px solid rgba(255, 255, 255, 0.08) !important;
+  box-shadow: 12px 0 34px rgba(15, 23, 42, 0.12) !important;
+  transition: width 0.25s ease, min-width 0.25s ease, transform 0.25s ease !important;
+}
+
+/* Logo y cabecera del sidebar */
+.sidebar-header,
+.sidebar-brand,
+.brand,
+.logo-block {
+  padding-top: 22px !important;
+  padding-bottom: 18px !important;
+}
+
+.sidebar h1,
+.sidebar h2,
+.sidebar h3,
+.sidebar strong {
+  color: #ffffff !important;
+  font-weight: 950 !important;
+}
+
+.sidebar p,
+.sidebar span,
+.sidebar small {
+  color: rgba(255, 255, 255, 0.72) !important;
+}
+
+/* Botones y enlaces del sidebar */
+.sidebar button,
+.sidebar a {
+  border-radius: 18px !important;
+  transition: transform 0.18s ease, background 0.18s ease, color 0.18s ease !important;
+}
+
+/* Dashboard activo en naranja */
+.sidebar button.active,
+.sidebar a.active,
+.sidebar .active,
+.sidebar .nav-item.active,
+.sidebar .sidebar-link.active,
+.sidebar .menu-item.active {
+  background: linear-gradient(90deg, #ff7a18 0%, #f97316 100%) !important;
+  color: #ffffff !important;
+  border: none !important;
+  box-shadow: 0 14px 30px rgba(249, 115, 22, 0.28) !important;
+}
+
+/* Hover elegante */
+.sidebar button:hover,
+.sidebar a:hover {
+  transform: translateX(3px) !important;
+}
+
+/* Iconos y números del sidebar */
+.sidebar svg {
+  color: inherit !important;
+}
+
+.sidebar .module-number,
+.sidebar .nav-number,
+.sidebar .badge-number {
+  background: rgba(255, 255, 255, 0.10) !important;
+  color: #ffffff !important;
+  border-radius: 12px !important;
+}
+
+/* Configurar módulos abajo */
+.sidebar-footer,
+.sidebar .sidebar-footer,
+.sidebar .settings-button,
+.sidebar .config-button {
+  border-radius: 20px !important;
+  background: rgba(255, 255, 255, 0.07) !important;
+  border: 1px solid rgba(255, 255, 255, 0.12) !important;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.06) !important;
+}
+
+/* Botón de 3 rayitas */
+.menu-button {
+  width: 48px !important;
+  height: 48px !important;
+  min-width: 48px !important;
+  display: grid !important;
+  place-items: center !important;
+  border-radius: 14px !important;
+  background: #eaf3f5 !important;
+  color: #0f3d4a !important;
+  border: 1px solid rgba(15, 61, 74, 0.10) !important;
+  box-shadow: 0 10px 22px rgba(15, 23, 42, 0.06) !important;
+  transition: all 0.2s ease !important;
+}
+
+.menu-button:hover {
+  background: #f97316 !important;
+  color: #ffffff !important;
+  transform: translateY(-1px) !important;
+  box-shadow: 0 14px 26px rgba(249, 115, 22, 0.22) !important;
+}
+
+/* Cuando se presiona las 3 rayitas, se esconde el menú */
+body.sidebar-collapsed-mode .sidebar {
+  width: 0 !important;
+  min-width: 0 !important;
+  max-width: 0 !important;
+  padding-left: 0 !important;
+  padding-right: 0 !important;
+  overflow: hidden !important;
+  border-right: none !important;
+  transform: translateX(-100%) !important;
+  box-shadow: none !important;
+}
+
+/* El contenido se expande cuando el menú está oculto */
+body.sidebar-collapsed-mode .app-shell {
+  grid-template-columns: 1fr !important;
+}
+
+body.sidebar-collapsed-mode .main-panel,
+body.sidebar-collapsed-mode .main-area,
+body.sidebar-collapsed-mode .app-main,
+body.sidebar-collapsed-mode .content-area,
+body.sidebar-collapsed-mode .content-wrapper {
+  width: 100% !important;
+  max-width: 100% !important;
+  margin-left: 0 !important;
+}
+
+/* Estado visual del botón cuando el menú está oculto */
+body.sidebar-collapsed-mode .menu-button {
+  background: #0f3d4a !important;
+  color: #ffffff !important;
+}
+
+/* Ajuste responsive */
+@media (max-width: 900px) {
+  .sidebar {
+    width: 285px !important;
+    min-width: 285px !important;
+  }
+
+  body.sidebar-collapsed-mode .sidebar {
+    transform: translateX(-110%) !important;
+  }
+
+  .menu-button {
+    width: 44px !important;
+    height: 44px !important;
+    min-width: 44px !important;
+  }
+}
