@@ -8858,3 +8858,278 @@ body.sidebar-collapsed-mode .topbar {
     grid-column: span 1;
   }
 }
+/* PUTAWAY */
+.inventory-putaway-card {
+  min-height: 640px;
+}
+
+.putaway-header-actions {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+}
+
+.putaway-kpi-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 12px;
+  margin-bottom: 14px;
+}
+
+.putaway-kpi-grid article {
+  border-radius: 17px;
+  padding: 15px;
+  background: #f8fafc;
+  border: 1px solid rgba(15, 61, 74, 0.10);
+}
+
+.putaway-kpi-grid span {
+  display: block;
+  color: #64748b;
+  font-size: 12px;
+  font-weight: 850;
+}
+
+.putaway-kpi-grid strong {
+  display: block;
+  margin: 7px 0 3px;
+  color: #0f172a;
+  font-size: 25px;
+  font-weight: 950;
+}
+
+.putaway-kpi-grid p {
+  margin: 0;
+  color: #64748b;
+  font-size: 12px;
+  font-weight: 650;
+}
+
+.putaway-toolbar {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 14px;
+}
+
+.putaway-toolbar .product-search-box {
+  width: 100%;
+  max-width: 780px;
+}
+
+.putaway-form-card {
+  border-radius: 18px;
+  padding: 16px;
+  margin-bottom: 16px;
+  background: #f8fafc;
+  border: 1px solid rgba(15, 61, 74, 0.10);
+}
+
+.putaway-form-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.putaway-form-grid label {
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+  color: #334155;
+  font-size: 12px;
+  font-weight: 850;
+}
+
+.putaway-form-grid input,
+.putaway-form-grid select {
+  height: 42px;
+  border: 1px solid rgba(15, 61, 74, 0.13);
+  border-radius: 12px;
+  outline: 0;
+  padding: 0 12px;
+  background: #ffffff;
+  color: #0f172a;
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.putaway-wide-field {
+  grid-column: span 2;
+}
+
+.putaway-layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1.45fr) minmax(340px, 0.55fr);
+  gap: 16px;
+}
+
+.putaway-suggestions,
+.putaway-rules-panel {
+  min-width: 0;
+}
+
+.putaway-table {
+  width: 100%;
+  overflow-x: auto;
+}
+
+.putaway-table-head,
+.putaway-table-row {
+  min-width: 1100px;
+  display: grid;
+  grid-template-columns: 100px 1.35fr 120px 90px 1.25fr 140px 140px 80px 150px;
+  gap: 12px;
+  align-items: center;
+}
+
+.putaway-table-head {
+  padding: 12px 14px;
+  border-radius: 12px;
+  background: var(--color-primary-soft, #e6f1f4);
+  color: var(--color-primary, #0f3d4a);
+  font-size: 12px;
+  font-weight: 950;
+}
+
+.putaway-table-row {
+  padding: 14px;
+  border-bottom: 1px solid rgba(15, 61, 74, 0.10);
+  color: #475569;
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.putaway-table-row strong,
+.putaway-table-row b {
+  color: #0f172a;
+  font-weight: 950;
+}
+
+.putaway-table-row em,
+.putaway-rule-meta em {
+  width: max-content;
+  border-radius: 999px;
+  padding: 6px 10px;
+  font-style: normal;
+  font-size: 11px;
+  font-weight: 950;
+}
+
+.putaway-rule-list {
+  display: grid;
+  gap: 10px;
+}
+
+.putaway-rule-list article {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 12px;
+  align-items: center;
+  border-radius: 15px;
+  padding: 13px;
+  background: #f8fafc;
+  border: 1px solid rgba(15, 61, 74, 0.10);
+}
+
+.putaway-rule-list strong,
+.putaway-rule-list span {
+  display: block;
+}
+
+.putaway-rule-list strong {
+  color: #0f172a;
+  font-size: 13px;
+  font-weight: 950;
+}
+
+.putaway-rule-list span {
+  margin-top: 4px;
+  color: #64748b;
+  font-size: 12px;
+  font-weight: 750;
+}
+
+.putaway-rule-meta {
+  display: grid;
+  gap: 6px;
+  justify-items: end;
+}
+
+.putaway-rule-meta b {
+  color: #0f172a;
+  font-size: 12px;
+  font-weight: 950;
+}
+
+.app-shell.dark-theme .putaway-kpi-grid article,
+.app-shell.dark-theme .putaway-form-card,
+.app-shell.dark-theme .putaway-rule-list article {
+  background: rgba(6, 26, 34, 0.82);
+  border-color: rgba(255, 255, 255, 0.10);
+}
+
+.app-shell.dark-theme .putaway-kpi-grid strong,
+.app-shell.dark-theme .putaway-table-row strong,
+.app-shell.dark-theme .putaway-table-row b,
+.app-shell.dark-theme .putaway-rule-list strong,
+.app-shell.dark-theme .putaway-rule-meta b {
+  color: #f8fafc;
+}
+
+.app-shell.dark-theme .putaway-kpi-grid span,
+.app-shell.dark-theme .putaway-kpi-grid p,
+.app-shell.dark-theme .putaway-form-grid label,
+.app-shell.dark-theme .putaway-table-row,
+.app-shell.dark-theme .putaway-rule-list span {
+  color: #cbd5e1;
+}
+
+.app-shell.dark-theme .putaway-form-grid input,
+.app-shell.dark-theme .putaway-form-grid select {
+  background: rgba(3, 17, 23, 0.92);
+  border-color: rgba(255, 255, 255, 0.12);
+  color: #f8fafc;
+}
+
+.app-shell.dark-theme .putaway-table-head {
+  background: rgba(249, 115, 22, 0.16);
+  color: #fdba74;
+}
+
+.app-shell.dark-theme .putaway-table-row {
+  border-bottom-color: rgba(255, 255, 255, 0.10);
+}
+
+@media (max-width: 1300px) {
+  .putaway-layout {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 1200px) {
+  .putaway-kpi-grid,
+  .putaway-form-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 700px) {
+  .putaway-header-actions {
+    width: 100%;
+    flex-direction: column;
+  }
+
+  .putaway-header-actions button {
+    width: 100%;
+  }
+
+  .putaway-kpi-grid,
+  .putaway-form-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .putaway-wide-field {
+    grid-column: span 1;
+  }
+}
