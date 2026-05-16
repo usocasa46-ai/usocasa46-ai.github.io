@@ -25,14 +25,23 @@ export default function LoginScreen({ onLogin }) {
       return
     }
 
-    setError('')
-
-    if (typeof onLogin === 'function') {
-      onLogin({
-        username: formData.username.trim(),
-        role: 'Administrador',
-      })
+    if (typeof onLogin !== 'function') {
+      setError('Login no configurado.')
+      return
     }
+
+    const result = onLogin({
+      username: formData.username.trim(),
+      password: formData.password.trim(),
+      remember: formData.remember,
+    })
+
+    if (result && result.ok === false) {
+      setError(result.message || 'Usuario o contrasena incorrectos.')
+      return
+    }
+
+    setError('')
   }
 
   return (
@@ -51,7 +60,7 @@ export default function LoginScreen({ onLogin }) {
 
           <div className="login-status-card">
             <strong>Acceso seguro</strong>
-            <span>Control de usuarios y permisos por modulo.</span>
+            <span>Solo usuarios creados por el Administrador Principal.</span>
           </div>
         </div>
 
@@ -73,7 +82,7 @@ export default function LoginScreen({ onLogin }) {
             <input
               value={formData.username}
               onChange={(event) => updateField('username', event.target.value)}
-              placeholder="Ejemplo: admin"
+              placeholder="Usuario"
               autoComplete="username"
             />
           </label>
@@ -84,7 +93,7 @@ export default function LoginScreen({ onLogin }) {
               type="password"
               value={formData.password}
               onChange={(event) => updateField('password', event.target.value)}
-              placeholder="Escribe tu contrasena"
+              placeholder="Contrasena"
               autoComplete="current-password"
             />
           </label>
@@ -109,7 +118,7 @@ export default function LoginScreen({ onLogin }) {
           </button>
 
           <div className="login-demo-note">
-            <strong>Modo prueba:</strong> puedes escribir cualquier usuario y contrasena para entrar cuando lo activemos.
+            <strong>Acceso principal:</strong> admin / admin123. Luego crea usuarios desde el panel de usuarios.
           </div>
         </form>
       </section>
