@@ -8457,3 +8457,404 @@ body.sidebar-collapsed-mode .topbar {
     grid-column: span 1;
   }
 }
+/* CODIGOS DE BARRA QR RFID */
+.inventory-codes-card {
+  min-height: 640px;
+}
+
+.codes-header-actions {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+}
+
+.codes-kpi-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 12px;
+  margin-bottom: 14px;
+}
+
+.codes-kpi-grid article {
+  border-radius: 17px;
+  padding: 15px;
+  background: #f8fafc;
+  border: 1px solid rgba(15, 61, 74, 0.10);
+}
+
+.codes-kpi-grid span {
+  display: block;
+  color: #64748b;
+  font-size: 12px;
+  font-weight: 850;
+}
+
+.codes-kpi-grid strong {
+  display: block;
+  margin: 7px 0 3px;
+  color: #0f172a;
+  font-size: 25px;
+  font-weight: 950;
+}
+
+.codes-kpi-grid p {
+  margin: 0;
+  color: #64748b;
+  font-size: 12px;
+  font-weight: 650;
+}
+
+.scan-panel {
+  display: grid;
+  grid-template-columns: 1fr minmax(260px, 420px) auto;
+  gap: 12px;
+  align-items: center;
+  border-radius: 18px;
+  padding: 15px;
+  margin-bottom: 14px;
+  background: #f8fafc;
+  border: 1px solid rgba(15, 61, 74, 0.10);
+}
+
+.scan-panel strong,
+.scan-panel span {
+  display: block;
+}
+
+.scan-panel strong {
+  color: #0f172a;
+  font-size: 14px;
+  font-weight: 950;
+}
+
+.scan-panel span {
+  margin-top: 4px;
+  color: #64748b;
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.scan-panel input {
+  height: 46px;
+  border: 1px solid rgba(15, 61, 74, 0.13);
+  border-radius: 13px;
+  outline: 0;
+  padding: 0 14px;
+  background: #ffffff;
+  color: #0f172a;
+  font-size: 14px;
+  font-weight: 800;
+}
+
+.codes-toolbar {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 14px;
+}
+
+.codes-toolbar .product-search-box {
+  width: 100%;
+  max-width: 760px;
+}
+
+.code-form-card {
+  border-radius: 18px;
+  padding: 16px;
+  margin-bottom: 16px;
+  background: #f8fafc;
+  border: 1px solid rgba(15, 61, 74, 0.10);
+}
+
+.code-form-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.code-form-grid label {
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+  color: #334155;
+  font-size: 12px;
+  font-weight: 850;
+}
+
+.code-form-grid input,
+.code-form-grid select {
+  height: 42px;
+  border: 1px solid rgba(15, 61, 74, 0.13);
+  border-radius: 12px;
+  outline: 0;
+  padding: 0 12px;
+  background: #ffffff;
+  color: #0f172a;
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.code-wide-field {
+  grid-column: span 2;
+}
+
+.code-generate-field {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 8px;
+}
+
+.code-generate-field button {
+  border-radius: 12px;
+  padding: 0 12px;
+  background: #e6f1f4;
+  color: #0f3d4a;
+  font-size: 12px;
+  font-weight: 950;
+}
+
+.label-preview-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 14px;
+}
+
+.label-card {
+  min-height: 260px;
+  border-radius: 18px;
+  padding: 15px;
+  background: #ffffff;
+  border: 1px solid rgba(15, 61, 74, 0.12);
+  box-shadow: 0 12px 28px rgba(15, 61, 74, 0.06);
+}
+
+.label-card-top {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 10px;
+  margin-bottom: 14px;
+}
+
+.label-card-top strong,
+.label-card-top span {
+  display: block;
+}
+
+.label-card-top strong {
+  color: #0f172a;
+  font-size: 14px;
+  font-weight: 950;
+}
+
+.label-card-top span {
+  margin-top: 4px;
+  color: #64748b;
+  font-size: 12px;
+  font-weight: 750;
+}
+
+.label-card-top em {
+  width: max-content;
+  border-radius: 999px;
+  padding: 6px 10px;
+  font-style: normal;
+  font-size: 11px;
+  font-weight: 950;
+}
+
+.barcode-preview {
+  height: 92px;
+  display: flex;
+  align-items: stretch;
+  justify-content: center;
+  gap: 3px;
+  border-radius: 14px;
+  padding: 14px;
+  background: #f8fafc;
+  border: 1px solid rgba(15, 61, 74, 0.10);
+}
+
+.barcode-preview i {
+  display: block;
+  height: 100%;
+  background: #0f172a;
+  border-radius: 2px;
+}
+
+.qr-preview {
+  width: 112px;
+  height: 112px;
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 3px;
+  border-radius: 14px;
+  padding: 10px;
+  margin: 0 auto;
+  background: #f8fafc;
+  border: 1px solid rgba(15, 61, 74, 0.10);
+}
+
+.qr-preview i {
+  display: block;
+  border-radius: 2px;
+  background: transparent;
+}
+
+.qr-preview i.active {
+  background: #0f172a;
+}
+
+.rfid-preview {
+  min-height: 112px;
+  display: grid;
+  place-items: center;
+  text-align: center;
+  border-radius: 14px;
+  padding: 14px;
+  background: #f8fafc;
+  border: 1px solid rgba(15, 61, 74, 0.10);
+}
+
+.rfid-preview b {
+  display: block;
+  color: #0f172a;
+  font-size: 28px;
+  font-weight: 950;
+  letter-spacing: 1px;
+}
+
+.rfid-preview span {
+  display: block;
+  max-width: 100%;
+  margin-top: 6px;
+  color: #64748b;
+  font-size: 12px;
+  font-weight: 800;
+  word-break: break-all;
+}
+
+.label-code {
+  margin-top: 13px;
+  border-radius: 12px;
+  padding: 10px;
+  background: #0f172a;
+  color: #ffffff;
+  text-align: center;
+  font-size: 13px;
+  font-weight: 950;
+  letter-spacing: 0.5px;
+}
+
+.label-meta {
+  display: grid;
+  gap: 5px;
+  margin-top: 10px;
+  color: #64748b;
+  font-size: 12px;
+  font-weight: 750;
+}
+
+.app-shell.dark-theme .codes-kpi-grid article,
+.app-shell.dark-theme .scan-panel,
+.app-shell.dark-theme .code-form-card,
+.app-shell.dark-theme .label-card,
+.app-shell.dark-theme .barcode-preview,
+.app-shell.dark-theme .qr-preview,
+.app-shell.dark-theme .rfid-preview {
+  background: rgba(6, 26, 34, 0.82);
+  border-color: rgba(255, 255, 255, 0.10);
+}
+
+.app-shell.dark-theme .codes-kpi-grid strong,
+.app-shell.dark-theme .scan-panel strong,
+.app-shell.dark-theme .label-card-top strong,
+.app-shell.dark-theme .rfid-preview b {
+  color: #f8fafc;
+}
+
+.app-shell.dark-theme .codes-kpi-grid span,
+.app-shell.dark-theme .codes-kpi-grid p,
+.app-shell.dark-theme .scan-panel span,
+.app-shell.dark-theme .code-form-grid label,
+.app-shell.dark-theme .label-card-top span,
+.app-shell.dark-theme .rfid-preview span,
+.app-shell.dark-theme .label-meta {
+  color: #cbd5e1;
+}
+
+.app-shell.dark-theme .scan-panel input,
+.app-shell.dark-theme .code-form-grid input,
+.app-shell.dark-theme .code-form-grid select {
+  background: rgba(3, 17, 23, 0.92);
+  border-color: rgba(255, 255, 255, 0.12);
+  color: #f8fafc;
+}
+
+.app-shell.dark-theme .barcode-preview i,
+.app-shell.dark-theme .qr-preview i.active {
+  background: #f8fafc;
+}
+
+@media print {
+  .sidebar,
+  .topbar,
+  .inventory-tabs,
+  .codes-kpi-grid,
+  .scan-panel,
+  .codes-toolbar,
+  .code-form-card,
+  .codes-header-actions {
+    display: none !important;
+  }
+
+  .main-content {
+    padding: 0 !important;
+  }
+
+  .label-preview-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  .label-card {
+    box-shadow: none;
+    break-inside: avoid;
+  }
+}
+
+@media (max-width: 1200px) {
+  .codes-kpi-grid,
+  .label-preview-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .code-form-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .scan-panel {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 700px) {
+  .codes-header-actions {
+    width: 100%;
+    flex-direction: column;
+  }
+
+  .codes-header-actions button {
+    width: 100%;
+  }
+
+  .codes-kpi-grid,
+  .label-preview-grid,
+  .code-form-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .code-wide-field {
+    grid-column: span 1;
+  }
+}
