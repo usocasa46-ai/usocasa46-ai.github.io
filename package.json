@@ -1,0 +1,26 @@
+{
+  "name": "inve-fat-system",
+  "version": "1.0.0",
+  "description": "Sistema ERP empresarial para inventario, logística, ventas, compras, contabilidad y recursos humanos.",
+  "main": "index.js",
+  "private": true,
+  "scripts": {
+    "start": "echo INVE-FAT SYSTEM",
+    "frontend": "cd frontend && npm run dev",
+    "backend": "cd backend && npm run dev",
+    "electron": "cd electron && npm start"
+  },
+  "keywords": [
+    "erp",
+    "inventario",
+    "logistica",
+    "facturacion",
+    "contabilidad",
+    "recursos-humanos",
+    "electron",
+    "react",
+    "nodejs"
+  ],
+  "author": "INVE-FAT SYSTEM",
+  "license": "MIT"
+}

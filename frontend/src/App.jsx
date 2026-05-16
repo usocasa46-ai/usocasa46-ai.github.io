@@ -1,0 +1,7609 @@
+import { useEffect, useState } from 'react'
+
+import {
+  BarChart3,
+  Banknote,
+  Bell,
+  Bot,
+  Box,
+  Briefcase,
+  Building2,
+  Calculator,
+  ChevronDown,
+  ChevronRight,
+  CreditCard,
+  DollarSign,
+  Download,
+  Eye,
+  FileText,
+  FileSpreadsheet,
+  Gauge,
+  Heart,
+  Home,
+  Hotel,
+  Menu,
+  MessageCircle,
+  Moon,
+  Sun,
+  Package,
+  Receipt,
+  Pill,
+  Plus,
+  Printer,
+  Search,
+  Save,
+  Settings,
+  ShoppingCart,
+  Store,
+  Truck,
+  Upload,
+  User,
+  UserPlus,
+  Users,
+  Utensils,
+  Wallet,
+  Warehouse,
+  Zap,
+  X,
+  XCircle,
+  ClipboardList,
+  Boxes,
+  ArrowLeftRight,
+  ScanBarcode,
+  Layers,
+  FileBarChart,
+} from 'lucide-react'
+
+import * as XLSX from 'xlsx'
+
+import './styles/index.css'
+
+const defaultBusinessSettings = {
+  businessName: 'INVE-FAT SYSTEM, SRL',
+  businessShortName: 'INVE-FAT',
+  systemLabel: 'SYSTEM',
+  slogan: 'Soluciones Integrales de Inventario, Facturacion y Punto de Venta',
+  rnc: '1-31-12345-6',
+  phone: '(809) 555-1234',
+  email: 'info@invefatsystem.com',
+  address: 'Av. Winston Churchill No. 1099, Santo Domingo, R.D.',
+  logo: '',
+  invoiceTemplate: 'elegante',
+  themeMode: 'light',
+  accentColor: '#F97316',
+}
+
+function getBusinessSettings() {
+  try {
+    const savedSettings = localStorage.getItem('invefat-business-settings')
+
+    if (!savedSettings) {
+      return defaultBusinessSettings
+    }
+
+    return {
+      ...defaultBusinessSettings,
+      ...JSON.parse(savedSettings),
+    }
+  } catch (error) {
+    return defaultBusinessSettings
+  }
+}
+
+const defaultSystemUsers = [
+  {
+    id: 'USR-001',
+    name: 'Administrador',
+    role: 'Administrador',
+    email: 'admin@empresa.com',
+    status: 'Activo',
+    permissions: {
+      dashboard: true,
+      inventory: true,
+      sales: true,
+      purchases: true,
+      accounting: true,
+      hr: true,
+      crm: true,
+      production: true,
+      projects: true,
+      documents: true,
+      reports: true,
+      admin: true,
+    },
+  },
+  {
+    id: 'USR-002',
+    name: 'Cajera',
+    role: 'Facturacion',
+    email: 'caja@empresa.com',
+    status: 'Activo',
+    permissions: {
+      dashboard: true,
+      inventory: false,
+      sales: true,
+      purchases: false,
+      accounting: false,
+      hr: false,
+      crm: true,
+      production: false,
+      projects: false,
+      documents: false,
+      reports: false,
+      admin: false,
+    },
+  },
+  {
+    id: 'USR-003',
+    name: 'Almacen',
+    role: 'Inventario',
+    email: 'almacen@empresa.com',
+    status: 'Activo',
+    permissions: {
+      dashboard: true,
+      inventory: true,
+      sales: false,
+      purchases: true,
+      accounting: false,
+      hr: false,
+      crm: false,
+      production: false,
+      projects: false,
+      documents: false,
+      reports: false,
+      admin: false,
+    },
+  },
+]
+
+const modules = [
+  { id: 'inventory', number: 1, name: 'Inventario y Almacen', icon: Warehouse },
+  { id: 'sales', number: 2, name: 'Ventas', icon: ShoppingCart },
+  { id: 'purchases', number: 3, name: 'Compras', icon: Store },
+  { id: 'accounting', number: 4, name: 'Contabilidad', icon: Wallet },
+  { id: 'hr', number: 5, name: 'Recursos Humanos', icon: Users },
+  { id: 'crm', number: 6, name: 'CRM', icon: User },
+  { id: 'production', number: 7, name: 'Produccion', icon: Building2 },
+  { id: 'projects', number: 8, name: 'Proyectos', icon: Briefcase },
+  { id: 'documents', number: 9, name: 'Documentos', icon: FileText },
+  { id: 'reports', number: 10, name: 'Reportes y BI', icon: BarChart3 },
+  { id: 'admin', number: 11, name: 'Administracion', icon: Settings },
+  { id: 'ecommerce', number: 12, name: 'Ecommerce', icon: ShoppingCart },
+  { id: 'communication', number: 13, name: 'Comunicacion', icon: MessageCircle },
+  { id: 'ai', number: 14, name: 'Inteligencia Artificial', icon: Zap },
+]
+const specialModules = [
+  { id: 'restaurant', name: 'Restaurante', icon: Utensils },
+  { id: 'hardware', name: 'Ferreteria', icon: Truck },
+  { id: 'pharmacy', name: 'Farmacia', icon: Pill },
+  { id: 'supermarket', name: 'Supermercado', icon: ShoppingCart },
+  { id: 'hotel', name: 'Hotel', icon: Hotel },
+]
+
+const kpis = [
+  { title: 'Ventas del dia', value: 'RD$ 125,430', change: '+ 12.5%', note: 'vs ayer', icon: ShoppingCart, color: 'green' },
+  { title: 'Compras del dia', value: 'RD$ 75,230', change: '- 3.4%', note: 'vs ayer', icon: ShoppingCart, color: 'blue' },
+  { title: 'Inventario bajo', value: '23 Productos', change: 'Ver productos', note: '', icon: Package, color: 'orange' },
+  { title: 'Cuentas por cobrar', value: 'RD$ 250,000', change: '+ 12 Clientes', note: '', icon: Briefcase, color: 'purple' },
+  { title: 'Cuentas por pagar', value: 'RD$ 125,000', change: '+ 8 Proveedores', note: '', icon: CreditCard, color: 'red' },
+  { title: 'Flujo de caja', value: 'RD$ 80,430', change: '+ 8.7%', note: 'vs ayer', icon: DollarSign, color: 'green' },
+]
+
+const topProducts = [
+  { name: 'Laptop HP Pavilion', units: '45 unidades', price: 'RD$ 675,000' },
+  { name: 'Mouse Inalambrico Logitech', units: '80 unidades', price: 'RD$ 120,000' },
+  { name: 'Teclado Mecanico RGB', units: '35 unidades', price: 'RD$ 175,000' },
+  { name: 'Monitor Samsung 24"', units: '20 unidades', price: 'RD$ 260,000' },
+  { name: 'Audifonos Sony WH-1000XM4', units: '25 unidades', price: 'RD$ 187,500' },
+]
+
+const tasks = [
+  { title: 'Aprobar orden de compra #2458', subtitle: 'Proveedor: Suplidores SA', tag: 'Urgente', time: '10:30 AM', color: 'red' },
+  { title: 'Revisar inventario almacen principal', subtitle: 'Inventario fisico', tag: 'Media', time: '11:00 AM', color: 'orange' },
+  { title: 'Pago de nomina empleados', subtitle: 'Proceso de nomina', tag: 'Importante', time: '12:00 PM', color: 'purple' },
+  { title: 'Reunion con equipo de ventas', subtitle: 'Sala de reuniones', tag: 'Media', time: '02:00 PM', color: 'orange' },
+  { title: 'Enviar reporte mensual', subtitle: 'Gerencia', tag: 'Baja', time: '04:00 PM', color: 'green' },
+]
+
+const quickActions = [
+  { name: 'Nueva venta', icon: ShoppingCart, color: 'green' },
+  { name: 'Nuevo gasto', icon: CreditCard, color: 'green' },
+  { name: 'Nuevo producto', icon: Package, color: 'blue' },
+  { name: 'Nuevo cliente', icon: User, color: 'purple' },
+  { name: 'Reporte de ventas', icon: BarChart3, color: 'orange' },
+  { name: 'Inventario fisico', icon: Box, color: 'brown' },
+  { name: 'Nomina', icon: Wallet, color: 'pink' },
+  { name: 'Asiento contable', icon: FileText, color: 'cyan' },
+]
+
+const systemModules = [
+  { name: 'Dashboard', icon: Gauge, color: 'orange' },
+  { name: 'Inventario', icon: Package, color: 'orange' },
+  { name: 'Ventas', icon: ShoppingCart, color: 'yellow' },
+  { name: 'Compras', icon: ShoppingCart, color: 'cyan' },
+  { name: 'Contabilidad', icon: Wallet, color: 'amber' },
+  { name: 'RRHH', icon: Users, color: 'orange' },
+  { name: 'CRM', icon: Heart, color: 'pink' },
+  { name: 'Produccion', icon: Building2, color: 'purple' },
+  { name: 'Proyectos', icon: Truck, color: 'orange' },
+  { name: 'Documentos', icon: FileText, color: 'red' },
+  { name: 'Reportes', icon: BarChart3, color: 'green' },
+  { name: 'Admin', icon: Settings, color: 'cyan' },
+  { name: 'Ecommerce', icon: ShoppingCart, color: 'yellow' },
+  { name: 'Comunicacion', icon: MessageCircle, color: 'blue' },
+  { name: 'IA', icon: Bot, color: 'purple' },
+]
+
+const workspaceModules = {
+  accounting: {
+    badge: 'Modulo financiero',
+    title: 'Contabilidad',
+    description: 'Controla asientos, cuentas, conciliaciones, impuestos y estados financieros.',
+    icon: Wallet,
+    metrics: [
+      { label: 'Balance disponible', value: 'RD$ 1,280,450', note: 'Caja y bancos' },
+      { label: 'Cuentas por cobrar', value: 'RD$ 250,000', note: '12 clientes' },
+      { label: 'Cuentas por pagar', value: 'RD$ 125,000', note: '8 proveedores' },
+      { label: 'Asientos del mes', value: '84', note: '17 pendientes' },
+    ],
+    records: [
+      { code: 'ASI-1048', name: 'Venta credito Colegio San Miguel', owner: 'Facturacion', date: '15/05/2026', amount: 'RD$ 18,500', status: 'Registrado' },
+      { code: 'ASI-1047', name: 'Compra inventario Suplidores SA', owner: 'Compras', date: '14/05/2026', amount: 'RD$ 75,230', status: 'Revision' },
+      { code: 'ASI-1046', name: 'Pago servicios oficina principal', owner: 'Tesoreria', date: '13/05/2026', amount: 'RD$ 9,850', status: 'Conciliado' },
+    ],
+    actions: ['Nuevo asiento', 'Conciliar banco', 'Registrar pago', 'Estado financiero'],
+  },
+  hr: {
+    badge: 'Talento humano',
+    title: 'Recursos Humanos',
+    description: 'Gestiona empleados, asistencia, nomina, permisos, vacaciones y expedientes.',
+    icon: Users,
+    metrics: [
+      { label: 'Empleados activos', value: '42', note: '6 departamentos' },
+      { label: 'Nomina estimada', value: 'RD$ 785,000', note: 'Proxima quincena' },
+      { label: 'Asistencia hoy', value: '95%', note: '2 ausencias' },
+      { label: 'Solicitudes abiertas', value: '9', note: 'Permisos y vacaciones' },
+    ],
+    records: [
+      { code: 'EMP-001', name: 'Ana Martinez', owner: 'Ventas', date: 'Activa', amount: 'RD$ 48,000', status: 'Activo' },
+      { code: 'EMP-014', name: 'Carlos Pena', owner: 'Almacen', date: 'Vacaciones', amount: 'RD$ 35,000', status: 'Permiso' },
+      { code: 'EMP-021', name: 'Maria Gomez', owner: 'Contabilidad', date: 'Activa', amount: 'RD$ 52,000', status: 'Activo' },
+    ],
+    actions: ['Nuevo empleado', 'Procesar nomina', 'Registrar asistencia', 'Aprobar permiso'],
+  },
+  crm: {
+    badge: 'Relacion comercial',
+    title: 'CRM',
+    description: 'Administra prospectos, clientes, oportunidades, seguimiento y pipeline comercial.',
+    icon: User,
+    metrics: [
+      { label: 'Clientes activos', value: '128', note: '18 nuevos este mes' },
+      { label: 'Oportunidades', value: '34', note: 'RD$ 1.4M estimado' },
+      { label: 'Seguimientos hoy', value: '16', note: 'Llamadas y visitas' },
+      { label: 'Conversion', value: '27%', note: '+4% vs mes anterior' },
+    ],
+    records: [
+      { code: 'OPP-204', name: 'Distribuidora Gomez', owner: 'Mayorista', date: '15/05/2026', amount: 'RD$ 240,000', status: 'Negociacion' },
+      { code: 'CLI-002', name: 'Comercial La Fe', owner: 'Retail', date: '14/05/2026', amount: 'RD$ 80,000', status: 'Activo' },
+      { code: 'SEG-118', name: 'Colegio San Miguel', owner: 'Corporativo', date: 'Hoy 3:00 PM', amount: 'RD$ 150,000', status: 'Pendiente' },
+    ],
+    actions: ['Nuevo cliente', 'Nueva oportunidad', 'Agendar llamada', 'Ver pipeline'],
+  },
+  production: {
+    badge: 'Operacion interna',
+    title: 'Produccion',
+    description: 'Planifica ordenes de produccion, materiales, capacidad, tiempos y calidad.',
+    icon: Building2,
+    metrics: [
+      { label: 'Ordenes abiertas', value: '18', note: '5 en proceso' },
+      { label: 'Eficiencia', value: '86%', note: '+3% esta semana' },
+      { label: 'Material reservado', value: 'RD$ 320,500', note: 'Inventario comprometido' },
+      { label: 'Calidad aprobada', value: '97%', note: 'Ultimos lotes' },
+    ],
+    records: [
+      { code: 'OP-5021', name: 'Ensamble kit escolar', owner: 'Linea 1', date: '15/05/2026', amount: '450 und.', status: 'En proceso' },
+      { code: 'OP-5019', name: 'Empaque productos limpieza', owner: 'Linea 2', date: '14/05/2026', amount: '1,200 und.', status: 'Programado' },
+      { code: 'QC-221', name: 'Revision calidad lote A17', owner: 'Calidad', date: 'Hoy', amount: '97%', status: 'Aprobado' },
+    ],
+    actions: ['Nueva orden', 'Reservar material', 'Registrar avance', 'Control calidad'],
+  },
+  projects: {
+    badge: 'Gestion de trabajo',
+    title: 'Proyectos',
+    description: 'Organiza tareas, responsables, presupuestos, avances y entregables.',
+    icon: Briefcase,
+    metrics: [
+      { label: 'Proyectos activos', value: '12', note: '3 prioritarios' },
+      { label: 'Tareas abiertas', value: '74', note: '21 vencen esta semana' },
+      { label: 'Presupuesto usado', value: '64%', note: 'RD$ 920,000' },
+      { label: 'Avance promedio', value: '71%', note: '+8% semanal' },
+    ],
+    records: [
+      { code: 'PRO-031', name: 'Implementacion punto de venta', owner: 'Tecnologia', date: '28/05/2026', amount: '72%', status: 'En curso' },
+      { code: 'PRO-029', name: 'Conteo fisico almacenes', owner: 'Inventario', date: '20/05/2026', amount: '45%', status: 'Riesgo' },
+      { code: 'PRO-026', name: 'Portal de clientes B2B', owner: 'Ecommerce', date: '05/06/2026', amount: '31%', status: 'Planificado' },
+    ],
+    actions: ['Nuevo proyecto', 'Asignar tarea', 'Ver calendario', 'Reporte avance'],
+  },
+  documents: {
+    badge: 'Archivo digital',
+    title: 'Documentos',
+    description: 'Centraliza facturas, cotizaciones, contratos, archivos y aprobaciones.',
+    icon: FileText,
+    metrics: [
+      { label: 'Documentos', value: '1,248', note: '126 este mes' },
+      { label: 'Pendientes firma', value: '14', note: 'Contratos y ordenes' },
+      { label: 'Espacio usado', value: '38%', note: 'Repositorio local' },
+      { label: 'Aprobaciones', value: '22', note: 'Flujo documental' },
+    ],
+    records: [
+      { code: 'DOC-884', name: 'Factura FAC-000003', owner: 'Ventas', date: '15/05/2026', amount: 'PDF', status: 'Emitido' },
+      { code: 'DOC-883', name: 'Orden de compra #2458', owner: 'Compras', date: '14/05/2026', amount: 'PDF', status: 'Revision' },
+      { code: 'DOC-879', name: 'Contrato suplidor logistico', owner: 'Legal', date: '12/05/2026', amount: 'DOCX', status: 'Firma' },
+    ],
+    actions: ['Subir archivo', 'Crear carpeta', 'Solicitar firma', 'Exportar PDF'],
+  },
+  reports: {
+    badge: 'Analitica ejecutiva',
+    title: 'Reportes y BI',
+    description: 'Consulta indicadores, reportes, comparativos, exportaciones y tableros.',
+    icon: BarChart3,
+    metrics: [
+      { label: 'Ventas mes', value: 'RD$ 2.8M', note: '+12.5%' },
+      { label: 'Margen bruto', value: '31%', note: '+2.1%' },
+      { label: 'Rotacion inventario', value: '4.8x', note: 'Ultimos 30 dias' },
+      { label: 'Reportes listos', value: '18', note: 'Excel y PDF' },
+    ],
+    records: [
+      { code: 'REP-VENT', name: 'Ventas por producto', owner: 'Comercial', date: 'Hoy', amount: 'Excel', status: 'Listo' },
+      { code: 'REP-INV', name: 'Inventario bajo y vencimientos', owner: 'Almacen', date: 'Hoy', amount: 'PDF', status: 'Listo' },
+      { code: 'REP-FIN', name: 'Flujo de caja semanal', owner: 'Finanzas', date: 'Ayer', amount: 'Dashboard', status: 'Revision' },
+    ],
+    actions: ['Nuevo reporte', 'Exportar Excel', 'Programar envio', 'Ver dashboard'],
+  },
+  ecommerce: {
+    badge: 'Canal digital',
+    title: 'Ecommerce',
+    description: 'Gestiona catalogo web, pedidos, precios, clientes online y despacho.',
+    icon: ShoppingCart,
+    metrics: [
+      { label: 'Pedidos online', value: '38', note: '12 por despachar' },
+      { label: 'Ventas web', value: 'RD$ 186,400', note: 'Hoy' },
+      { label: 'Productos publicados', value: '312', note: '24 sin foto' },
+      { label: 'Carritos abiertos', value: '19', note: 'Seguimiento CRM' },
+    ],
+    records: [
+      { code: 'WEB-1028', name: 'Pedido Comercial La Fe', owner: 'Tienda web', date: 'Hoy', amount: 'RD$ 12,850', status: 'Preparando' },
+      { code: 'WEB-1027', name: 'Pedido cliente mostrador', owner: 'Marketplace', date: 'Hoy', amount: 'RD$ 4,300', status: 'Pagado' },
+      { code: 'CAT-084', name: 'Actualizar fotos bebidas', owner: 'Catalogo', date: '15/05/2026', amount: '24 items', status: 'Pendiente' },
+    ],
+    actions: ['Nuevo pedido', 'Publicar producto', 'Actualizar precios', 'Despachar'],
+  },
+  communication: {
+    badge: 'Mensajeria interna',
+    title: 'Comunicacion',
+    description: 'Coordina mensajes, avisos, reuniones, comunicados y notificaciones.',
+    icon: MessageCircle,
+    metrics: [
+      { label: 'Mensajes hoy', value: '86', note: '12 sin leer' },
+      { label: 'Avisos activos', value: '5', note: 'Empresa y equipos' },
+      { label: 'Reuniones', value: '7', note: 'Agenda de hoy' },
+      { label: 'Tickets internos', value: '11', note: '3 urgentes' },
+    ],
+    records: [
+      { code: 'MSG-501', name: 'Reunion equipo ventas', owner: 'Comercial', date: '2:00 PM', amount: 'Sala 2', status: 'Hoy' },
+      { code: 'AVI-144', name: 'Cierre inventario fisico', owner: 'Almacen', date: '15/05/2026', amount: 'Todos', status: 'Activo' },
+      { code: 'TK-088', name: 'Soporte impresora facturacion', owner: 'Tecnologia', date: 'Urgente', amount: 'Caja', status: 'Abierto' },
+    ],
+    actions: ['Nuevo aviso', 'Enviar mensaje', 'Agendar reunion', 'Abrir ticket'],
+  },
+  ai: {
+    badge: 'Asistente inteligente',
+    title: 'Inteligencia Artificial',
+    description: 'Consulta datos, genera reportes, detecta riesgos y sugiere acciones.',
+    icon: Zap,
+    metrics: [
+      { label: 'Alertas detectadas', value: '9', note: 'Stock y cobros' },
+      { label: 'Consultas hoy', value: '24', note: 'Usuarios internos' },
+      { label: 'Automatizaciones', value: '6', note: 'Activas' },
+      { label: 'Sugerencias', value: '18', note: 'Pendientes de revisar' },
+    ],
+    records: [
+      { code: 'AI-001', name: 'Productos con riesgo de agotarse', owner: 'Inventario', date: 'Hoy', amount: '23 items', status: 'Alerta' },
+      { code: 'AI-002', name: 'Clientes con atraso de pago', owner: 'Finanzas', date: 'Hoy', amount: '8 clientes', status: 'Revision' },
+      { code: 'AI-003', name: 'Resumen ventas semanal', owner: 'Gerencia', date: 'Listo', amount: 'Reporte', status: 'Generado' },
+    ],
+    actions: ['Preguntar a IA', 'Generar reporte', 'Analizar stock', 'Crear alerta'],
+  },
+  restaurant: {
+    badge: 'Operacion restaurante',
+    title: 'Restaurante',
+    description: 'Gestiona mesas, comandas, cocina, delivery, caja y cierre diario.',
+    icon: Utensils,
+    metrics: [
+      { label: 'Mesas ocupadas', value: '12/28', note: 'Servicio activo' },
+      { label: 'Comandas abiertas', value: '34', note: '8 en cocina' },
+      { label: 'Ventas turno', value: 'RD$ 58,900', note: 'Salon y delivery' },
+      { label: 'Tiempo promedio', value: '18 min', note: 'Cocina' },
+    ],
+    records: [
+      { code: 'MESA-08', name: 'Mesa 8 - 4 personas', owner: 'Salon', date: 'Abierta', amount: 'RD$ 3,250', status: 'En proceso' },
+      { code: 'CMD-221', name: 'Comanda hamburguesas y bebidas', owner: 'Cocina', date: '12 min', amount: '6 items', status: 'Preparando' },
+      { code: 'DEL-044', name: 'Pedido delivery zona norte', owner: 'Delivery', date: 'Hoy', amount: 'RD$ 1,850', status: 'Despacho' },
+    ],
+    actions: ['Abrir mesa', 'Nueva comanda', 'Enviar cocina', 'Cerrar turno'],
+  },
+  hardware: {
+    badge: 'Operacion ferretera',
+    title: 'Ferreteria',
+    description: 'Controla cotizaciones, materiales, despacho, medidas, entregas y clientes de obra.',
+    icon: Truck,
+    metrics: [
+      { label: 'Cotizaciones abiertas', value: '19', note: 'Obras y contratistas' },
+      { label: 'Despachos hoy', value: '27', note: '5 pendientes' },
+      { label: 'Material critico', value: '14', note: 'Stock bajo' },
+      { label: 'Ventas mostrador', value: 'RD$ 92,400', note: 'Turno actual' },
+    ],
+    records: [
+      { code: 'COT-F089', name: 'Material electrico edificio Luna', owner: 'Contratista', date: '15/05/2026', amount: 'RD$ 146,000', status: 'Revision' },
+      { code: 'DSP-340', name: 'Entrega cemento y varilla', owner: 'Camion 2', date: 'Hoy', amount: 'RD$ 38,500', status: 'Despacho' },
+      { code: 'MAT-022', name: 'Pintura blanca cubeta', owner: 'Almacen', date: 'Stock bajo', amount: '8 und.', status: 'Alerta' },
+    ],
+    actions: ['Nueva cotizacion', 'Despachar', 'Orden de entrega', 'Lista de precios'],
+  },
+  pharmacy: {
+    badge: 'Operacion farmacia',
+    title: 'Farmacia',
+    description: 'Gestiona medicamentos, lotes, recetas, vencimientos, aseguradoras y dispensacion.',
+    icon: Pill,
+    metrics: [
+      { label: 'Recetas hoy', value: '63', note: '12 pendientes' },
+      { label: 'Lotes por vencer', value: '21', note: 'Proximos 60 dias' },
+      { label: 'Ventas mostrador', value: 'RD$ 74,250', note: 'Turno actual' },
+      { label: 'Aseguradoras', value: '8', note: 'Con autorizaciones' },
+    ],
+    records: [
+      { code: 'RX-204', name: 'Receta paciente mostrador', owner: 'Dispensacion', date: 'Hoy', amount: 'RD$ 1,240', status: 'Pendiente' },
+      { code: 'LOT-118', name: 'Acetaminofen 500mg lote A41', owner: 'Inventario', date: '30/06/2026', amount: '85 und.', status: 'Alerta' },
+      { code: 'SEG-030', name: 'Autorizacion aseguradora', owner: 'ARS', date: 'Hoy', amount: 'RD$ 3,600', status: 'Revision' },
+    ],
+    actions: ['Nueva receta', 'Ver vencimientos', 'Autorizar ARS', 'Dispensar'],
+  },
+  supermarket: {
+    badge: 'Operacion supermercado',
+    title: 'Supermercado',
+    description: 'Administra cajas, gondolas, ofertas, pesaje, reposicion y ventas por turno.',
+    icon: ShoppingCart,
+    metrics: [
+      { label: 'Cajas abiertas', value: '6', note: '2 express' },
+      { label: 'Ventas turno', value: 'RD$ 186,900', note: '+9% vs ayer' },
+      { label: 'Reposiciones', value: '42', note: 'Gondolas activas' },
+      { label: 'Ofertas vigentes', value: '18', note: 'Hasta domingo' },
+    ],
+    records: [
+      { code: 'CAJA-03', name: 'Caja 3 turno tarde', owner: 'Cajero', date: 'Abierta', amount: 'RD$ 42,300', status: 'Activo' },
+      { code: 'REP-118', name: 'Reposicion pasillo bebidas', owner: 'Gondola', date: 'Hoy', amount: '32 cajas', status: 'En proceso' },
+      { code: 'OFE-027', name: 'Oferta arroz y aceite', owner: 'Mercadeo', date: 'Fin semana', amount: '12 SKU', status: 'Activo' },
+    ],
+    actions: ['Abrir caja', 'Crear oferta', 'Reposicion', 'Cierre turno'],
+  },
+  hotel: {
+    badge: 'Operacion hotelera',
+    title: 'Hotel',
+    description: 'Gestiona reservas, habitaciones, check-in, consumos, limpieza y facturacion.',
+    icon: Hotel,
+    metrics: [
+      { label: 'Ocupacion', value: '74%', note: '52 habitaciones' },
+      { label: 'Check-in hoy', value: '18', note: '6 pendientes' },
+      { label: 'Check-out hoy', value: '11', note: '3 por facturar' },
+      { label: 'Ingresos dia', value: 'RD$ 214,700', note: 'Hospedaje y consumos' },
+    ],
+    records: [
+      { code: 'RES-190', name: 'Reserva habitacion 402', owner: 'Recepcion', date: 'Hoy 3:00 PM', amount: 'RD$ 18,000', status: 'Confirmado' },
+      { code: 'HAB-218', name: 'Habitacion 218 limpieza', owner: 'Ama de llaves', date: 'Ahora', amount: 'Suite', status: 'En proceso' },
+      { code: 'FAC-H77', name: 'Check-out cliente corporativo', owner: 'Facturacion', date: 'Hoy', amount: 'RD$ 26,500', status: 'Pendiente' },
+    ],
+    actions: ['Nueva reserva', 'Check-in', 'Check-out', 'Asignar limpieza'],
+  },
+}
+
+const inventoryCards = [
+  { title: 'Productos', value: '1,245', text: 'Productos registrados', icon: Package, color: 'orange' },
+  { title: 'Categorias', value: '38', text: 'Familias de productos', icon: Layers, color: 'purple' },
+  { title: 'Almacenes', value: '4', text: 'Almacenes activos', icon: Warehouse, color: 'blue' },
+  { title: 'Stock bajo', value: '23', text: 'Requieren reposicion', icon: Boxes, color: 'red' },
+]
+
+const inventoryActions = [
+  { name: 'Nuevo producto', icon: Plus, color: 'orange' },
+  { name: 'Recepcion de mercancia', icon: ClipboardList, color: 'green' },
+  { name: 'Movimiento de producto', icon: ArrowLeftRight, color: 'blue' },
+  { name: 'Ajuste de inventario', icon: Settings, color: 'purple' },
+  { name: 'Codigo de barras', icon: ScanBarcode, color: 'cyan' },
+  { name: 'Reporte de inventario', icon: FileBarChart, color: 'amber' },
+]
+
+const inventoryProducts = [
+  {
+    code: 'PRO-001',
+    barcode: '7460010010012',
+    name: 'Laptop HP Pavilion',
+    category: 'Tecnologia',
+    unit: 'Unidad',
+    boxQty: 1,
+    stock: 45,
+    min: 10,
+    warehouse: 'Principal',
+    expiryDate: 'No aplica',
+    status: 'Disponible',
+  },
+  {
+    code: 'PRO-002',
+    barcode: '7460010010029',
+    name: 'Mouse Inalambrico Logitech',
+    category: 'Accesorios',
+    unit: 'Unidad',
+    boxQty: 1,
+    stock: 80,
+    min: 20,
+    warehouse: 'Principal',
+    expiryDate: 'No aplica',
+    status: 'Disponible',
+  },
+  {
+    code: 'PRO-003',
+    barcode: '7460010010036',
+    name: 'Teclado Mecanico RGB',
+    category: 'Accesorios',
+    unit: 'Unidad',
+    boxQty: 1,
+    stock: 35,
+    min: 15,
+    warehouse: 'Principal',
+    expiryDate: 'No aplica',
+    status: 'Disponible',
+  },
+  {
+    code: 'PRO-004',
+    barcode: '7460010010043',
+    name: 'Monitor Samsung 24"',
+    category: 'Tecnologia',
+    unit: 'Unidad',
+    boxQty: 1,
+    stock: 8,
+    min: 12,
+    warehouse: 'Almacen 2',
+    expiryDate: 'No aplica',
+    status: 'Stock bajo',
+  },
+  {
+    code: 'PRO-005',
+    barcode: '7460010010050',
+    name: 'Audifonos Sony WH-1000XM4',
+    category: 'Audio',
+    unit: 'Unidad',
+    boxQty: 1,
+    stock: 25,
+    min: 8,
+    warehouse: 'Principal',
+    expiryDate: 'No aplica',
+    status: 'Disponible',
+  },
+]
+function colorClass(color) {
+  return `soft-${color}`
+}
+
+function Logo() {
+  return (
+    <div className="brand">
+      <div className="logo-mark"><span /></div>
+      <div>
+        <h1>INVE-FAT SYSTEM</h1>
+        <p>ERP Empresarial</p>
+      </div>
+    </div>
+  )
+}
+
+function Sidebar({ activeModule, setActiveModule, isMobileOpen, closeMobileMenu }) {
+  return (
+    <aside className={"sidebar " + (isMobileOpen ? "sidebar-mobile-open" : "")}>
+      <div className="sidebar-mobile-top">
+        <Logo />
+        <button className="sidebar-mobile-close" onClick={closeMobileMenu} aria-label="Cerrar menu">
+          <X size={22} />
+        </button>
+      </div>
+
+      <button
+        className={activeModule === 'dashboard' ? 'sidebar-active sidebar-dashboard-fixed' : 'sidebar-item sidebar-dashboard-fixed'}
+        onClick={() => { setActiveModule('dashboard'); closeMobileMenu?.() }}
+      >
+        <span className="sidebar-dashboard-label">
+          <Home size={19} />
+          Dashboard
+        </span>
+      </button>
+
+      <div className="sidebar-scroll-area">
+        <nav className="sidebar-menu">
+          {modules.map((item) => {
+            const Icon = item.icon
+            return (
+              <button
+                key={item.id}
+                className={activeModule === item.id ? 'sidebar-active' : 'sidebar-item'}
+                onClick={() => { setActiveModule(item.id); closeMobileMenu?.() }}
+              >
+                <span className="sidebar-label">
+                  <Icon size={18} />
+                  <span className="sidebar-number">{item.number}</span>
+                  <span className="sidebar-name">{item.name}</span>
+                </span>
+                <ChevronRight size={15} />
+              </button>
+            )
+          })}
+        </nav>
+
+        <div className="special-title">
+          <span />
+          Modulos especiales
+          <span />
+        </div>
+
+        <div className="special-list">
+          {specialModules.map((item) => {
+            const Icon = item.icon
+            return (
+              <button
+                key={item.id}
+                className={activeModule === item.id ? 'active' : ''}
+                onClick={() => { setActiveModule(item.id); closeMobileMenu?.() }}
+              >
+                <Icon size={17} />
+                {item.name}
+              </button>
+            )
+          })}
+        </div>
+      </div>
+
+      <button className="config-button" onClick={() => { setActiveModule('admin'); closeMobileMenu?.() }}>
+        <Settings size={19} />
+        Configurar modulos
+      </button>
+    </aside>
+  )
+}
+
+function Navbar({ theme, toggleTheme, onOpenSidebar }) {
+  return (
+    <header className="topbar">
+      <button
+        className="menu-button"
+        onClick={() => {
+          if (window.innerWidth <= 900 && typeof onOpenSidebar === 'function') {
+            onOpenSidebar()
+            return
+          }
+
+          document.body.classList.toggle('sidebar-collapsed-mode')
+        }}
+        aria-label="Abrir menu"
+      >
+        <Menu size={24} />
+      </button>
+
+      <div className="search-box">
+        <input placeholder="Buscar en el sistema..." />
+        <Search size={20} />
+      </div>
+
+      <div className="top-actions">
+        <button className="notification">
+          <Bell size={21} />
+          <span>5</span>
+        </button>
+
+        <button
+          className="theme-button"
+          onClick={toggleTheme}
+          title={theme === 'dark' ? 'Cambiar a tema claro' : 'Cambiar a tema oscuro'}
+        >
+          {theme === 'dark' ? <Sun size={21} /> : <Moon size={21} />}
+        </button>
+
+        <div className="divider" />
+
+        <div className="profile">
+          <div className="avatar">A</div>
+          <div>
+            <strong>Administrador</strong>
+            <small>Administrador</small>
+          </div>
+          <ChevronDown size={18} />
+        </div>
+      </div>
+    </header>
+  )
+}
+
+function KpiCard({ item }) {
+  const Icon = item.icon
+  const negative = item.change.includes('-')
+
+  return (
+    <div className="kpi-card">
+      <div className={`kpi-icon ${colorClass(item.color)}`}>
+        <Icon size={26} />
+      </div>
+
+      <div>
+        <p>{item.title}</p>
+        <h3>{item.value}</h3>
+        <span className={negative ? 'negative' : item.color === 'orange' ? 'orange-text' : 'positive'}>
+          {item.change} <small>{item.note}</small>
+        </span>
+      </div>
+    </div>
+  )
+}
+
+function ProductIcon() {
+  return (
+    <div className="product-icon">
+      <Package size={20} />
+    </div>
+  )
+}
+
+function Dashboard({ setActiveModule }) {
+  return (
+    <main className="main-content">
+      <section className="welcome">
+        <h2>Bienvenido, Administrador</h2>
+        <p>Aqui tienes el resumen general de tu empresa.</p>
+      </section>
+
+      <section className="kpi-grid">
+        {kpis.map((item) => (
+          <KpiCard key={item.title} item={item} />
+        ))}
+      </section>
+
+      <section className="main-grid no-chart">
+        <div className="card product-card">
+          <div className="card-header">
+            <h3>Top productos vendidos</h3>
+            <a onClick={() => setActiveModule('inventory')}>Ver todos</a>
+          </div>
+
+          <div className="product-list">
+            {topProducts.map((product, index) => (
+              <div key={product.name} className="product-row">
+                <span className="number">{index + 1}</span>
+                <ProductIcon />
+                <div>
+                  <strong>{product.name}</strong>
+                  <small>{product.units}</small>
+                </div>
+                <b>{product.price}</b>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        <div className="card task-card">
+          <div className="card-header">
+            <h3>Actividades pendientes</h3>
+            <a>Ver todas</a>
+          </div>
+
+          <div className="task-list">
+            {tasks.map((task) => (
+              <div key={task.title} className="task-row">
+                <input type="checkbox" />
+                <div>
+                  <strong>{task.title}</strong>
+                  <small>{task.subtitle}</small>
+                </div>
+                <span className={`tag ${colorClass(task.color)}`}>{task.tag}</span>
+                <time>{task.time}</time>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      <section className="home-bottom-grid">
+        <div className="card finance-card">
+          <div className="card-header">
+            <h3>Resumen financiero</h3>
+            <button>Este mes</button>
+          </div>
+
+          <div className="finance-grid">
+            <div className="finance-box soft-green">
+              <p>Ingresos</p>
+              <h4>RD$ 1,250,000</h4>
+              <span>+ 15.3%</span>
+            </div>
+
+            <div className="finance-box soft-red">
+              <p>Gastos</p>
+              <h4>RD$ 850,000</h4>
+              <span className="negative">- 8.5%</span>
+            </div>
+
+            <div className="finance-box soft-cyan">
+              <p>Utilidad neta</p>
+              <h4>RD$ 400,000</h4>
+              <span>+ 21.8%</span>
+            </div>
+
+            <div className="finance-box soft-white">
+              <p>Margen de ganancia</p>
+              <h4>32%</h4>
+              <span>+ 5.2%</span>
+            </div>
+          </div>
+        </div>
+
+        <div className="card quick-card">
+          <h3>Accesos rapidos</h3>
+
+          <div className="quick-grid">
+            {quickActions.map((action) => {
+              const Icon = action.icon
+              return (
+                <button key={action.name} className={colorClass(action.color)}>
+                  <Icon size={23} />
+                  <span>{action.name}</span>
+                </button>
+              )
+            })}
+          </div>
+        </div>
+      </section>
+
+      <section className="card modules-card">
+        <h3>Modulos del sistema</h3>
+
+        <div className="modules-grid">
+          {systemModules.map((module) => {
+            const Icon = module.icon
+            return (
+              <button key={module.name} className={colorClass(module.color)}>
+                <Icon size={24} />
+                <span>{module.name}</span>
+              </button>
+            )
+          })}
+        </div>
+      </section>
+    </main>
+  )
+}
+
+function InventoryModule() {
+  const [inventoryView, setInventoryView] = useState('summary')
+
+  const inventoryTabs = [
+    { id: 'summary', name: 'Resumen', icon: Gauge },
+    { id: 'products', name: 'Productos', icon: Package },
+    { id: 'categories', name: 'Categorias', icon: Layers },
+    { id: 'warehouses', name: 'Almacenes', icon: Warehouse },
+    { id: 'movements', name: 'Movimientos', icon: ArrowLeftRight },
+    { id: 'receiving', name: 'Recepcion', icon: ClipboardList },
+  ]
+
+  return (
+    <main className="main-content">
+      <section className="module-header">
+        <div>
+          <span className="module-badge">Modulo activo</span>
+          <h2>Inventario y Almacen</h2>
+          <p>Controla productos, categorias, almacenes, stock, movimientos, ajustes y recepcion de mercancia.</p>
+        </div>
+
+        <button className="primary-button">
+          <Plus size={18} />
+          Nuevo producto
+        </button>
+      </section>
+
+      <section className="inventory-tabs">
+        {inventoryTabs.map((tab) => {
+          const Icon = tab.icon
+          return (
+            <button
+              key={tab.id}
+              className={inventoryView === tab.id ? 'inventory-tab active' : 'inventory-tab'}
+              onClick={() => setInventoryView(tab.id)}
+            >
+              <Icon size={18} />
+              {tab.name}
+            </button>
+          )
+        })}
+      </section>
+
+      {inventoryView === 'summary' && <InventorySummary />}
+      {inventoryView === 'products' && <InventoryProducts />}
+      {inventoryView === 'categories' && <InventoryCategories />}
+      {inventoryView === 'warehouses' && <InventoryWarehouses />}
+      {inventoryView === 'movements' && <InventoryMovements />}
+      {inventoryView === 'receiving' && <InventoryReceiving />}
+    </main>
+  )
+}
+
+function InventorySummary() {
+  return (
+    <>
+      <section className="inventory-summary-grid">
+        {inventoryCards.map((item) => {
+          const Icon = item.icon
+          return (
+            <div key={item.title} className="card inventory-summary-card">
+              <div className={`inventory-card-icon ${colorClass(item.color)}`}>
+                <Icon size={25} />
+              </div>
+              <div>
+                <p>{item.title}</p>
+                <h3>{item.value}</h3>
+                <span>{item.text}</span>
+              </div>
+            </div>
+          )
+        })}
+      </section>
+
+      <section className="inventory-layout">
+        <div className="card inventory-table-card">
+          <div className="card-header">
+            <h3>Productos recientes</h3>
+            <button>Exportar</button>
+          </div>
+
+          <InventoryProductTable />
+        </div>
+
+        <div className="card inventory-actions-card">
+          <h3>Acciones de inventario</h3>
+
+          <div className="inventory-actions-grid">
+            {inventoryActions.map((action) => {
+              const Icon = action.icon
+              return (
+                <button key={action.name} className={colorClass(action.color)}>
+                  <Icon size={23} />
+                  <span>{action.name}</span>
+                </button>
+              )
+            })}
+          </div>
+        </div>
+      </section>
+    </>
+  )
+}
+
+function InventoryProducts() {
+  const [products, setProducts] = useState(inventoryProducts)
+  const [searchTerm, setSearchTerm] = useState('')
+  const [showForm, setShowForm] = useState(false)
+
+  const [newProduct, setNewProduct] = useState({
+    code: '',
+    barcode: '',
+    name: '',
+    category: '',
+    unit: 'Unidad',
+    boxQty: '',
+    stock: '',
+    min: '',
+    warehouse: '',
+    expiryDate: '',
+    status: 'Disponible',
+  })
+
+  const filteredProducts = products.filter((product) => {
+    const search = searchTerm.toLowerCase()
+
+    return (
+      product.code.toLowerCase().includes(search) ||
+      String(product.barcode || '').toLowerCase().includes(search) ||
+      product.name.toLowerCase().includes(search) ||
+      product.category.toLowerCase().includes(search) ||
+      String(product.unit || '').toLowerCase().includes(search) ||
+      String(product.expiryDate || '').toLowerCase().includes(search) ||
+      product.warehouse.toLowerCase().includes(search) ||
+      product.status.toLowerCase().includes(search)
+    )
+  })
+
+  const handleInputChange = (field, value) => {
+    setNewProduct((current) => ({
+      ...current,
+      [field]: value,
+    }))
+  }
+
+  const resetForm = () => {
+    setNewProduct({
+      code: '',
+      barcode: '',
+      name: '',
+      category: '',
+      unit: 'Unidad',
+      boxQty: '',
+      stock: '',
+      min: '',
+      warehouse: '',
+      expiryDate: '',
+      status: 'Disponible',
+    })
+  }
+
+  const handleCreateProduct = (event) => {
+    event.preventDefault()
+
+    if (!newProduct.code || !newProduct.name || !newProduct.category) {
+      alert('Debes completar codigo, producto y categoria.')
+      return
+    }
+
+    const stock = Number(newProduct.stock || 0)
+    const min = Number(newProduct.min || 0)
+
+    const productToCreate = {
+      code: newProduct.code,
+      barcode: newProduct.barcode || 'Sin codigo',
+      name: newProduct.name,
+      category: newProduct.category,
+      unit: newProduct.unit || 'Unidad',
+      boxQty: Number(newProduct.boxQty || 1),
+      stock,
+      min,
+      warehouse: newProduct.warehouse || 'Principal',
+      expiryDate: newProduct.expiryDate || 'No aplica',
+      status: stock <= min ? 'Stock bajo' : newProduct.status,
+    }
+
+    setProducts((currentProducts) => [productToCreate, ...currentProducts])
+    resetForm()
+    setShowForm(false)
+  }
+
+  const downloadExcelTemplate = () => {
+    const templateData = [
+      {
+        Codigo: 'PRO-006',
+        CodigoBarra: '7460010010067',
+        Producto: 'Nombre del producto',
+        Categoria: 'Categoria',
+        UnidadMedida: 'Unidad',
+        CantidadPorCaja: 1,
+        Stock: 0,
+        Minimo: 0,
+        Almacen: 'Principal',
+        FechaVencimiento: 'No aplica',
+        Estado: 'Disponible',
+      },
+    ]
+
+    const worksheet = XLSX.utils.json_to_sheet(templateData)
+    const workbook = XLSX.utils.book_new()
+
+    XLSX.utils.book_append_sheet(workbook, worksheet, 'Productos')
+    XLSX.writeFile(workbook, 'plantilla_productos_inve_fat.xlsx')
+  }
+
+  const importExcelProducts = (event) => {
+    const file = event.target.files?.[0]
+
+    if (!file) return
+
+    const reader = new FileReader()
+
+    reader.onload = (loadEvent) => {
+      try {
+        const data = new Uint8Array(loadEvent.target.result)
+        const workbook = XLSX.read(data, { type: 'array' })
+        const sheetName = workbook.SheetNames[0]
+        const worksheet = workbook.Sheets[sheetName]
+        const rows = XLSX.utils.sheet_to_json(worksheet)
+
+        const importedProducts = rows
+          .map((row, index) => {
+            const stock = Number(row.Stock || 0)
+            const min = Number(row.Minimo || 0)
+
+            return {
+              code: String(row.Codigo || `IMP-${Date.now()}-${index}`),
+              barcode: String(row.CodigoBarra || row.Codigo_Barra || row.Barcode || 'Sin codigo'),
+              name: String(row.Producto || '').trim(),
+              category: String(row.Categoria || 'Sin categoria'),
+              unit: String(row.UnidadMedida || row.Unidad || 'Unidad'),
+              boxQty: Number(row.CantidadPorCaja || row.Cantidad_Caja || row.PorCaja || 1),
+              stock,
+              min,
+              warehouse: String(row.Almacen || 'Principal'),
+              expiryDate: String(row.FechaVencimiento || row.Vencimiento || 'No aplica'),
+              status: String(row.Estado || (stock <= min ? 'Stock bajo' : 'Disponible')),
+            }
+          })
+          .filter((product) => product.name)
+
+        if (importedProducts.length === 0) {
+          alert('No se encontraron productos validos en el archivo.')
+          return
+        }
+
+        setProducts((currentProducts) => [...importedProducts, ...currentProducts])
+        alert(`Se importaron ${importedProducts.length} productos correctamente.`)
+      } catch (error) {
+        alert('No se pudo leer el archivo Excel. Verifica que uses la plantilla correcta.')
+      }
+
+      event.target.value = ''
+    }
+
+    reader.readAsArrayBuffer(file)
+  }
+
+  return (
+    <section className="card inventory-full-card">
+      <div className="inventory-toolbar product-toolbar">
+        <div>
+          <h3>Productos</h3>
+          <p>Gestiona productos individuales o crea productos de forma masiva usando una plantilla Excel.</p>
+        </div>
+
+        <div className="inventory-toolbar-actions product-toolbar-actions">
+          <div className="product-search-box">
+            <Search size={18} />
+            <input
+              value={searchTerm}
+              onChange={(event) => setSearchTerm(event.target.value)}
+              placeholder="Buscar codigo, barra, producto, categoria, unidad..."
+            />
+          </div>
+
+          <button className="secondary-button" onClick={downloadExcelTemplate}>
+            <Download size={16} />
+            Plantilla Excel
+          </button>
+
+          <label className="secondary-button import-button">
+            <Upload size={16} />
+            Importar Excel
+            <input
+              type="file"
+              accept=".xlsx,.xls"
+              onChange={importExcelProducts}
+              hidden
+            />
+          </label>
+
+          <button className="primary-button small" onClick={() => setShowForm(true)}>
+            <Plus size={16} />
+            Agregar producto
+          </button>
+        </div>
+      </div>
+
+      <div className="bulk-import-info">
+        <div className="bulk-import-icon">
+          <FileSpreadsheet size={24} />
+        </div>
+
+        <div>
+          <h4>Creacion masiva desde Excel</h4>
+          <p>
+            La plantilla incluye codigo de barra, unidad de medida, cantidad por caja y fecha de vencimiento.
+          </p>
+        </div>
+      </div>
+
+      {showForm && (
+        <form className="product-form-card" onSubmit={handleCreateProduct}>
+          <div className="product-form-header">
+            <div>
+              <h4>Agregar nuevo producto</h4>
+              <p>Completa los datos principales, logistica, unidad y vencimiento del producto.</p>
+            </div>
+
+            <button type="button" className="close-form-button" onClick={() => setShowForm(false)}>
+              <XCircle size={22} />
+            </button>
+          </div>
+
+          <div className="product-form-grid product-form-grid-expanded">
+            <label>
+              Codigo interno
+              <input
+                value={newProduct.code}
+                onChange={(event) => handleInputChange('code', event.target.value)}
+                placeholder="Ej: PRO-006"
+              />
+            </label>
+
+            <label>
+              Codigo de barra
+              <input
+                value={newProduct.barcode}
+                onChange={(event) => handleInputChange('barcode', event.target.value)}
+                placeholder="Ej: 7460010010067"
+              />
+            </label>
+
+            <label className="product-name-field">
+              Nombre del producto
+              <input
+                value={newProduct.name}
+                onChange={(event) => handleInputChange('name', event.target.value)}
+                placeholder="Ej: Monitor Dell 24"
+              />
+            </label>
+
+            <label>
+              Categoria
+              <input
+                value={newProduct.category}
+                onChange={(event) => handleInputChange('category', event.target.value)}
+                placeholder="Ej: Tecnologia"
+              />
+            </label>
+
+            <label>
+              Unidad de medida
+              <select
+                value={newProduct.unit}
+                onChange={(event) => handleInputChange('unit', event.target.value)}
+              >
+                <option>Unidad</option>
+                <option>Caja</option>
+                <option>Paquete</option>
+                <option>Libra</option>
+                <option>Kilo</option>
+                <option>Galon</option>
+                <option>Litro</option>
+                <option>Metro</option>
+                <option>Docena</option>
+                <option>Fardo</option>
+              </select>
+            </label>
+
+            <label>
+              Cantidad por caja
+              <input
+                type="number"
+                value={newProduct.boxQty}
+                onChange={(event) => handleInputChange('boxQty', event.target.value)}
+                placeholder="Ej: 12"
+              />
+            </label>
+
+            <label>
+              Stock actual
+              <input
+                type="number"
+                value={newProduct.stock}
+                onChange={(event) => handleInputChange('stock', event.target.value)}
+                placeholder="0"
+              />
+            </label>
+
+            <label>
+              Stock minimo
+              <input
+                type="number"
+                value={newProduct.min}
+                onChange={(event) => handleInputChange('min', event.target.value)}
+                placeholder="0"
+              />
+            </label>
+
+            <label>
+              Almacen
+              <input
+                value={newProduct.warehouse}
+                onChange={(event) => handleInputChange('warehouse', event.target.value)}
+                placeholder="Principal"
+              />
+            </label>
+
+            <label>
+              Fecha de vencimiento
+              <input
+                type="date"
+                value={newProduct.expiryDate}
+                onChange={(event) => handleInputChange('expiryDate', event.target.value)}
+              />
+            </label>
+
+            <label>
+              Estado
+              <select
+                value={newProduct.status}
+                onChange={(event) => handleInputChange('status', event.target.value)}
+              >
+                <option>Disponible</option>
+                <option>Stock bajo</option>
+                <option>Inactivo</option>
+              </select>
+            </label>
+          </div>
+
+          <div className="product-form-actions">
+            <button type="button" className="secondary-button" onClick={resetForm}>
+              Limpiar
+            </button>
+
+            <button type="submit" className="primary-button small">
+              <Save size={16} />
+              Guardar producto
+            </button>
+          </div>
+        </form>
+      )}
+
+      <div className="product-results">
+        <span>
+          Mostrando {filteredProducts.length} de {products.length} productos
+        </span>
+      </div>
+
+      <InventoryProductTable products={filteredProducts} />
+    </section>
+  )
+}
+
+function InventoryProductTable({ products = inventoryProducts }) {
+  return (
+    <div className="inventory-table product-table-expanded">
+      <div className="inventory-table-head">
+        <span>Codigo</span>
+        <span>Barra</span>
+        <span>Producto</span>
+        <span>Categoria</span>
+        <span>Unidad</span>
+        <span>Caja</span>
+        <span>Stock</span>
+        <span>Minimo</span>
+        <span>Vence</span>
+        <span>Almacen</span>
+        <span>Estado</span>
+      </div>
+
+      {products.map((product) => (
+        <div key={`${product.code}-${product.name}`} className="inventory-table-row">
+          <span>{product.code}</span>
+          <span>{product.barcode || 'Sin codigo'}</span>
+          <strong>{product.name}</strong>
+          <span>{product.category}</span>
+          <span>{product.unit || 'Unidad'}</span>
+          <span>{product.boxQty || 1}</span>
+          <span>{product.stock}</span>
+          <span>{product.min}</span>
+          <span>{product.expiryDate || 'No aplica'}</span>
+          <span>{product.warehouse}</span>
+          <b className={product.status === 'Stock bajo' ? 'status-low' : 'status-ok'}>
+            {product.status}
+          </b>
+        </div>
+      ))}
+
+      {products.length === 0 && (
+        <div className="empty-products">
+          No se encontraron productos con esa busqueda.
+        </div>
+      )}
+    </div>
+  )
+}
+
+function InventoryCategories() {
+  const categories = [
+    { name: 'Tecnologia', products: 320, color: 'blue' },
+    { name: 'Accesorios', products: 480, color: 'orange' },
+    { name: 'Audio', products: 155, color: 'purple' },
+    { name: 'Oficina', products: 210, color: 'green' },
+    { name: 'Ferreteria', products: 80, color: 'amber' },
+    { name: 'Limpieza', products: 65, color: 'cyan' },
+  ]
+
+  return (
+    <section className="card inventory-full-card">
+      <div className="inventory-toolbar">
+        <div>
+          <h3>Categorias</h3>
+          <p>Organiza tus productos por familias, departamentos o lineas.</p>
+        </div>
+
+        <button className="primary-button small">
+          <Plus size={16} />
+          Nueva categoria
+        </button>
+      </div>
+
+      <div className="inventory-category-grid">
+        {categories.map((category) => (
+          <div key={category.name} className="inventory-category-card">
+            <div className={`inventory-card-icon ${colorClass(category.color)}`}>
+              <Layers size={24} />
+            </div>
+            <h4>{category.name}</h4>
+            <p>{category.products} productos</p>
+          </div>
+        ))}
+      </div>
+    </section>
+  )
+}
+
+function InventoryWarehouses() {
+  const warehouses = [
+    { name: 'Almacen Principal', location: 'Sucursal Central', products: 860, status: 'Activo' },
+    { name: 'Almacen 2', location: 'Zona Norte', products: 250, status: 'Activo' },
+    { name: 'Almacen 3', location: 'Zona Este', products: 95, status: 'Activo' },
+    { name: 'Transito', location: 'Mercancia pendiente', products: 40, status: 'Revision' },
+  ]
+
+  return (
+    <section className="card inventory-full-card">
+      <div className="inventory-toolbar">
+        <div>
+          <h3>Almacenes</h3>
+          <p>Controla sucursales, ubicaciones internas y disponibilidad por almacen.</p>
+        </div>
+
+        <button className="primary-button small">
+          <Plus size={16} />
+          Nuevo almacen
+        </button>
+      </div>
+
+      <div className="warehouse-grid">
+        {warehouses.map((warehouse) => (
+          <div key={warehouse.name} className="warehouse-card">
+            <div className="warehouse-card-top">
+              <div className="inventory-card-icon soft-blue">
+                <Warehouse size={24} />
+              </div>
+              <span className={warehouse.status === 'Activo' ? 'status-ok' : 'status-low'}>
+                {warehouse.status}
+              </span>
+            </div>
+
+            <h4>{warehouse.name}</h4>
+            <p>{warehouse.location}</p>
+            <strong>{warehouse.products} productos</strong>
+          </div>
+        ))}
+      </div>
+    </section>
+  )
+}
+
+function InventoryMovements() {
+  const movements = [
+    { date: '14/05/2026', type: 'Entrada', product: 'Laptop HP Pavilion', qty: '+15', user: 'Administrador' },
+    { date: '14/05/2026', type: 'Salida', product: 'Mouse Inalambrico Logitech', qty: '-8', user: 'Administrador' },
+    { date: '13/05/2026', type: 'Ajuste', product: 'Monitor Samsung 24"', qty: '+4', user: 'Supervisor' },
+    { date: '13/05/2026', type: 'Transferencia', product: 'Teclado Mecanico RGB', qty: '-10', user: 'Almacen' },
+  ]
+
+  return (
+    <section className="card inventory-full-card">
+      <div className="inventory-toolbar">
+        <div>
+          <h3>Movimientos de inventario</h3>
+          <p>Historial de entradas, salidas, transferencias y ajustes.</p>
+        </div>
+
+        <button className="secondary-button">Exportar movimientos</button>
+      </div>
+
+      <div className="movement-list">
+        {movements.map((movement, index) => (
+          <div key={index} className="movement-row">
+            <div className={movement.type === 'Salida' ? 'movement-icon out' : 'movement-icon in'}>
+              <ArrowLeftRight size={20} />
+            </div>
+
+            <div>
+              <h4>{movement.product}</h4>
+              <p>{movement.type} - {movement.date} - {movement.user}</p>
+            </div>
+
+            <strong className={movement.qty.includes('-') ? 'negative' : 'positive'}>
+              {movement.qty}
+            </strong>
+          </div>
+        ))}
+      </div>
+    </section>
+  )
+}
+
+function InventoryReceiving() {
+  return (
+    <section className="card inventory-full-card">
+      <div className="inventory-toolbar">
+        <div>
+          <h3>Recepcion de mercancia</h3>
+          <p>Registra productos recibidos, cantidades, proveedor, almacen y observaciones.</p>
+        </div>
+
+        <button className="primary-button small">
+          <Plus size={16} />
+          Nueva recepcion
+        </button>
+      </div>
+
+      <div className="receiving-layout">
+        <div className="receiving-form-preview">
+          <h4>Formulario de recepcion</h4>
+
+          <div className="form-grid-preview">
+            <label>Proveedor</label>
+            <div>Seleccionar proveedor</div>
+
+            <label>Almacen destino</label>
+            <div>Almacen principal</div>
+
+            <label>No. orden de compra</label>
+            <div>OC-000245</div>
+
+            <label>Fecha de recepcion</label>
+            <div>14/05/2026</div>
+          </div>
+        </div>
+
+        <div className="receiving-info-card soft-orange">
+          <ClipboardList size={34} />
+          <h4>Proxima mejora</h4>
+          <p>Aqui crearemos el formulario real para recibir mercancia y generar PDF.</p>
+        </div>
+      </div>
+    </section>
+  )
+}
+
+function SalesModule() {
+  const [salesView, setSalesView] = useState('summary')
+  const [searchTerm, setSearchTerm] = useState('')
+  const [showInvoiceForm, setShowInvoiceForm] = useState(false)
+
+  const [invoices, setInvoices] = useState([
+    {
+      number: 'FAC-0001',
+      customer: 'Colegio San Miguel',
+      date: '14/05/2026',
+      total: 18500,
+      payment: 'Transferencia',
+      status: 'Pagada',
+    },
+    {
+      number: 'FAC-0002',
+      customer: 'Comercial La Fe',
+      date: '14/05/2026',
+      total: 7250,
+      payment: 'Efectivo',
+      status: 'Pagada',
+    },
+    {
+      number: 'FAC-0003',
+      customer: 'Distribuidora Gomez',
+      date: '13/05/2026',
+      total: 34200,
+      payment: 'Credito',
+      status: 'Pendiente',
+    },
+    {
+      number: 'FAC-0004',
+      customer: 'Ferreteria Central',
+      date: '13/05/2026',
+      total: 12800,
+      payment: 'Tarjeta',
+      status: 'Pagada',
+    },
+  ])
+
+  const [clients, setClients] = useState(salesClientsData)
+
+  const [newInvoice, setNewInvoice] = useState({
+    clientCode: '',
+    product: '',
+    quantity: '',
+    price: '',
+    payment: 'Efectivo',
+    status: 'Pagada',
+  })
+
+  const salesTabs = [
+    { id: 'summary', name: 'Resumen', icon: Gauge },
+    { id: 'invoices', name: 'Facturas', icon: Receipt },
+    { id: 'quotes', name: 'Cotizaciones', icon: FileText },
+    { id: 'customers', name: 'Clientes', icon: Users },
+    { id: 'pos', name: 'POS / Caja', icon: Calculator },
+    { id: 'receivables', name: 'Cuentas por cobrar', icon: Wallet },
+  ]
+
+  const filteredInvoices = invoices.filter((invoice) => {
+    const search = searchTerm.toLowerCase()
+
+    return (
+      invoice.number.toLowerCase().includes(search) ||
+      invoice.customer.toLowerCase().includes(search) ||
+      invoice.date.toLowerCase().includes(search) ||
+      invoice.payment.toLowerCase().includes(search) ||
+      invoice.status.toLowerCase().includes(search)
+    )
+  })
+
+  const totalSales = invoices.reduce((sum, invoice) => sum + invoice.total, 0)
+  const pendingSales = invoices
+    .filter((invoice) => invoice.status === 'Pendiente')
+    .reduce((sum, invoice) => sum + invoice.total, 0)
+
+  const handleInvoiceChange = (field, value) => {
+    setNewInvoice((current) => ({
+      ...current,
+      [field]: value,
+    }))
+  }
+
+  const resetInvoiceForm = () => {
+    setNewInvoice({
+      clientCode: '',
+      product: '',
+      quantity: '',
+      price: '',
+      payment: 'Efectivo',
+      status: 'Pagada',
+    })
+  }
+
+  const handleCreateInvoice = (event) => {
+    event.preventDefault()
+
+    const selectedClient = clients.find((client) => client.code === newInvoice.clientCode)
+
+    if (!selectedClient || !newInvoice.product || !newInvoice.quantity || !newInvoice.price) {
+      alert('Debes seleccionar cliente, producto, cantidad y precio.')
+      return
+    }
+
+    const quantity = Number(newInvoice.quantity || 0)
+    const price = Number(newInvoice.price || 0)
+    const total = quantity * price
+
+    const invoiceToCreate = {
+      number: `FAC-${String(invoices.length + 1).padStart(4, '0')}`,
+      customerCode: selectedClient.code,
+      customer: selectedClient.name,
+      customerDocument: selectedClient.document,
+      date: new Date().toLocaleDateString('es-DO'),
+      total,
+      payment: newInvoice.payment,
+      status: newInvoice.status,
+    }
+
+    setInvoices((current) => [invoiceToCreate, ...current])
+
+    if (newInvoice.status === 'Pendiente') {
+      setClients((currentClients) =>
+        currentClients.map((client) =>
+          client.code === selectedClient.code
+            ? { ...client, balance: Number(client.balance || 0) + total }
+            : client
+        )
+      )
+    }
+
+    resetInvoiceForm()
+    setShowInvoiceForm(false)
+  }
+
+  return (
+    <main className="main-content">
+      <section className="module-header">
+        <div>
+          <span className="module-badge">Modulo activo</span>
+          <h2>Ventas</h2>
+          <p>Gestiona facturas, cotizaciones, clientes, POS, pagos y cuentas por cobrar.</p>
+        </div>
+
+        <button className="primary-button" onClick={() => setShowInvoiceForm(true)}>
+          <Plus size={18} />
+          Nueva factura
+        </button>
+      </section>
+
+      <section className="inventory-tabs sales-tabs">
+        {salesTabs.map((tab) => {
+          const Icon = tab.icon
+          return (
+            <button
+              key={tab.id}
+              className={salesView === tab.id ? 'inventory-tab active' : 'inventory-tab'}
+              onClick={() => setSalesView(tab.id)}
+            >
+              <Icon size={18} />
+              {tab.name}
+            </button>
+          )
+        })}
+      </section>
+
+      {salesView === 'summary' && (
+        <SalesSummary
+          invoices={invoices}
+          totalSales={totalSales}
+          pendingSales={pendingSales}
+          setSalesView={setSalesView}
+          setShowInvoiceForm={setShowInvoiceForm}
+        />
+      )}
+
+      {salesView === 'invoices' && (
+        <SalesInvoices
+          invoices={filteredInvoices}
+          searchTerm={searchTerm}
+          setSearchTerm={setSearchTerm}
+          showInvoiceForm={showInvoiceForm}
+          setShowInvoiceForm={setShowInvoiceForm}
+          newInvoice={newInvoice}
+          handleInvoiceChange={handleInvoiceChange}
+          handleCreateInvoice={handleCreateInvoice}
+          resetInvoiceForm={resetInvoiceForm}
+        />
+      )}
+
+      {salesView === 'quotes' && <SalesSimplePage title="Cotizaciones" text="Aqui crearemos cotizaciones, conversion a factura y PDF para enviar al cliente." icon={FileText} />}
+      {salesView === 'customers' && <SalesCustomers clients={clients} setClients={setClients} />}
+      {salesView === 'pos' && <SalesSimplePage title="POS / Caja" text="Aqui construiremos el punto de venta rapido con lector de codigo de barra y metodos de pago." icon={Calculator} />}
+      {salesView === 'receivables' && <SalesSimplePage title="Cuentas por cobrar" text="Aqui veremos facturas pendientes, vencidas, pagos parciales y estados de cuenta." icon={Wallet} />}
+    </main>
+  )
+}
+
+function SalesSummary({ invoices, clients, totalSales, pendingSales, setSalesView, setShowInvoiceForm }) {
+  const paidInvoices = invoices.filter((invoice) => invoice.status === 'Pagada').length
+  const pendingInvoices = invoices.filter((invoice) => invoice.status === 'Pendiente').length
+
+  const salesSummaryCards = [
+    { title: 'Ventas registradas', value: `RD$ ${totalSales.toLocaleString('es-DO')}`, text: 'Total general', icon: DollarSign, color: 'green' },
+    { title: 'Facturas pagadas', value: paidInvoices, text: 'Completadas', icon: Receipt, color: 'blue' },
+    { title: 'Pendientes de cobro', value: `RD$ ${pendingSales.toLocaleString('es-DO')}`, text: `${pendingInvoices} facturas`, icon: Wallet, color: 'red' },
+    { title: 'Clientes activos', value: clients.filter((client) => client.status === 'Activo').length, text: 'Registrados', icon: Users, color: 'purple' },
+  ]
+
+  const salesActions = [
+    { name: 'Nueva factura', icon: Receipt, color: 'green', action: () => setShowInvoiceForm(true) },
+    { name: 'Nueva cotizacion', icon: FileText, color: 'orange', action: () => setSalesView('quotes') },
+    { name: 'Nuevo cliente', icon: UserPlus, color: 'purple', action: () => setSalesView('customers') },
+    { name: 'Abrir POS', icon: Calculator, color: 'blue', action: () => setSalesView('pos') },
+    { name: 'Cobros pendientes', icon: Wallet, color: 'red', action: () => setSalesView('receivables') },
+    { name: 'Imprimir reporte', icon: Printer, color: 'cyan', action: () => alert('Luego activaremos impresion y PDF.') },
+  ]
+
+  return (
+    <>
+      <section className="sales-summary-grid">
+        {salesSummaryCards.map((item) => {
+          const Icon = item.icon
+          return (
+            <div key={item.title} className="card inventory-summary-card">
+              <div className={`inventory-card-icon ${colorClass(item.color)}`}>
+                <Icon size={25} />
+              </div>
+              <div>
+                <p>{item.title}</p>
+                <h3>{item.value}</h3>
+                <span>{item.text}</span>
+              </div>
+            </div>
+          )
+        })}
+      </section>
+
+      <section className="sales-layout">
+        <div className="card sales-table-card">
+          <div className="card-header">
+            <h3>Facturas recientes</h3>
+            <button onClick={() => setSalesView('invoices')}>Ver facturas</button>
+          </div>
+
+          <SalesInvoiceTable invoices={invoices.slice(0, 4)} />
+        </div>
+
+        <div className="card sales-actions-card">
+          <h3>Acciones de ventas</h3>
+
+          <div className="sales-actions-grid">
+            {salesActions.map((action) => {
+              const Icon = action.icon
+              return (
+                <button key={action.name} className={colorClass(action.color)} onClick={action.action}>
+                  <Icon size={23} />
+                  <span>{action.name}</span>
+                </button>
+              )
+            })}
+          </div>
+        </div>
+      </section>
+    </>
+  )
+}
+
+function SalesInvoices({
+  invoices,
+  clients,
+  searchTerm,
+  setSearchTerm,
+  showInvoiceForm,
+  setShowInvoiceForm,
+  newInvoice,
+  handleInvoiceChange,
+  handleCreateInvoice,
+  resetInvoiceForm,
+}) {
+  const selectedClient = clients.find((client) => client.code === newInvoice.clientCode)
+
+  return (
+    <section className="card inventory-full-card">
+      <div className="inventory-toolbar product-toolbar">
+        <div>
+          <h3>Facturas</h3>
+          <p>Selecciona un cliente registrado para crearle una factura.</p>
+        </div>
+
+        <div className="inventory-toolbar-actions product-toolbar-actions">
+          <div className="product-search-box">
+            <Search size={18} />
+            <input
+              value={searchTerm}
+              onChange={(event) => setSearchTerm(event.target.value)}
+              placeholder="Buscar factura, cliente, fecha, estado..."
+            />
+          </div>
+
+          <button className="secondary-button">
+            <Printer size={16} />
+            Imprimir
+          </button>
+
+          <button className="primary-button small" onClick={() => setShowInvoiceForm(true)}>
+            <Plus size={16} />
+            Nueva factura
+          </button>
+        </div>
+      </div>
+
+      {showInvoiceForm && (
+        <form className="product-form-card" onSubmit={handleCreateInvoice}>
+          <div className="product-form-header">
+            <div>
+              <h4>Nueva factura</h4>
+              <p>Selecciona un cliente y registra los datos de la venta.</p>
+            </div>
+
+            <button type="button" className="close-form-button" onClick={() => setShowInvoiceForm(false)}>
+              <XCircle size={22} />
+            </button>
+          </div>
+
+          <div className="product-form-grid">
+            <label className="client-name-field">
+              Cliente
+              <select
+                value={newInvoice.clientCode}
+                onChange={(event) => handleInvoiceChange('clientCode', event.target.value)}
+              >
+                <option value="">Seleccione un cliente</option>
+                {clients.map((client) => (
+                  <option key={client.code} value={client.code}>
+                    {client.code} - {client.name}
+                  </option>
+                ))}
+              </select>
+            </label>
+
+            <label>
+              Producto
+              <input
+                value={newInvoice.product}
+                onChange={(event) => handleInvoiceChange('product', event.target.value)}
+                placeholder="Producto vendido"
+              />
+            </label>
+
+            <label>
+              Cantidad
+              <input
+                type="number"
+                value={newInvoice.quantity}
+                onChange={(event) => handleInvoiceChange('quantity', event.target.value)}
+                placeholder="0"
+              />
+            </label>
+
+            <label>
+              Precio unitario
+              <input
+                type="number"
+                value={newInvoice.price}
+                onChange={(event) => handleInvoiceChange('price', event.target.value)}
+                placeholder="0"
+              />
+            </label>
+
+            <label>
+              Metodo de pago
+              <select
+                value={newInvoice.payment}
+                onChange={(event) => handleInvoiceChange('payment', event.target.value)}
+              >
+                <option>Efectivo</option>
+                <option>Tarjeta</option>
+                <option>Transferencia</option>
+                <option>Credito</option>
+              </select>
+            </label>
+
+            <label>
+              Estado
+              <select
+                value={newInvoice.status}
+                onChange={(event) => handleInvoiceChange('status', event.target.value)}
+              >
+                <option>Pagada</option>
+                <option>Pendiente</option>
+                <option>Anulada</option>
+              </select>
+            </label>
+          </div>
+
+          {selectedClient && (
+            <div className="selected-client-preview">
+              <div>
+                <span>Cliente seleccionado</span>
+                <strong>{selectedClient.name}</strong>
+              </div>
+
+              <div>
+                <span>RNC / Cedula</span>
+                <strong>{selectedClient.document}</strong>
+              </div>
+
+              <div>
+                <span>Telefono</span>
+                <strong>{selectedClient.phone}</strong>
+              </div>
+
+              <div>
+                <span>Balance pendiente</span>
+                <strong className={selectedClient.balance > 0 ? 'negative' : 'positive'}>
+                  RD$ {selectedClient.balance.toLocaleString('es-DO')}
+                </strong>
+              </div>
+            </div>
+          )}
+
+          <div className="invoice-total-preview">
+            <span>Total estimado</span>
+            <strong>
+              RD$ {(Number(newInvoice.quantity || 0) * Number(newInvoice.price || 0)).toLocaleString('es-DO')}
+            </strong>
+          </div>
+
+          <div className="product-form-actions">
+            <button type="button" className="secondary-button" onClick={resetInvoiceForm}>
+              Limpiar
+            </button>
+
+            <button type="submit" className="primary-button small">
+              <Save size={16} />
+              Guardar factura
+            </button>
+          </div>
+        </form>
+      )}
+
+      <div className="product-results">
+        <span>Mostrando {invoices.length} facturas</span>
+      </div>
+
+      <SalesInvoiceTable invoices={invoices} />
+    </section>
+  )
+}
+
+function SalesInvoiceTable({ invoices }) {
+  return (
+    <div className="sales-table">
+      <div className="sales-table-head">
+        <span>No. factura</span>
+        <span>Cliente</span>
+        <span>Fecha</span>
+        <span>Total</span>
+        <span>Pago</span>
+        <span>Estado</span>
+        <span>Acciones</span>
+      </div>
+
+      {invoices.map((invoice) => (
+        <div key={invoice.number} className="sales-table-row">
+          <strong>{invoice.number}</strong>
+          <span>{invoice.customer}</span>
+          <span>{invoice.date}</span>
+          <b>RD$ {invoice.total.toLocaleString('es-DO')}</b>
+          <span>{invoice.payment}</span>
+          <em className={invoice.status === 'Pagada' ? 'status-ok' : invoice.status === 'Pendiente' ? 'status-low' : 'status-neutral'}>
+            {invoice.status}
+          </em>
+          <div className="sales-row-actions">
+            <button title="Ver">
+              <Eye size={16} />
+            </button>
+            <button title="Imprimir">
+              <Printer size={16} />
+            </button>
+          </div>
+        </div>
+      ))}
+
+      {invoices.length === 0 && (
+        <div className="empty-products">
+          No se encontraron facturas con esa busqueda.
+        </div>
+      )}
+    </div>
+  )
+}
+
+function SalesCustomers({ clients, setClients }) {
+  const [searchTerm, setSearchTerm] = useState('')
+  const [showClientForm, setShowClientForm] = useState(false)
+
+  const [newClient, setNewClient] = useState({
+    name: '',
+    document: '',
+    phone: '',
+    email: '',
+    address: '',
+    type: 'Empresa',
+    creditLimit: '',
+    balance: '',
+    status: 'Activo',
+  })
+
+  const filteredClients = clients.filter((client) => {
+    const search = searchTerm.toLowerCase()
+
+    return (
+      client.code.toLowerCase().includes(search) ||
+      client.name.toLowerCase().includes(search) ||
+      client.document.toLowerCase().includes(search) ||
+      client.phone.toLowerCase().includes(search) ||
+      client.email.toLowerCase().includes(search) ||
+      client.address.toLowerCase().includes(search) ||
+      client.type.toLowerCase().includes(search) ||
+      client.status.toLowerCase().includes(search)
+    )
+  })
+
+  const totalClients = clients.length
+  const activeClients = clients.filter((client) => client.status === 'Activo').length
+  const totalBalance = clients.reduce((sum, client) => sum + client.balance, 0)
+  const clientsWithDebt = clients.filter((client) => client.balance > 0).length
+
+  const handleClientChange = (field, value) => {
+    setNewClient((current) => ({
+      ...current,
+      [field]: value,
+    }))
+  }
+
+  const resetClientForm = () => {
+    setNewClient({
+      name: '',
+      document: '',
+      phone: '',
+      email: '',
+      address: '',
+      type: 'Empresa',
+      creditLimit: '',
+      balance: '',
+      status: 'Activo',
+    })
+  }
+
+  const handleCreateClient = (event) => {
+    event.preventDefault()
+
+    if (!newClient.name || !newClient.document || !newClient.phone) {
+      alert('Debes completar nombre, RNC/Cedula y telefono.')
+      return
+    }
+
+    const clientToCreate = {
+      code: `CLI-${String(clients.length + 1).padStart(3, '0')}`,
+      name: newClient.name,
+      document: newClient.document,
+      phone: newClient.phone,
+      email: newClient.email || 'Sin correo',
+      address: newClient.address || 'Sin direccion',
+      type: newClient.type,
+      creditLimit: Number(newClient.creditLimit || 0),
+      balance: Number(newClient.balance || 0),
+      status: newClient.status,
+    }
+
+    setClients((current) => [clientToCreate, ...current])
+    resetClientForm()
+    setShowClientForm(false)
+  }
+
+  return (
+    <section className="card clients-full-card">
+      <div className="inventory-toolbar product-toolbar">
+        <div>
+          <h3>Clientes</h3>
+          <p>Los clientes creados aqui aparecen automaticamente al crear una factura.</p>
+        </div>
+
+        <div className="inventory-toolbar-actions product-toolbar-actions">
+          <div className="product-search-box">
+            <Search size={18} />
+            <input
+              value={searchTerm}
+              onChange={(event) => setSearchTerm(event.target.value)}
+              placeholder="Buscar cliente, RNC, telefono, correo..."
+            />
+          </div>
+
+          <button className="primary-button small" onClick={() => setShowClientForm(true)}>
+            <UserPlus size={16} />
+            Agregar cliente
+          </button>
+        </div>
+      </div>
+
+      <section className="clients-summary-grid">
+        <div className="client-summary-card soft-blue">
+          <Users size={24} />
+          <div>
+            <p>Total clientes</p>
+            <h4>{totalClients}</h4>
+          </div>
+        </div>
+
+        <div className="client-summary-card soft-green">
+          <User size={24} />
+          <div>
+            <p>Clientes activos</p>
+            <h4>{activeClients}</h4>
+          </div>
+        </div>
+
+        <div className="client-summary-card soft-red">
+          <Wallet size={24} />
+          <div>
+            <p>Balance pendiente</p>
+            <h4>RD$ {totalBalance.toLocaleString('es-DO')}</h4>
+          </div>
+        </div>
+
+        <div className="client-summary-card soft-orange">
+          <CreditCard size={24} />
+          <div>
+            <p>Con deuda</p>
+            <h4>{clientsWithDebt}</h4>
+          </div>
+        </div>
+      </section>
+
+      {showClientForm && (
+        <form className="product-form-card" onSubmit={handleCreateClient}>
+          <div className="product-form-header">
+            <div>
+              <h4>Agregar nuevo cliente</h4>
+              <p>Este cliente quedara disponible para facturacion.</p>
+            </div>
+
+            <button type="button" className="close-form-button" onClick={() => setShowClientForm(false)}>
+              <XCircle size={22} />
+            </button>
+          </div>
+
+          <div className="product-form-grid client-form-grid">
+            <label className="client-name-field">
+              Nombre / Empresa
+              <input
+                value={newClient.name}
+                onChange={(event) => handleClientChange('name', event.target.value)}
+                placeholder="Ej: Comercial La Fe"
+              />
+            </label>
+
+            <label>
+              RNC / Cedula
+              <input
+                value={newClient.document}
+                onChange={(event) => handleClientChange('document', event.target.value)}
+                placeholder="Ej: 131-4567890-1"
+              />
+            </label>
+
+            <label>
+              Telefono
+              <input
+                value={newClient.phone}
+                onChange={(event) => handleClientChange('phone', event.target.value)}
+                placeholder="Ej: 809-000-0000"
+              />
+            </label>
+
+            <label>
+              Correo
+              <input
+                type="email"
+                value={newClient.email}
+                onChange={(event) => handleClientChange('email', event.target.value)}
+                placeholder="cliente@correo.com"
+              />
+            </label>
+
+            <label className="client-address-field">
+              Direccion
+              <input
+                value={newClient.address}
+                onChange={(event) => handleClientChange('address', event.target.value)}
+                placeholder="Direccion del cliente"
+              />
+            </label>
+
+            <label>
+              Tipo de cliente
+              <select
+                value={newClient.type}
+                onChange={(event) => handleClientChange('type', event.target.value)}
+              >
+                <option>Empresa</option>
+                <option>Individual</option>
+                <option>Mayorista</option>
+                <option>Minorista</option>
+                <option>Gobierno</option>
+                <option>Escuela</option>
+              </select>
+            </label>
+
+            <label>
+              Limite de credito
+              <input
+                type="number"
+                value={newClient.creditLimit}
+                onChange={(event) => handleClientChange('creditLimit', event.target.value)}
+                placeholder="0"
+              />
+            </label>
+
+            <label>
+              Balance pendiente
+              <input
+                type="number"
+                value={newClient.balance}
+                onChange={(event) => handleClientChange('balance', event.target.value)}
+                placeholder="0"
+              />
+            </label>
+
+            <label>
+              Estado
+              <select
+                value={newClient.status}
+                onChange={(event) => handleClientChange('status', event.target.value)}
+              >
+                <option>Activo</option>
+                <option>Inactivo</option>
+                <option>Bloqueado</option>
+              </select>
+            </label>
+          </div>
+
+          <div className="product-form-actions">
+            <button type="button" className="secondary-button" onClick={resetClientForm}>
+              Limpiar
+            </button>
+
+            <button type="submit" className="primary-button small">
+              <Save size={16} />
+              Guardar cliente
+            </button>
+          </div>
+        </form>
+      )}
+
+      <div className="product-results">
+        <span>Mostrando {filteredClients.length} de {clients.length} clientes</span>
+      </div>
+
+      <div className="clients-table">
+        <div className="clients-table-head">
+          <span>Codigo</span>
+          <span>Cliente</span>
+          <span>RNC/Cedula</span>
+          <span>Telefono</span>
+          <span>Correo</span>
+          <span>Direccion</span>
+          <span>Tipo</span>
+          <span>Credito</span>
+          <span>Balance</span>
+          <span>Estado</span>
+          <span>Acciones</span>
+        </div>
+
+        {filteredClients.map((client) => (
+          <div key={client.code} className="clients-table-row">
+            <strong>{client.code}</strong>
+            <span>{client.name}</span>
+            <span>{client.document}</span>
+            <span>{client.phone}</span>
+            <span>{client.email}</span>
+            <span>{client.address}</span>
+            <span>{client.type}</span>
+            <b>RD$ {client.creditLimit.toLocaleString('es-DO')}</b>
+            <b className={client.balance > 0 ? 'negative' : 'positive'}>
+              RD$ {client.balance.toLocaleString('es-DO')}
+            </b>
+            <em className={client.status === 'Activo' ? 'status-ok' : 'status-low'}>
+              {client.status}
+            </em>
+            <div className="sales-row-actions">
+              <button title="Ver cliente">
+                <Eye size={16} />
+              </button>
+              <button title="Nueva factura">
+                <Receipt size={16} />
+              </button>
+            </div>
+          </div>
+        ))}
+
+        {filteredClients.length === 0 && (
+          <div className="empty-products">
+            No se encontraron clientes con esa busqueda.
+          </div>
+        )}
+      </div>
+    </section>
+  )
+}
+
+function SalesSimplePage({ title, text, icon: Icon }) {
+  return (
+    <section className="card sales-simple-card">
+      <div className="sales-simple-icon soft-orange">
+        <Icon size={34} />
+      </div>
+
+      <h3>{title}</h3>
+      <p>{text}</p>
+
+      <button className="primary-button small">
+        <Plus size={16} />
+        Crear nuevo
+      </button>
+    </section>
+  )
+}
+
+
+function PurchasesModuleSafe() {
+  const [view, setView] = useState('summary')
+  const [searchTerm, setSearchTerm] = useState('')
+  const [showOrderForm, setShowOrderForm] = useState(false)
+  const [showSupplierForm, setShowSupplierForm] = useState(false)
+
+  const [suppliers, setSuppliers] = useState([
+    {
+      code: 'SUP-001',
+      name: 'Suplidores del Caribe',
+      rnc: '131-2223334-5',
+      phone: '809-555-2200',
+      email: 'ventas@suplidorescaribe.com',
+      address: 'Santo Domingo',
+      contact: 'Carlos Perez',
+      balance: 45000,
+      status: 'Activo',
+    },
+    {
+      code: 'SUP-002',
+      name: 'Distribuidora Nacional',
+      rnc: '130-9876543-1',
+      phone: '809-444-3322',
+      email: 'compras@distnacional.com',
+      address: 'Santiago',
+      contact: 'Maria Gomez',
+      balance: 0,
+      status: 'Activo',
+    },
+    {
+      code: 'SUP-003',
+      name: 'Importadora La Union',
+      rnc: '132-4455667-2',
+      phone: '829-777-1188',
+      email: 'info@importunion.com',
+      address: 'La Vega',
+      contact: 'Jose Martinez',
+      balance: 125000,
+      status: 'Activo',
+    },
+  ])
+
+  const [orders, setOrders] = useState([
+    {
+      number: 'OC-000001',
+      supplierCode: 'SUP-001',
+      supplier: 'Suplidores del Caribe',
+      date: '14/05/2026',
+      product: 'Agua Cristal 16.9 oz',
+      quantity: 100,
+      cost: 18,
+      total: 1800,
+      status: 'Pendiente',
+      payment: 'Credito',
+    },
+    {
+      number: 'OC-000002',
+      supplierCode: 'SUP-003',
+      supplier: 'Importadora La Union',
+      date: '13/05/2026',
+      product: 'Detergente Ace 360 g',
+      quantity: 60,
+      cost: 65,
+      total: 3900,
+      status: 'Recibida',
+      payment: 'Transferencia',
+    },
+  ])
+
+  const [newOrder, setNewOrder] = useState({
+    supplierCode: '',
+    product: '',
+    quantity: '',
+    cost: '',
+    payment: 'Credito',
+    status: 'Pendiente',
+  })
+
+  const [newSupplier, setNewSupplier] = useState({
+    name: '',
+    rnc: '',
+    phone: '',
+    email: '',
+    address: '',
+    contact: '',
+    balance: '',
+    status: 'Activo',
+  })
+
+  const tabs = [
+    { id: 'summary', name: 'Resumen', icon: Store },
+    { id: 'orders', name: 'Ordenes de compra', icon: FileText },
+    { id: 'suppliers', name: 'Proveedores', icon: Truck },
+    { id: 'receiving', name: 'Recepcion', icon: ClipboardList },
+    { id: 'payables', name: 'Cuentas por pagar', icon: Wallet },
+  ]
+
+  const filteredOrders = orders.filter((order) => {
+    const search = searchTerm.toLowerCase()
+
+    return (
+      order.number.toLowerCase().includes(search) ||
+      order.supplier.toLowerCase().includes(search) ||
+      order.product.toLowerCase().includes(search) ||
+      order.status.toLowerCase().includes(search) ||
+      order.payment.toLowerCase().includes(search)
+    )
+  })
+
+  const filteredSuppliers = suppliers.filter((supplier) => {
+    const search = searchTerm.toLowerCase()
+
+    return (
+      supplier.code.toLowerCase().includes(search) ||
+      supplier.name.toLowerCase().includes(search) ||
+      supplier.rnc.toLowerCase().includes(search) ||
+      supplier.phone.toLowerCase().includes(search) ||
+      supplier.email.toLowerCase().includes(search) ||
+      supplier.status.toLowerCase().includes(search)
+    )
+  })
+
+  const totalPurchases = orders.reduce((sum, order) => sum + order.total, 0)
+  const pendingOrders = orders.filter((order) => order.status === 'Pendiente').length
+  const receivedOrders = orders.filter((order) => order.status === 'Recibida').length
+  const accountsPayable = suppliers.reduce((sum, supplier) => sum + Number(supplier.balance || 0), 0)
+
+  const updateOrderField = (field, value) => {
+    setNewOrder((current) => ({
+      ...current,
+      [field]: value,
+    }))
+  }
+
+  const updateSupplierField = (field, value) => {
+    setNewSupplier((current) => ({
+      ...current,
+      [field]: value,
+    }))
+  }
+
+  const resetOrder = () => {
+    setNewOrder({
+      supplierCode: '',
+      product: '',
+      quantity: '',
+      cost: '',
+      payment: 'Credito',
+      status: 'Pendiente',
+    })
+  }
+
+  const resetSupplier = () => {
+    setNewSupplier({
+      name: '',
+      rnc: '',
+      phone: '',
+      email: '',
+      address: '',
+      contact: '',
+      balance: '',
+      status: 'Activo',
+    })
+  }
+
+  const createOrder = (event) => {
+    event.preventDefault()
+
+    const selectedSupplier = suppliers.find((supplier) => supplier.code === newOrder.supplierCode)
+
+    if (!selectedSupplier || !newOrder.product || !newOrder.quantity || !newOrder.cost) {
+      alert('Debes seleccionar proveedor, producto, cantidad y costo.')
+      return
+    }
+
+    const quantity = Number(newOrder.quantity || 0)
+    const cost = Number(newOrder.cost || 0)
+    const total = quantity * cost
+
+    const createdOrder = {
+      number: `OC-${String(orders.length + 1).padStart(6, '0')}`,
+      supplierCode: selectedSupplier.code,
+      supplier: selectedSupplier.name,
+      date: new Date().toLocaleDateString('es-DO'),
+      product: newOrder.product,
+      quantity,
+      cost,
+      total,
+      status: newOrder.status,
+      payment: newOrder.payment,
+    }
+
+    setOrders((current) => [createdOrder, ...current])
+
+    if (newOrder.payment === 'Credito') {
+      setSuppliers((currentSuppliers) =>
+        currentSuppliers.map((supplier) =>
+          supplier.code === selectedSupplier.code
+            ? { ...supplier, balance: Number(supplier.balance || 0) + total }
+            : supplier
+        )
+      )
+    }
+
+    resetOrder()
+    setShowOrderForm(false)
+  }
+
+  const createSupplier = (event) => {
+    event.preventDefault()
+
+    if (!newSupplier.name || !newSupplier.rnc || !newSupplier.phone) {
+      alert('Debes completar nombre, RNC y telefono.')
+      return
+    }
+
+    const createdSupplier = {
+      code: `SUP-${String(suppliers.length + 1).padStart(3, '0')}`,
+      name: newSupplier.name,
+      rnc: newSupplier.rnc,
+      phone: newSupplier.phone,
+      email: newSupplier.email || 'Sin correo',
+      address: newSupplier.address || 'Sin direccion',
+      contact: newSupplier.contact || 'Sin contacto',
+      balance: Number(newSupplier.balance || 0),
+      status: newSupplier.status,
+    }
+
+    setSuppliers((current) => [createdSupplier, ...current])
+    resetSupplier()
+    setShowSupplierForm(false)
+  }
+
+  return (
+    <main className="main-content">
+      <section className="module-header">
+        <div>
+          <span className="module-badge">Modulo activo</span>
+          <h2>Compras</h2>
+          <p>Gestiona proveedores, ordenes de compra, recepcion de mercancia y cuentas por pagar.</p>
+        </div>
+
+        <button
+          className="primary-button"
+          onClick={() => {
+            setView('orders')
+            setShowOrderForm(true)
+          }}
+        >
+          <Plus size={18} />
+          Nueva orden
+        </button>
+      </section>
+
+      <section className="inventory-tabs purchases-tabs">
+        {tabs.map((tab) => {
+          const Icon = tab.icon
+          return (
+            <button
+              key={tab.id}
+              className={view === tab.id ? 'inventory-tab active' : 'inventory-tab'}
+              onClick={() => setView(tab.id)}
+            >
+              <Icon size={18} />
+              {tab.name}
+            </button>
+          )
+        })}
+      </section>
+
+      {view === 'summary' && (
+        <>
+          <section className="purchases-summary-grid">
+            <div className="card purchases-summary-card">
+              <div className="inventory-card-icon soft-blue">
+                <ShoppingCart size={24} />
+              </div>
+              <div>
+                <p>Total comprado</p>
+                <h3>RD$ {totalPurchases.toLocaleString('es-DO')}</h3>
+                <span>Ordenes registradas</span>
+              </div>
+            </div>
+
+            <div className="card purchases-summary-card">
+              <div className="inventory-card-icon soft-orange">
+                <FileText size={24} />
+              </div>
+              <div>
+                <p>Ordenes pendientes</p>
+                <h3>{pendingOrders}</h3>
+                <span>Esperando recepcion</span>
+              </div>
+            </div>
+
+            <div className="card purchases-summary-card">
+              <div className="inventory-card-icon soft-green">
+                <Package size={24} />
+              </div>
+              <div>
+                <p>Ordenes recibidas</p>
+                <h3>{receivedOrders}</h3>
+                <span>Mercancia recibida</span>
+              </div>
+            </div>
+
+            <div className="card purchases-summary-card">
+              <div className="inventory-card-icon soft-red">
+                <Wallet size={24} />
+              </div>
+              <div>
+                <p>Cuentas por pagar</p>
+                <h3>RD$ {accountsPayable.toLocaleString('es-DO')}</h3>
+                <span>Balance proveedores</span>
+              </div>
+            </div>
+          </section>
+
+          <section className="purchases-layout">
+            <div className="card purchases-table-card">
+              <div className="card-header">
+                <h3>Ordenes recientes</h3>
+                <button onClick={() => setView('orders')}>Ver todas</button>
+              </div>
+
+              <PurchasesOrderTable orders={orders.slice(0, 5)} />
+            </div>
+
+            <div className="card purchases-actions-card">
+              <h3>Acciones de compras</h3>
+
+              <button onClick={() => { setView('orders'); setShowOrderForm(true) }}>Nueva orden de compra</button>
+              <button onClick={() => { setView('suppliers'); setShowSupplierForm(true) }}>Nuevo proveedor</button>
+              <button onClick={() => setView('receiving')}>Recibir mercancia</button>
+              <button onClick={() => setView('payables')}>Cuentas por pagar</button>
+            </div>
+          </section>
+        </>
+      )}
+
+      {view === 'orders' && (
+        <section className="card purchases-full-card">
+          <div className="inventory-toolbar product-toolbar">
+            <div>
+              <h3>Ordenes de compra</h3>
+              <p>Crea, consulta y controla las ordenes realizadas a proveedores.</p>
+            </div>
+
+            <div className="inventory-toolbar-actions product-toolbar-actions">
+              <div className="product-search-box">
+                <Search size={18} />
+                <input
+                  value={searchTerm}
+                  onChange={(event) => setSearchTerm(event.target.value)}
+                  placeholder="Buscar orden, proveedor, producto..."
+                />
+              </div>
+
+              <button className="primary-button small" onClick={() => setShowOrderForm(true)}>
+                <Plus size={16} />
+                Nueva orden
+              </button>
+            </div>
+          </div>
+
+          {showOrderForm && (
+            <form className="product-form-card" onSubmit={createOrder}>
+              <div className="product-form-header">
+                <div>
+                  <h4>Nueva orden de compra</h4>
+                  <p>Selecciona proveedor y registra el producto solicitado.</p>
+                </div>
+
+                <button type="button" className="close-form-button" onClick={() => setShowOrderForm(false)}>
+                  <XCircle size={22} />
+                </button>
+              </div>
+
+              <div className="product-form-grid client-form-grid">
+                <label className="client-name-field">
+                  Proveedor
+                  <select
+                    value={newOrder.supplierCode}
+                    onChange={(event) => updateOrderField('supplierCode', event.target.value)}
+                  >
+                    <option value="">Seleccione un proveedor</option>
+                    {suppliers.map((supplier) => (
+                      <option key={supplier.code} value={supplier.code}>
+                        {supplier.code} - {supplier.name}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+
+                <label className="client-name-field">
+                  Producto solicitado
+                  <input
+                    value={newOrder.product}
+                    onChange={(event) => updateOrderField('product', event.target.value)}
+                    placeholder="Nombre del producto"
+                  />
+                </label>
+
+                <label>
+                  Cantidad
+                  <input
+                    type="number"
+                    value={newOrder.quantity}
+                    onChange={(event) => updateOrderField('quantity', event.target.value)}
+                    placeholder="0"
+                  />
+                </label>
+
+                <label>
+                  Costo unitario
+                  <input
+                    type="number"
+                    value={newOrder.cost}
+                    onChange={(event) => updateOrderField('cost', event.target.value)}
+                    placeholder="0"
+                  />
+                </label>
+
+                <label>
+                  Metodo de pago
+                  <select
+                    value={newOrder.payment}
+                    onChange={(event) => updateOrderField('payment', event.target.value)}
+                  >
+                    <option>Credito</option>
+                    <option>Efectivo</option>
+                    <option>Transferencia</option>
+                    <option>Tarjeta</option>
+                  </select>
+                </label>
+
+                <label>
+                  Estado
+                  <select
+                    value={newOrder.status}
+                    onChange={(event) => updateOrderField('status', event.target.value)}
+                  >
+                    <option>Pendiente</option>
+                    <option>Recibida</option>
+                    <option>Cancelada</option>
+                  </select>
+                </label>
+              </div>
+
+              <div className="purchase-total-preview">
+                <span>Total estimado</span>
+                <strong>
+                  RD$ {(Number(newOrder.quantity || 0) * Number(newOrder.cost || 0)).toLocaleString('es-DO')}
+                </strong>
+              </div>
+
+              <div className="product-form-actions">
+                <button type="button" className="secondary-button" onClick={resetOrder}>
+                  Limpiar
+                </button>
+
+                <button type="submit" className="primary-button small">
+                  <Save size={16} />
+                  Guardar orden
+                </button>
+              </div>
+            </form>
+          )}
+
+          <PurchasesOrderTable orders={filteredOrders} />
+        </section>
+      )}
+
+      {view === 'suppliers' && (
+        <section className="card purchases-full-card">
+          <div className="inventory-toolbar product-toolbar">
+            <div>
+              <h3>Proveedores</h3>
+              <p>Registra y controla proveedores, contactos, balances y estado.</p>
+            </div>
+
+            <div className="inventory-toolbar-actions product-toolbar-actions">
+              <div className="product-search-box">
+                <Search size={18} />
+                <input
+                  value={searchTerm}
+                  onChange={(event) => setSearchTerm(event.target.value)}
+                  placeholder="Buscar proveedor, RNC, telefono..."
+                />
+              </div>
+
+              <button className="primary-button small" onClick={() => setShowSupplierForm(true)}>
+                <Plus size={16} />
+                Nuevo proveedor
+              </button>
+            </div>
+          </div>
+
+          {showSupplierForm && (
+            <form className="product-form-card" onSubmit={createSupplier}>
+              <div className="product-form-header">
+                <div>
+                  <h4>Nuevo proveedor</h4>
+                  <p>Completa los datos principales del proveedor.</p>
+                </div>
+
+                <button type="button" className="close-form-button" onClick={() => setShowSupplierForm(false)}>
+                  <XCircle size={22} />
+                </button>
+              </div>
+
+              <div className="product-form-grid client-form-grid">
+                <label className="client-name-field">
+                  Nombre / Empresa
+                  <input
+                    value={newSupplier.name}
+                    onChange={(event) => updateSupplierField('name', event.target.value)}
+                    placeholder="Nombre del proveedor"
+                  />
+                </label>
+
+                <label>
+                  RNC
+                  <input
+                    value={newSupplier.rnc}
+                    onChange={(event) => updateSupplierField('rnc', event.target.value)}
+                    placeholder="RNC"
+                  />
+                </label>
+
+                <label>
+                  Telefono
+                  <input
+                    value={newSupplier.phone}
+                    onChange={(event) => updateSupplierField('phone', event.target.value)}
+                    placeholder="809-000-0000"
+                  />
+                </label>
+
+                <label>
+                  Correo
+                  <input
+                    value={newSupplier.email}
+                    onChange={(event) => updateSupplierField('email', event.target.value)}
+                    placeholder="correo@proveedor.com"
+                  />
+                </label>
+
+                <label className="client-address-field">
+                  Direccion
+                  <input
+                    value={newSupplier.address}
+                    onChange={(event) => updateSupplierField('address', event.target.value)}
+                    placeholder="Direccion del proveedor"
+                  />
+                </label>
+
+                <label>
+                  Contacto
+                  <input
+                    value={newSupplier.contact}
+                    onChange={(event) => updateSupplierField('contact', event.target.value)}
+                    placeholder="Persona contacto"
+                  />
+                </label>
+
+                <label>
+                  Balance inicial
+                  <input
+                    type="number"
+                    value={newSupplier.balance}
+                    onChange={(event) => updateSupplierField('balance', event.target.value)}
+                    placeholder="0"
+                  />
+                </label>
+
+                <label>
+                  Estado
+                  <select
+                    value={newSupplier.status}
+                    onChange={(event) => updateSupplierField('status', event.target.value)}
+                  >
+                    <option>Activo</option>
+                    <option>Inactivo</option>
+                    <option>Bloqueado</option>
+                  </select>
+                </label>
+              </div>
+
+              <div className="product-form-actions">
+                <button type="button" className="secondary-button" onClick={resetSupplier}>
+                  Limpiar
+                </button>
+
+                <button type="submit" className="primary-button small">
+                  <Save size={16} />
+                  Guardar proveedor
+                </button>
+              </div>
+            </form>
+          )}
+
+          <PurchasesSupplierTable suppliers={filteredSuppliers} />
+        </section>
+      )}
+
+      {view === 'receiving' && (
+        <section className="card purchases-receiving-card">
+          <div className="purchase-placeholder-icon soft-green">
+            <ClipboardList size={42} />
+          </div>
+
+          <h3>Recepcion de mercancia</h3>
+          <p>
+            En el siguiente paso conectaremos esta pantalla con las ordenes de compra para recibir productos,
+            registrar cantidad recibida y aumentar el inventario automaticamente.
+          </p>
+
+          <button className="primary-button small" onClick={() => setView('orders')}>
+            Ver ordenes pendientes
+          </button>
+        </section>
+      )}
+
+      {view === 'payables' && (
+        <section className="card purchases-full-card">
+          <div className="inventory-toolbar">
+            <div>
+              <h3>Cuentas por pagar</h3>
+              <p>Balances pendientes por proveedor.</p>
+            </div>
+          </div>
+
+          <PurchasesSupplierTable suppliers={suppliers.filter((supplier) => supplier.balance > 0)} />
+        </section>
+      )}
+    </main>
+  )
+}
+
+function PurchasesOrderTable({ orders }) {
+  return (
+    <div className="purchases-table">
+      <div className="purchases-table-head">
+        <span>No. Orden</span>
+        <span>Proveedor</span>
+        <span>Fecha</span>
+        <span>Producto</span>
+        <span>Cantidad</span>
+        <span>Costo</span>
+        <span>Total</span>
+        <span>Pago</span>
+        <span>Estado</span>
+        <span>Acciones</span>
+      </div>
+
+      {orders.map((order) => (
+        <div key={order.number} className="purchases-table-row">
+          <strong>{order.number}</strong>
+          <span>{order.supplier}</span>
+          <span>{order.date}</span>
+          <span>{order.product}</span>
+          <span>{order.quantity}</span>
+          <span>RD$ {order.cost.toLocaleString('es-DO')}</span>
+          <b>RD$ {order.total.toLocaleString('es-DO')}</b>
+          <span>{order.payment}</span>
+          <em className={order.status === 'Recibida' ? 'status-ok' : order.status === 'Pendiente' ? 'status-low' : 'status-neutral'}>
+            {order.status}
+          </em>
+          <div className="sales-row-actions">
+            <button title="Ver orden">
+              <Eye size={16} />
+            </button>
+            <button title="Imprimir">
+              <Printer size={16} />
+            </button>
+          </div>
+        </div>
+      ))}
+
+      {orders.length === 0 && (
+        <div className="empty-products">
+          No hay ordenes para mostrar.
+        </div>
+      )}
+    </div>
+  )
+}
+
+function PurchasesSupplierTable({ suppliers }) {
+  return (
+    <div className="suppliers-table">
+      <div className="suppliers-table-head">
+        <span>Codigo</span>
+        <span>Proveedor</span>
+        <span>RNC</span>
+        <span>Telefono</span>
+        <span>Correo</span>
+        <span>Contacto</span>
+        <span>Balance</span>
+        <span>Estado</span>
+        <span>Acciones</span>
+      </div>
+
+      {suppliers.map((supplier) => (
+        <div key={supplier.code} className="suppliers-table-row">
+          <strong>{supplier.code}</strong>
+          <span>{supplier.name}</span>
+          <span>{supplier.rnc}</span>
+          <span>{supplier.phone}</span>
+          <span>{supplier.email}</span>
+          <span>{supplier.contact}</span>
+          <b className={supplier.balance > 0 ? 'negative' : 'positive'}>
+            RD$ {supplier.balance.toLocaleString('es-DO')}
+          </b>
+          <em className={supplier.status === 'Activo' ? 'status-ok' : 'status-low'}>
+            {supplier.status}
+          </em>
+          <div className="sales-row-actions">
+            <button title="Ver proveedor">
+              <Eye size={16} />
+            </button>
+            <button title="Nueva orden">
+              <FileText size={16} />
+            </button>
+          </div>
+        </div>
+      ))}
+
+      {suppliers.length === 0 && (
+        <div className="empty-products">
+          No hay proveedores para mostrar.
+        </div>
+      )}
+    </div>
+  )
+}
+
+
+function SettingsModuleSafe() {
+  const [settingsView, setSettingsView] = useState('business')
+  const [businessSettings, setBusinessSettings] = useState(() => getBusinessSettings())
+  const [users, setUsers] = useState(() => {
+    try {
+      const savedUsers = localStorage.getItem('invefat-system-users')
+      return savedUsers ? JSON.parse(savedUsers) : defaultSystemUsers
+    } catch (error) {
+      return defaultSystemUsers
+    }
+  })
+
+  const [newUser, setNewUser] = useState({
+    name: '',
+    role: 'Facturacion',
+    email: '',
+    status: 'Activo',
+  })
+
+  const settingsTabs = [
+    { id: 'business', name: 'Negocio', icon: Building2 },
+    { id: 'invoice', name: 'Factura', icon: Receipt },
+    { id: 'appearance', name: 'Tema', icon: Moon },
+    { id: 'users', name: 'Usuarios y permisos', icon: Users },
+  ]
+
+  const permissionModules = [
+    { id: 'dashboard', name: 'Dashboard' },
+    { id: 'inventory', name: 'Inventario' },
+    { id: 'sales', name: 'Ventas' },
+    { id: 'purchases', name: 'Compras' },
+    { id: 'accounting', name: 'Contabilidad' },
+    { id: 'hr', name: 'Recursos Humanos' },
+    { id: 'crm', name: 'CRM' },
+    { id: 'production', name: 'Produccion' },
+    { id: 'projects', name: 'Proyectos' },
+    { id: 'documents', name: 'Documentos' },
+    { id: 'reports', name: 'Reportes' },
+    { id: 'admin', name: 'Configuracion' },
+  ]
+
+  const updateBusinessSetting = (field, value) => {
+    setBusinessSettings((current) => ({
+      ...current,
+      [field]: value,
+    }))
+  }
+
+  const saveBusinessSettings = () => {
+    localStorage.setItem('invefat-business-settings', JSON.stringify(businessSettings))
+
+    if (businessSettings.themeMode === 'dark' || businessSettings.themeMode === 'light') {
+      localStorage.setItem('invefat-theme', businessSettings.themeMode)
+
+      const shell = document.querySelector('.app-shell')
+      if (shell) {
+        shell.classList.toggle('dark-theme', businessSettings.themeMode === 'dark')
+      }
+    }
+
+    alert('Configuracion guardada correctamente.')
+  }
+
+  const handleLogoUpload = (event) => {
+    const file = event.target.files?.[0]
+
+    if (!file) return
+
+    const reader = new FileReader()
+
+    reader.onload = (loadEvent) => {
+      updateBusinessSetting('logo', loadEvent.target.result)
+    }
+
+    reader.readAsDataURL(file)
+  }
+
+  const clearLogo = () => {
+    updateBusinessSetting('logo', '')
+  }
+
+  const updateUserField = (field, value) => {
+    setNewUser((current) => ({
+      ...current,
+      [field]: value,
+    }))
+  }
+
+  const addUser = (event) => {
+    event.preventDefault()
+
+    if (!newUser.name || !newUser.email) {
+      alert('Debes completar nombre y correo del usuario.')
+      return
+    }
+
+    const defaultPermissions = {
+      dashboard: true,
+      inventory: false,
+      sales: newUser.role === 'Facturacion',
+      purchases: newUser.role === 'Compras',
+      accounting: newUser.role === 'Contabilidad',
+      hr: newUser.role === 'Recursos Humanos',
+      crm: false,
+      production: false,
+      projects: false,
+      documents: false,
+      reports: false,
+      admin: newUser.role === 'Administrador',
+    }
+
+    const createdUser = {
+      id: `USR-${String(users.length + 1).padStart(3, '0')}`,
+      ...newUser,
+      permissions: newUser.role === 'Administrador'
+        ? Object.fromEntries(permissionModules.map((item) => [item.id, true]))
+        : defaultPermissions,
+    }
+
+    const updatedUsers = [createdUser, ...users]
+    setUsers(updatedUsers)
+    localStorage.setItem('invefat-system-users', JSON.stringify(updatedUsers))
+
+    setNewUser({
+      name: '',
+      role: 'Facturacion',
+      email: '',
+      status: 'Activo',
+    })
+  }
+
+  const toggleUserPermission = (userId, moduleId) => {
+    const updatedUsers = users.map((user) =>
+      user.id === userId
+        ? {
+            ...user,
+            permissions: {
+              ...user.permissions,
+              [moduleId]: !user.permissions?.[moduleId],
+            },
+          }
+        : user
+    )
+
+    setUsers(updatedUsers)
+    localStorage.setItem('invefat-system-users', JSON.stringify(updatedUsers))
+  }
+
+  const saveUsers = () => {
+    localStorage.setItem('invefat-system-users', JSON.stringify(users))
+    alert('Usuarios y permisos guardados correctamente.')
+  }
+
+  return (
+    <main className="main-content">
+      <section className="module-header">
+        <div>
+          <span className="module-badge">Modulo activo</span>
+          <h2>Configuracion del sistema</h2>
+          <p>Personaliza el negocio, factura, logo, tema visual, usuarios y permisos del sistema.</p>
+        </div>
+
+        <button className="primary-button" onClick={saveBusinessSettings}>
+          <Save size={18} />
+          Guardar configuracion
+        </button>
+      </section>
+
+      <section className="inventory-tabs settings-tabs">
+        {settingsTabs.map((tab) => {
+          const Icon = tab.icon
+          return (
+            <button
+              key={tab.id}
+              className={settingsView === tab.id ? 'inventory-tab active' : 'inventory-tab'}
+              onClick={() => setSettingsView(tab.id)}
+            >
+              <Icon size={18} />
+              {tab.name}
+            </button>
+          )
+        })}
+      </section>
+
+      {settingsView === 'business' && (
+        <section className="settings-layout">
+          <div className="card settings-form-card">
+            <div className="settings-card-header">
+              <h3>Datos del negocio</h3>
+              <p>Estos datos apareceran en tus facturas, cotizaciones y documentos.</p>
+            </div>
+
+            <div className="settings-form-grid">
+              <label>
+                Nombre del negocio
+                <input
+                  value={businessSettings.businessName}
+                  onChange={(event) => updateBusinessSetting('businessName', event.target.value)}
+                  placeholder="Nombre completo del negocio"
+                />
+              </label>
+
+              <label>
+                Nombre corto
+                <input
+                  value={businessSettings.businessShortName}
+                  onChange={(event) => updateBusinessSetting('businessShortName', event.target.value)}
+                  placeholder="Ej: INVE-FAT"
+                />
+              </label>
+
+              <label>
+                Etiqueta / sistema
+                <input
+                  value={businessSettings.systemLabel}
+                  onChange={(event) => updateBusinessSetting('systemLabel', event.target.value)}
+                  placeholder="Ej: SYSTEM"
+                />
+              </label>
+
+              <label>
+                RNC
+                <input
+                  value={businessSettings.rnc}
+                  onChange={(event) => updateBusinessSetting('rnc', event.target.value)}
+                  placeholder="RNC del negocio"
+                />
+              </label>
+
+              <label>
+                Telefono
+                <input
+                  value={businessSettings.phone}
+                  onChange={(event) => updateBusinessSetting('phone', event.target.value)}
+                  placeholder="Telefono"
+                />
+              </label>
+
+              <label>
+                Correo
+                <input
+                  value={businessSettings.email}
+                  onChange={(event) => updateBusinessSetting('email', event.target.value)}
+                  placeholder="Correo"
+                />
+              </label>
+
+              <label className="settings-wide-field">
+                Eslogan / descripcion
+                <input
+                  value={businessSettings.slogan}
+                  onChange={(event) => updateBusinessSetting('slogan', event.target.value)}
+                  placeholder="Descripcion del negocio"
+                />
+              </label>
+
+              <label className="settings-wide-field">
+                Direccion
+                <input
+                  value={businessSettings.address}
+                  onChange={(event) => updateBusinessSetting('address', event.target.value)}
+                  placeholder="Direccion del negocio"
+                />
+              </label>
+            </div>
+
+            <div className="settings-actions-row">
+              <button className="primary-button small" onClick={saveBusinessSettings}>
+                <Save size={16} />
+                Guardar datos
+              </button>
+            </div>
+          </div>
+
+          <div className="card settings-preview-card">
+            <h3>Vista del negocio</h3>
+
+            <div className="business-preview-logo">
+              {businessSettings.logo ? (
+                <img src={businessSettings.logo} alt="Logo del negocio" />
+              ) : (
+                <span>{businessSettings.businessShortName.charAt(0) || 'N'}</span>
+              )}
+            </div>
+
+            <strong>{businessSettings.businessName}</strong>
+            <p>{businessSettings.slogan}</p>
+
+            <div className="business-preview-list">
+              <span>RNC: {businessSettings.rnc}</span>
+              <span>Tel: {businessSettings.phone}</span>
+              <span>Email: {businessSettings.email}</span>
+              <span>{businessSettings.address}</span>
+            </div>
+          </div>
+        </section>
+      )}
+
+      {settingsView === 'invoice' && (
+        <section className="settings-layout">
+          <div className="card settings-form-card">
+            <div className="settings-card-header">
+              <h3>Configuracion de factura</h3>
+              <p>Sube el logo y elige el modelo visual para tus documentos.</p>
+            </div>
+
+            <div className="logo-upload-card">
+              <div className="logo-upload-preview">
+                {businessSettings.logo ? (
+                  <img src={businessSettings.logo} alt="Logo" />
+                ) : (
+                  <span>{businessSettings.businessShortName.charAt(0) || 'L'}</span>
+                )}
+              </div>
+
+              <div>
+                <h4>Logo del negocio</h4>
+                <p>Este logo saldra en la factura profesional y otros documentos.</p>
+
+                <div className="logo-upload-actions">
+                  <label className="secondary-button">
+                    <Upload size={16} />
+                    Subir logo
+                    <input type="file" accept="image/*" onChange={handleLogoUpload} hidden />
+                  </label>
+
+                  <button className="secondary-button" onClick={clearLogo}>
+                    Quitar logo
+                  </button>
+                </div>
+              </div>
+            </div>
+
+            <div className="invoice-template-grid">
+              <button
+                className={businessSettings.invoiceTemplate === 'elegante' ? 'active' : ''}
+                onClick={() => updateBusinessSetting('invoiceTemplate', 'elegante')}
+              >
+                <strong>Elegante</strong>
+                <span>Factura profesional con encabezado amplio.</span>
+              </button>
+
+              <button
+                className={businessSettings.invoiceTemplate === 'moderna' ? 'active' : ''}
+                onClick={() => updateBusinessSetting('invoiceTemplate', 'moderna')}
+              >
+                <strong>Moderna</strong>
+                <span>DiseÃƒÂ±o mas compacto y comercial.</span>
+              </button>
+
+              <button
+                className={businessSettings.invoiceTemplate === 'simple' ? 'active' : ''}
+                onClick={() => updateBusinessSetting('invoiceTemplate', 'simple')}
+              >
+                <strong>Simple</strong>
+                <span>Formato limpio para impresion rapida.</span>
+              </button>
+            </div>
+
+            <div className="settings-actions-row">
+              <button className="primary-button small" onClick={saveBusinessSettings}>
+                <Save size={16} />
+                Guardar factura
+              </button>
+            </div>
+          </div>
+
+          <div className="card invoice-config-preview">
+            <h3>Vista previa de factura</h3>
+
+            <div className="invoice-preview-paper">
+              <div className="invoice-preview-top">
+                <div className="invoice-preview-logo">
+                  {businessSettings.logo ? (
+                    <img src={businessSettings.logo} alt="Logo" />
+                  ) : (
+                    <span>{businessSettings.businessShortName.charAt(0) || 'F'}</span>
+                  )}
+                </div>
+
+                <div>
+                  <strong>{businessSettings.businessName}</strong>
+                  <small>{businessSettings.rnc}</small>
+                </div>
+
+                <b>FACTURA</b>
+              </div>
+
+              <div className="invoice-preview-line" />
+              <div className="invoice-preview-row">
+                <span>Cliente</span>
+                <strong>Cliente Ejemplo</strong>
+              </div>
+
+              <div className="invoice-preview-row">
+                <span>Total</span>
+                <strong>RD$ 0.00</strong>
+              </div>
+            </div>
+          </div>
+        </section>
+      )}
+
+      {settingsView === 'appearance' && (
+        <section className="settings-layout">
+          <div className="card settings-form-card">
+            <div className="settings-card-header">
+              <h3>Apariencia del sistema</h3>
+              <p>Cambia el tema visual del sistema para adaptarlo al estilo del negocio.</p>
+            </div>
+
+            <div className="theme-choice-grid">
+              <button
+                className={businessSettings.themeMode === 'light' ? 'active' : ''}
+                onClick={() => updateBusinessSetting('themeMode', 'light')}
+              >
+                <strong>Tema claro</strong>
+                <span>Fondo limpio, profesional y luminoso.</span>
+              </button>
+
+              <button
+                className={businessSettings.themeMode === 'dark' ? 'active' : ''}
+                onClick={() => updateBusinessSetting('themeMode', 'dark')}
+              >
+                <strong>Tema oscuro</strong>
+                <span>Ideal para trabajo nocturno o pantallas de caja.</span>
+              </button>
+            </div>
+
+            <label className="accent-color-field">
+              Color principal de accion
+              <input
+                type="color"
+                value={businessSettings.accentColor}
+                onChange={(event) => updateBusinessSetting('accentColor', event.target.value)}
+              />
+            </label>
+
+            <div className="settings-actions-row">
+              <button className="primary-button small" onClick={saveBusinessSettings}>
+                <Save size={16} />
+                Aplicar tema
+              </button>
+            </div>
+          </div>
+
+          <div className="card theme-preview-card">
+            <h3>Vista previa</h3>
+
+            <div className="theme-preview-box">
+              <div />
+              <section>
+                <strong>Panel del sistema</strong>
+                <span>Inventario Ã‚Â· Ventas Ã‚Â· Compras</span>
+              </section>
+              <button style={{ background: businessSettings.accentColor }}>
+                Accion
+              </button>
+            </div>
+          </div>
+        </section>
+      )}
+
+      {settingsView === 'users' && (
+        <section className="settings-users-layout">
+          <div className="card settings-form-card">
+            <div className="settings-card-header">
+              <h3>Usuarios del sistema</h3>
+              <p>Crea usuarios y define que modulos puede ver o usar cada uno.</p>
+            </div>
+
+            <form className="settings-user-form" onSubmit={addUser}>
+              <label>
+                Nombre
+                <input
+                  value={newUser.name}
+                  onChange={(event) => updateUserField('name', event.target.value)}
+                  placeholder="Nombre del usuario"
+                />
+              </label>
+
+              <label>
+                Correo
+                <input
+                  value={newUser.email}
+                  onChange={(event) => updateUserField('email', event.target.value)}
+                  placeholder="correo@empresa.com"
+                />
+              </label>
+
+              <label>
+                Rol
+                <select
+                  value={newUser.role}
+                  onChange={(event) => updateUserField('role', event.target.value)}
+                >
+                  <option>Administrador</option>
+                  <option>Facturacion</option>
+                  <option>Inventario</option>
+                  <option>Compras</option>
+                  <option>Contabilidad</option>
+                  <option>Recursos Humanos</option>
+                </select>
+              </label>
+
+              <label>
+                Estado
+                <select
+                  value={newUser.status}
+                  onChange={(event) => updateUserField('status', event.target.value)}
+                >
+                  <option>Activo</option>
+                  <option>Inactivo</option>
+                </select>
+              </label>
+
+              <button className="primary-button small" type="submit">
+                <Plus size={16} />
+                Agregar usuario
+              </button>
+            </form>
+          </div>
+
+          <div className="card permissions-card">
+            <div className="settings-card-header">
+              <h3>Permisos por usuario</h3>
+              <p>Marca los modulos disponibles para cada usuario.</p>
+            </div>
+
+            <div className="permissions-table">
+              <div className="permissions-head">
+                <span>Usuario</span>
+                {permissionModules.map((module) => (
+                  <span key={module.id}>{module.name}</span>
+                ))}
+              </div>
+
+              {users.map((user) => (
+                <div key={user.id} className="permissions-row">
+                  <div>
+                    <strong>{user.name}</strong>
+                    <small>{user.role}</small>
+                  </div>
+
+                  {permissionModules.map((module) => (
+                    <label key={module.id} className="permission-check">
+                      <input
+                        type="checkbox"
+                        checked={Boolean(user.permissions?.[module.id])}
+                        onChange={() => toggleUserPermission(user.id, module.id)}
+                      />
+                      <span />
+                    </label>
+                  ))}
+                </div>
+              ))}
+            </div>
+
+            <div className="settings-actions-row">
+              <button className="primary-button small" onClick={saveUsers}>
+                <Save size={16} />
+                Guardar permisos
+              </button>
+            </div>
+          </div>
+        </section>
+      )}
+    </main>
+  )
+}
+
+function ModulePlaceholder({ activeModule }) {
+  const moduleInfo = modules.find((item) => item.id === activeModule)
+  const workspace = workspaceModules[activeModule]
+  const [searchTerm, setSearchTerm] = useState('')
+
+  if (!workspace) {
+    return (
+      <main className="main-content">
+        <section className="module-header">
+          <div>
+            <span className="module-badge pending">En preparacion</span>
+            <h2>{moduleInfo?.name || 'Modulo'}</h2>
+            <p>Este modulo sera activado en el siguiente paso.</p>
+          </div>
+        </section>
+      </main>
+    )
+  }
+
+  const Icon = workspace.icon
+  const search = searchTerm.toLowerCase()
+  const filteredRecords = workspace.records.filter((record) =>
+    [record.code, record.name, record.owner, record.date, record.amount, record.status]
+      .join(' ')
+      .toLowerCase()
+      .includes(search)
+  )
+
+  return (
+    <main className="main-content">
+      <section className="module-header">
+        <div>
+          <span className="module-badge">{workspace.badge}</span>
+          <h2>{workspace.title}</h2>
+          <p>{workspace.description}</p>
+        </div>
+
+        <button className="primary-button">
+          <Plus size={18} />
+          Crear registro
+        </button>
+      </section>
+
+      <section className="workspace-summary-grid">
+        {workspace.metrics.map((metric) => (
+          <div className="card workspace-summary-card" key={metric.label}>
+            <div className="workspace-card-icon">
+              <Icon size={22} />
+            </div>
+            <div>
+              <p>{metric.label}</p>
+              <h3>{metric.value}</h3>
+              <span>{metric.note}</span>
+            </div>
+          </div>
+        ))}
+      </section>
+
+      <section className="workspace-layout">
+        <div className="card workspace-table-card">
+          <div className="workspace-panel-header">
+            <div>
+              <h3>Registros principales</h3>
+              <p>Busca, revisa estado y da seguimiento a las operaciones del modulo.</p>
+            </div>
+
+            <div className="workspace-search">
+              <Search size={17} />
+              <input
+                value={searchTerm}
+                onChange={(event) => setSearchTerm(event.target.value)}
+                placeholder="Buscar registro..."
+              />
+            </div>
+          </div>
+
+          <div className="workspace-table">
+            <div className="workspace-table-head">
+              <span>Codigo</span>
+              <span>Registro</span>
+              <span>Area</span>
+              <span>Fecha</span>
+              <span>Valor</span>
+              <span>Estado</span>
+            </div>
+
+            {filteredRecords.map((record) => (
+              <div className="workspace-table-row" key={record.code}>
+                <strong>{record.code}</strong>
+                <span>{record.name}</span>
+                <span>{record.owner}</span>
+                <span>{record.date}</span>
+                <b>{record.amount}</b>
+                <em className={
+                  ['Activo', 'Registrado', 'Conciliado', 'Aprobado', 'Listo', 'Pagado', 'Generado'].includes(record.status)
+                    ? 'status-ok'
+                    : ['Pendiente', 'Revision', 'Riesgo', 'Alerta', 'Abierto'].includes(record.status)
+                      ? 'status-low'
+                      : 'status-neutral'
+                }>
+                  {record.status}
+                </em>
+              </div>
+            ))}
+
+            {filteredRecords.length === 0 && (
+              <div className="workspace-empty">
+                No se encontraron registros con esa busqueda.
+              </div>
+            )}
+          </div>
+        </div>
+
+        <aside className="card workspace-actions-card">
+          <h3>Acciones rapidas</h3>
+          <div className="workspace-actions-grid">
+            {workspace.actions.map((action) => (
+              <button key={action}>
+                <Icon size={19} />
+                {action}
+              </button>
+            ))}
+          </div>
+
+          <div className="workspace-note">
+            <strong>Estado operativo</strong>
+            <p>Modulo conectado al menu con indicadores, busqueda, registros y acciones base.</p>
+          </div>
+        </aside>
+      </section>
+    </main>
+  )
+}
+
+function Content({ activeModule, setActiveModule }) {
+  if (activeModule === 'dashboard') {
+    return <Dashboard setActiveModule={setActiveModule} />
+  }
+
+  if (activeModule === 'inventory') {
+    return <InventoryModule />
+  }
+
+  if (activeModule === 'sales') {
+    return <SalesModuleSafe />
+  }
+
+  if (activeModule === 'purchases') {
+    return <PurchasesModuleSafe />
+  }
+
+  if (activeModule === 'admin') {
+    return <SettingsModuleSafe />
+  }
+
+  return <ModulePlaceholder activeModule={activeModule} />
+}
+
+
+function SalesModuleSafe() {
+  const [view, setView] = useState('summary')
+  const [searchTerm, setSearchTerm] = useState('')
+  const [showInvoiceForm, setShowInvoiceForm] = useState(false)
+  const [showClientForm, setShowClientForm] = useState(false)
+
+  const [clients, setClients] = useState([
+    {
+      code: 'CLI-001',
+      name: 'Colegio San Miguel',
+      document: '131-4567890-1',
+      phone: '809-555-1200',
+      email: 'compras@sanmiguel.com',
+      address: 'Santo Domingo',
+      type: 'Empresa',
+      creditLimit: 150000,
+      balance: 18500,
+      status: 'Activo',
+    },
+    {
+      code: 'CLI-002',
+      name: 'Comercial La Fe',
+      document: '001-1234567-8',
+      phone: '809-444-8899',
+      email: 'ventas@comercial.com',
+      address: 'Santiago',
+      type: 'Empresa',
+      creditLimit: 80000,
+      balance: 0,
+      status: 'Activo',
+    },
+    {
+      code: 'CLI-003',
+      name: 'Distribuidora Gomez',
+      document: '130-9876543-2',
+      phone: '829-222-7744',
+      email: 'info@gomez.com',
+      address: 'La Vega',
+      type: 'Mayorista',
+      creditLimit: 250000,
+      balance: 34200,
+      status: 'Activo',
+    },
+  ])
+
+  const [invoices, setInvoices] = useState([
+    {
+      number: 'FAC-0001',
+      customerCode: 'CLI-001',
+      customer: 'Colegio San Miguel',
+      document: '131-4567890-1',
+      date: '14/05/2026',
+      total: 18500,
+      payment: 'Transferencia',
+      status: 'Pagada',
+    },
+    {
+      number: 'FAC-0002',
+      customerCode: 'CLI-003',
+      customer: 'Distribuidora Gomez',
+      document: '130-9876543-2',
+      date: '13/05/2026',
+      total: 34200,
+      payment: 'Credito',
+      status: 'Pendiente',
+    },
+  ])
+
+  const [newInvoice, setNewInvoice] = useState({
+    clientCode: '',
+    product: '',
+    quantity: '',
+    price: '',
+    payment: 'Efectivo',
+    status: 'Pagada',
+  })
+
+  const [newClient, setNewClient] = useState({
+    name: '',
+    document: '',
+    phone: '',
+    email: '',
+    address: '',
+    type: 'Empresa',
+    creditLimit: '',
+    balance: '',
+    status: 'Activo',
+  })
+
+  const selectedClient = clients.find((client) => client.code === newInvoice.clientCode)
+
+  const totalSales = invoices.reduce((sum, invoice) => sum + invoice.total, 0)
+  const pendingTotal = invoices
+    .filter((invoice) => invoice.status === 'Pendiente')
+    .reduce((sum, invoice) => sum + invoice.total, 0)
+
+  const filteredInvoices = invoices.filter((invoice) => {
+    const search = searchTerm.toLowerCase()
+
+    return (
+      invoice.number.toLowerCase().includes(search) ||
+      invoice.customer.toLowerCase().includes(search) ||
+      invoice.document.toLowerCase().includes(search) ||
+      invoice.status.toLowerCase().includes(search) ||
+      invoice.payment.toLowerCase().includes(search)
+    )
+  })
+
+  const filteredClients = clients.filter((client) => {
+    const search = searchTerm.toLowerCase()
+
+    return (
+      client.code.toLowerCase().includes(search) ||
+      client.name.toLowerCase().includes(search) ||
+      client.document.toLowerCase().includes(search) ||
+      client.phone.toLowerCase().includes(search) ||
+      client.email.toLowerCase().includes(search) ||
+      client.status.toLowerCase().includes(search)
+    )
+  })
+
+  const updateInvoiceField = (field, value) => {
+    setNewInvoice((current) => ({
+      ...current,
+      [field]: value,
+    }))
+  }
+
+  const updateClientField = (field, value) => {
+    setNewClient((current) => ({
+      ...current,
+      [field]: value,
+    }))
+  }
+
+  const resetInvoice = () => {
+    setNewInvoice({
+      clientCode: '',
+      product: '',
+      quantity: '',
+      price: '',
+      payment: 'Efectivo',
+      status: 'Pagada',
+    })
+  }
+
+  const resetClient = () => {
+    setNewClient({
+      name: '',
+      document: '',
+      phone: '',
+      email: '',
+      address: '',
+      type: 'Empresa',
+      creditLimit: '',
+      balance: '',
+      status: 'Activo',
+    })
+  }
+
+  const createInvoice = (event) => {
+    event.preventDefault()
+
+    if (!selectedClient || !newInvoice.product || !newInvoice.quantity || !newInvoice.price) {
+      alert('Debes seleccionar cliente, producto, cantidad y precio.')
+      return
+    }
+
+    const quantity = Number(newInvoice.quantity || 0)
+    const price = Number(newInvoice.price || 0)
+    const total = quantity * price
+
+    const createdInvoice = {
+      number: `FAC-${String(invoices.length + 1).padStart(4, '0')}`,
+      customerCode: selectedClient.code,
+      customer: selectedClient.name,
+      document: selectedClient.document,
+      date: new Date().toLocaleDateString('es-DO'),
+      total,
+      payment: newInvoice.payment,
+      status: newInvoice.status,
+    }
+
+    setInvoices((current) => [createdInvoice, ...current])
+
+    if (newInvoice.status === 'Pendiente') {
+      setClients((currentClients) =>
+        currentClients.map((client) =>
+          client.code === selectedClient.code
+            ? { ...client, balance: Number(client.balance || 0) + total }
+            : client
+        )
+      )
+    }
+
+    resetInvoice()
+    setShowInvoiceForm(false)
+  }
+
+  const createClient = (event) => {
+    event.preventDefault()
+
+    if (!newClient.name || !newClient.document || !newClient.phone) {
+      alert('Debes completar nombre, RNC/Cedula y telefono.')
+      return
+    }
+
+    const createdClient = {
+      code: `CLI-${String(clients.length + 1).padStart(3, '0')}`,
+      name: newClient.name,
+      document: newClient.document,
+      phone: newClient.phone,
+      email: newClient.email || 'Sin correo',
+      address: newClient.address || 'Sin direccion',
+      type: newClient.type,
+      creditLimit: Number(newClient.creditLimit || 0),
+      balance: Number(newClient.balance || 0),
+      status: newClient.status,
+    }
+
+    setClients((current) => [createdClient, ...current])
+    resetClient()
+    setShowClientForm(false)
+  }
+
+  return (
+    <main className="main-content">
+      <section className="module-header">
+        <div>
+          <span className="module-badge">Modulo activo</span>
+          <h2>Ventas</h2>
+          <p>Gestiona facturas, clientes, cotizaciones, POS y cuentas por cobrar.</p>
+        </div>
+
+        <button
+          className="primary-button"
+          onClick={() => {
+            setView('invoices')
+            setShowInvoiceForm(true)
+          }}
+        >
+          Nueva factura
+        </button>
+      </section>
+
+      <section className="sales-safe-tabs">
+        <button className={view === 'summary' ? 'active' : ''} onClick={() => setView('summary')}>Resumen</button>
+        <button className={view === 'invoices' ? 'active' : ''} onClick={() => setView('invoices')}>Facturas</button>
+        <button className={view === 'customers' ? 'active' : ''} onClick={() => setView('customers')}>Clientes</button>
+        <button className={view === 'quotes' ? 'active' : ''} onClick={() => setView('quotes')}>Cotizaciones</button>
+        <button className={view === 'pos' ? 'active' : ''} onClick={() => setView('pos')}>POS / Caja</button>
+        <button className={view === 'receivables' ? 'active' : ''} onClick={() => setView('receivables')}>Cuentas por cobrar</button>
+      </section>
+
+      {view === 'summary' && (
+        <>
+          <section className="sales-safe-summary">
+            <div className="card sales-safe-card">
+              <p>Total ventas</p>
+              <h3>RD$ {totalSales.toLocaleString('es-DO')}</h3>
+              <span>Facturas registradas</span>
+            </div>
+
+            <div className="card sales-safe-card">
+              <p>Facturas</p>
+              <h3>{invoices.length}</h3>
+              <span>Documentos creados</span>
+            </div>
+
+            <div className="card sales-safe-card">
+              <p>Pendiente de cobro</p>
+              <h3>RD$ {pendingTotal.toLocaleString('es-DO')}</h3>
+              <span>Cuentas por cobrar</span>
+            </div>
+
+            <div className="card sales-safe-card">
+              <p>Clientes</p>
+              <h3>{clients.length}</h3>
+              <span>Clientes registrados</span>
+            </div>
+          </section>
+
+          <section className="sales-safe-layout">
+            <div className="card sales-safe-panel">
+              <div className="card-header">
+                <h3>Facturas recientes</h3>
+                <button onClick={() => setView('invoices')}>Ver todas</button>
+              </div>
+
+              <SalesSafeInvoiceTable invoices={invoices} />
+            </div>
+
+            <div className="card sales-safe-actions">
+              <h3>Acciones rapidas</h3>
+
+              <button onClick={() => { setView('invoices'); setShowInvoiceForm(true) }}>Nueva factura</button>
+              <button onClick={() => { setView('customers'); setShowClientForm(true) }}>Nuevo cliente</button>
+              <button onClick={() => setView('quotes')}>Nueva cotizacion</button>
+              <button onClick={() => setView('pos')}>Abrir POS</button>
+              <button onClick={() => setView('receivables')}>Cobros pendientes</button>
+            </div>
+          </section>
+        </>
+      )}
+
+      {view === 'invoices' && (
+        <SalesBillingProV4 clients={clients}
+          setClients={setClients}
+          invoices={invoices}
+          setInvoices={setInvoices}
+        />
+      )}
+
+      {view === 'customers' && (
+        <section className="card sales-safe-full">
+          <div className="inventory-toolbar product-toolbar">
+            <div>
+              <h3>Clientes</h3>
+              <p>Los clientes creados aqui aparecen al crear una factura.</p>
+            </div>
+
+            <div className="inventory-toolbar-actions product-toolbar-actions">
+              <div className="product-search-box">
+                <input
+                  value={searchTerm}
+                  onChange={(event) => setSearchTerm(event.target.value)}
+                  placeholder="Buscar cliente, RNC, telefono..."
+                />
+              </div>
+
+              <button className="primary-button small" onClick={() => setShowClientForm(true)}>
+                Agregar cliente
+              </button>
+            </div>
+          </div>
+
+          {showClientForm && (
+            <form className="product-form-card" onSubmit={createClient}>
+              <div className="product-form-header">
+                <div>
+                  <h4>Agregar cliente</h4>
+                  <p>Este cliente quedara disponible para facturacion.</p>
+                </div>
+
+                <button type="button" className="close-form-button" onClick={() => setShowClientForm(false)}>
+                  X
+                </button>
+              </div>
+
+              <div className="product-form-grid client-form-grid">
+                <label className="client-name-field">
+                  Nombre / Empresa
+                  <input
+                    value={newClient.name}
+                    onChange={(event) => updateClientField('name', event.target.value)}
+                    placeholder="Nombre del cliente"
+                  />
+                </label>
+
+                <label>
+                  RNC / Cedula
+                  <input
+                    value={newClient.document}
+                    onChange={(event) => updateClientField('document', event.target.value)}
+                    placeholder="RNC o cedula"
+                  />
+                </label>
+
+                <label>
+                  Telefono
+                  <input
+                    value={newClient.phone}
+                    onChange={(event) => updateClientField('phone', event.target.value)}
+                    placeholder="809-000-0000"
+                  />
+                </label>
+
+                <label>
+                  Correo
+                  <input
+                    value={newClient.email}
+                    onChange={(event) => updateClientField('email', event.target.value)}
+                    placeholder="correo@cliente.com"
+                  />
+                </label>
+
+                <label className="client-address-field">
+                  Direccion
+                  <input
+                    value={newClient.address}
+                    onChange={(event) => updateClientField('address', event.target.value)}
+                    placeholder="Direccion del cliente"
+                  />
+                </label>
+
+                <label>
+                  Tipo
+                  <select
+                    value={newClient.type}
+                    onChange={(event) => updateClientField('type', event.target.value)}
+                  >
+                    <option>Empresa</option>
+                    <option>Individual</option>
+                    <option>Mayorista</option>
+                    <option>Minorista</option>
+                    <option>Escuela</option>
+                  </select>
+                </label>
+
+                <label>
+                  Limite credito
+                  <input
+                    type="number"
+                    value={newClient.creditLimit}
+                    onChange={(event) => updateClientField('creditLimit', event.target.value)}
+                    placeholder="0"
+                  />
+                </label>
+
+                <label>
+                  Balance
+                  <input
+                    type="number"
+                    value={newClient.balance}
+                    onChange={(event) => updateClientField('balance', event.target.value)}
+                    placeholder="0"
+                  />
+                </label>
+
+                <label>
+                  Estado
+                  <select
+                    value={newClient.status}
+                    onChange={(event) => updateClientField('status', event.target.value)}
+                  >
+                    <option>Activo</option>
+                    <option>Inactivo</option>
+                    <option>Bloqueado</option>
+                  </select>
+                </label>
+              </div>
+
+              <div className="product-form-actions">
+                <button type="button" className="secondary-button" onClick={resetClient}>
+                  Limpiar
+                </button>
+
+                <button type="submit" className="primary-button small">
+                  Guardar cliente
+                </button>
+              </div>
+            </form>
+          )}
+
+          <SalesSafeClientTable clients={filteredClients} />
+        </section>
+      )}
+
+      {view === 'quotes' && <SalesQuotesModule clients={clients} />}
+      {view === 'pos' && <SalesSafePlaceholder title="POS / Caja" />}
+      {view === 'receivables' && <SalesSafePlaceholder title="Cuentas por cobrar" />}
+    </main>
+  )
+}
+
+function SalesBillingPro({ clients, setClients, invoices, setInvoices }) {
+  const walkInClient = {
+    code: 'CONTADO',
+    name: 'Cliente de mostrador',
+    document: '000-0000000-0',
+    phone: 'N/A',
+    balance: 0,
+    status: 'Activo',
+  }
+
+  const billingProducts = [
+    { code: 'AGU001', barcode: '7460001001001', name: 'Agua Cristal 16.9 oz', unit: 'Unidad', price: 25, stock: 120 },
+    { code: 'COC002', barcode: '7460001001002', name: 'Coca Cola 20 oz', unit: 'Unidad', price: 50, stock: 85 },
+    { code: 'PAP003', barcode: '7460001001003', name: 'Papel Higienico Elite', unit: 'Unidad', price: 120, stock: 42 },
+    { code: 'DET004', barcode: '7460001001004', name: 'Detergente Ace 360 g', unit: 'Unidad', price: 85, stock: 64 },
+    { code: 'PAN005', barcode: '7460001001005', name: 'Pan de Molde Bimbo', unit: 'Unidad', price: 65, stock: 38 },
+    { code: 'LEC006', barcode: '7460001001006', name: 'Leche Rica 1 Litro', unit: 'Unidad', price: 75, stock: 57 },
+  ]
+
+  const [selectedClientCode, setSelectedClientCode] = useState('CONTADO')
+  const [barcodeValue, setBarcodeValue] = useState('')
+  const [productSearch, setProductSearch] = useState('')
+  const [cart, setCart] = useState([
+    { code: 'AGU001', name: 'Agua Cristal 16.9 oz', unit: 'Unidad', qty: 2, price: 25, discount: 0 },
+    { code: 'COC002', name: 'Coca Cola 20 oz', unit: 'Unidad', qty: 1, price: 50, discount: 0 },
+  ])
+  const [paymentMethod, setPaymentMethod] = useState('Efectivo')
+  const [cashReceived, setCashReceived] = useState('600')
+  const [comment, setComment] = useState('')
+
+  const selectedClient =
+    selectedClientCode === 'CONTADO'
+      ? walkInClient
+      : clients.find((client) => client.code === selectedClientCode) || walkInClient
+
+  const filteredProducts = billingProducts.filter((product) => {
+    const search = productSearch.toLowerCase()
+    return (
+      product.code.toLowerCase().includes(search) ||
+      product.barcode.toLowerCase().includes(search) ||
+      product.name.toLowerCase().includes(search)
+    )
+  })
+
+  const subtotal = cart.reduce((sum, item) => sum + item.qty * item.price, 0)
+  const discount = cart.reduce((sum, item) => sum + Number(item.discount || 0), 0)
+  const taxableAmount = Math.max(subtotal - discount, 0)
+  const itbis = taxableAmount * 0.18
+  const total = taxableAmount + itbis
+  const cashReceivedAmount = Number(cashReceived || 0)
+  const change = paymentMethod === 'Efectivo' ? Math.max(cashReceivedAmount - total, 0) : 0
+
+  const addProductToCart = (product) => {
+    setCart((current) => {
+      const exists = current.find((item) => item.code === product.code)
+
+      if (exists) {
+        return current.map((item) =>
+          item.code === product.code ? { ...item, qty: item.qty + 1 } : item
+        )
+      }
+
+      return [
+        ...current,
+        {
+          code: product.code,
+          name: product.name,
+          unit: product.unit,
+          qty: 1,
+          price: product.price,
+          discount: 0,
+        },
+      ]
+    })
+  }
+
+  const addProductByBarcode = () => {
+    const value = barcodeValue.trim().toLowerCase()
+
+    if (!value) return
+
+    const foundProduct = billingProducts.find(
+      (product) =>
+        product.barcode.toLowerCase() === value ||
+        product.code.toLowerCase() === value
+    )
+
+    if (!foundProduct) {
+      alert('Producto no encontrado con ese codigo.')
+      return
+    }
+
+    addProductToCart(foundProduct)
+    setBarcodeValue('')
+  }
+
+  const updateCartItem = (code, field, value) => {
+    setCart((current) =>
+      current.map((item) =>
+        item.code === code
+          ? {
+              ...item,
+              [field]: field === 'qty' || field === 'discount' ? Number(value || 0) : value,
+            }
+          : item
+      )
+    )
+  }
+
+  const increaseQty = (code) => {
+    setCart((current) =>
+      current.map((item) =>
+        item.code === code ? { ...item, qty: item.qty + 1 } : item
+      )
+    )
+  }
+
+  const decreaseQty = (code) => {
+    setCart((current) =>
+      current.map((item) =>
+        item.code === code ? { ...item, qty: Math.max(item.qty - 1, 1) } : item
+      )
+    )
+  }
+
+  const removeItem = (code) => {
+    setCart((current) => current.filter((item) => item.code !== code))
+  }
+
+  const clearCart = () => {
+    setCart([])
+    setComment('')
+    setCashReceived('')
+  }
+
+  const generateInvoice = () => {
+    if (cart.length === 0) {
+      alert('Debes agregar productos a la factura.')
+      return
+    }
+
+    const invoiceStatus = paymentMethod === 'Credito' ? 'Pendiente' : 'Pagada'
+
+    const createdInvoice = {
+      number: `FAC-${String(invoices.length + 1).padStart(4, '0')}`,
+      customerCode: selectedClient.code,
+      customer: selectedClient.name,
+      document: selectedClient.document,
+      date: new Date().toLocaleDateString('es-DO'),
+      total,
+      payment: paymentMethod,
+      status: invoiceStatus,
+    }
+
+    setInvoices((current) => [createdInvoice, ...current])
+
+    if (invoiceStatus === 'Pendiente' && selectedClient.code !== 'CONTADO') {
+      setClients((currentClients) =>
+        currentClients.map((client) =>
+          client.code === selectedClient.code
+            ? { ...client, balance: Number(client.balance || 0) + total }
+            : client
+        )
+      )
+    }
+
+    alert(`Factura ${createdInvoice.number} generada correctamente.`)
+    clearCart()
+  }
+
+  return (
+    <section className="billing-page">
+      <div className="billing-main">
+        <div className="billing-title">
+          <div>
+            <h3>Ventas / Facturacion</h3>
+            <p>Escanea productos, confirma el pago y genera la factura.</p>
+          </div>
+
+          <button className="primary-button small" onClick={generateInvoice}>
+            Generar factura
+          </button>
+        </div>
+
+        <section className="billing-tools">
+          <div className="barcode-box">
+            <div className="barcode-icon">
+              <ScanBarcode size={30} />
+            </div>
+
+            <div>
+              <strong>Escanear codigo de barra</strong>
+              <span>Pasa el codigo por el lector o escribelo manualmente</span>
+            </div>
+
+            <input
+              value={barcodeValue}
+              onChange={(event) => setBarcodeValue(event.target.value)}
+              onKeyDown={(event) => {
+                if (event.key === 'Enter') {
+                  event.preventDefault()
+                  addProductByBarcode()
+                }
+              }}
+              placeholder="Codigo..."
+            />
+
+            <button onClick={addProductByBarcode}>Agregar</button>
+          </div>
+
+          <div className="product-finder">
+            <label>Buscar producto por nombre o codigo</label>
+            <div>
+              <input
+                value={productSearch}
+                onChange={(event) => setProductSearch(event.target.value)}
+                placeholder="Ej: Coca Cola o COC002"
+              />
+              <Search size={18} />
+            </div>
+          </div>
+        </section>
+
+        <section className="frequent-products-card">
+          <div className="card-header">
+            <h3>Productos frecuentes</h3>
+            <button>Ver todos</button>
+          </div>
+
+          <div className="frequent-products-grid">
+            {filteredProducts.map((product) => (
+              <button key={product.code} onClick={() => addProductToCart(product)}>
+                <span className="product-mini-img">{product.name.charAt(0)}</span>
+                <strong>{product.name}</strong>
+                <small>{product.code}</small>
+                <b>RD$ {product.price.toFixed(2)}</b>
+              </button>
+            ))}
+          </div>
+        </section>
+
+        <section className="billing-detail-card">
+          <div className="card-header">
+            <h3>Detalle de la factura ({cart.length})</h3>
+            <button onClick={clearCart}>Limpiar todo</button>
+          </div>
+
+          <div className="billing-detail-table">
+            <div className="billing-detail-head">
+              <span>Codigo</span>
+              <span>Producto</span>
+              <span>Cantidad</span>
+              <span>Precio unit.</span>
+              <span>Descuento</span>
+              <span>Total</span>
+              <span></span>
+            </div>
+
+            {cart.map((item) => (
+              <div key={item.code} className="billing-detail-row">
+                <strong>{item.code}</strong>
+
+                <div>
+                  <b>{item.name}</b>
+                  <small>{item.unit}</small>
+                </div>
+
+                <div className="qty-control">
+                  <button onClick={() => decreaseQty(item.code)}>-</button>
+                  <input
+                    type="number"
+                    value={item.qty}
+                    onChange={(event) => updateCartItem(item.code, 'qty', event.target.value)}
+                  />
+                  <button onClick={() => increaseQty(item.code)}>+</button>
+                </div>
+
+                <span>RD$ {item.price.toFixed(2)}</span>
+
+                <input
+                  className="discount-input"
+                  type="number"
+                  value={item.discount}
+                  onChange={(event) => updateCartItem(item.code, 'discount', event.target.value)}
+                />
+
+                <b>RD$ {Math.max(item.qty * item.price - Number(item.discount || 0), 0).toFixed(2)}</b>
+
+                <button className="remove-line" onClick={() => removeItem(item.code)}>X</button>
+              </div>
+            ))}
+
+            {cart.length === 0 && (
+              <div className="empty-cart">
+                Escanea o busca productos para agregarlos a la factura.
+              </div>
+            )}
+          </div>
+
+          <div className="billing-footer-actions">
+            <button className="secondary-button">Guardar como cotizacion</button>
+            <button className="secondary-button">Agregar comentario</button>
+          </div>
+
+          <textarea
+            className="invoice-comment"
+            value={comment}
+            onChange={(event) => setComment(event.target.value)}
+            placeholder="Comentario u observacion de la factura..."
+          />
+        </section>
+      </div>
+
+      <aside className="billing-side">
+        <section className="billing-side-card">
+          <h3>Cliente</h3>
+
+          <div className="client-select-row">
+            <select
+              value={selectedClientCode}
+              onChange={(event) => setSelectedClientCode(event.target.value)}
+            >
+              <option value="CONTADO">Cliente de mostrador</option>
+              {clients.map((client) => (
+                <option key={client.code} value={client.code}>
+                  {client.code} - {client.name}
+                </option>
+              ))}
+            </select>
+
+            <button>
+              <UserPlus size={18} />
+            </button>
+          </div>
+
+          <div className="billing-client-card">
+            <div className="billing-client-avatar">
+              {selectedClient.name.charAt(0)}
+            </div>
+
+            <div>
+              <strong>{selectedClient.name}</strong>
+              <span>RNC/Cedula: {selectedClient.document}</span>
+              <span>Tipo: {selectedClient.code === 'CONTADO' ? 'Consumidor final' : selectedClient.type}</span>
+            </div>
+
+            <em>{paymentMethod === 'Credito' ? 'Credito' : 'Contado'}</em>
+          </div>
+        </section>
+
+        <section className="billing-side-card totals-card">
+          <div>
+            <span>Subtotal</span>
+            <strong>RD$ {subtotal.toFixed(2)}</strong>
+          </div>
+
+          <div>
+            <span>Descuento</span>
+            <strong className="negative">- RD$ {discount.toFixed(2)}</strong>
+          </div>
+
+          <div>
+            <span>ITBIS (18%)</span>
+            <strong>RD$ {itbis.toFixed(2)}</strong>
+          </div>
+
+          <hr />
+
+          <div className="grand-total">
+            <span>Total general</span>
+            <strong>RD$ {total.toFixed(2)}</strong>
+          </div>
+        </section>
+
+        <section className="billing-side-card">
+          <h3>Metodo de pago</h3>
+
+          <div className="payment-grid">
+            {['Efectivo', 'Tarjeta', 'Transferencia', 'Credito'].map((method) => (
+              <button
+                key={method}
+                className={paymentMethod === method ? 'active' : ''}
+                onClick={() => setPaymentMethod(method)}
+              >
+                {method}
+              </button>
+            ))}
+          </div>
+
+          {paymentMethod === 'Efectivo' && (
+            <>
+              <label className="cash-input">
+                Efectivo recibido
+                <input
+                  type="number"
+                  value={cashReceived}
+                  onChange={(event) => setCashReceived(event.target.value)}
+                  placeholder="0"
+                />
+              </label>
+
+              <div className="change-box">
+                <span>Cambio</span>
+                <strong className={change >= 0 ? 'positive' : 'negative'}>
+                  RD$ {change.toFixed(2)}
+                </strong>
+              </div>
+            </>
+          )}
+        </section>
+
+        <section className="billing-side-card invoice-preview-card">
+          <div className="invoice-preview-header">
+            <div>
+              <h3>FACTURA</h3>
+              <span>No. FAC-{String(invoices.length + 1).padStart(6, '0')}</span>
+            </div>
+            <Receipt size={30} />
+          </div>
+
+          <div className="invoice-company">
+            <strong>INVE-FAT SYSTEM, SRL</strong>
+            <span>Soluciones Integrales de Inventario y Facturacion</span>
+            <span>RNC: 1-31-12345-6</span>
+          </div>
+
+          <div className="invoice-preview-client">
+            <span>Cliente</span>
+            <strong>{selectedClient.name}</strong>
+            <small>{selectedClient.document}</small>
+          </div>
+
+          <div className="invoice-preview-lines">
+            {cart.slice(0, 4).map((item) => (
+              <div key={item.code}>
+                <span>{item.name}</span>
+                <b>RD$ {(item.qty * item.price).toFixed(2)}</b>
+              </div>
+            ))}
+
+            {cart.length > 4 && <small>+ {cart.length - 4} productos mas</small>}
+          </div>
+
+          <div className="invoice-preview-total">
+            <span>Total general</span>
+            <strong>RD$ {total.toFixed(2)}</strong>
+          </div>
+        </section>
+
+        <button className="generate-invoice-button" onClick={generateInvoice}>
+          Generar factura
+        </button>
+
+        <div className="billing-bottom-actions">
+          <button>Suspender</button>
+          <button onClick={() => window.print()}>Imprimir</button>
+          <button onClick={clearCart}>Nueva</button>
+        </div>
+      </aside>
+    </section>
+  )
+}
+
+function SalesBillingProV2({ clients, setClients, invoices, setInvoices }) {
+  const walkInClient = {
+    code: 'CONTADO',
+    name: 'Cliente de mostrador',
+    document: '000-0000000-0',
+    phone: 'N/A',
+    email: 'N/A',
+    address: 'N/A',
+    type: 'Consumidor final',
+    balance: 0,
+    status: 'Activo',
+  }
+
+  const billingProducts = [
+    { code: 'AGU001', barcode: '7460001001001', name: 'Agua Cristal 16.9 oz', unit: 'Unidad', price: 25, stock: 120 },
+    { code: 'COC002', barcode: '7460001001002', name: 'Coca Cola 20 oz', unit: 'Unidad', price: 50, stock: 85 },
+    { code: 'PAP003', barcode: '7460001001003', name: 'Papel Higienico Elite', unit: 'Unidad', price: 120, stock: 42 },
+    { code: 'DET004', barcode: '7460001001004', name: 'Detergente Ace 360 g', unit: 'Unidad', price: 85, stock: 64 },
+    { code: 'PAN005', barcode: '7460001001005', name: 'Pan de Molde Bimbo', unit: 'Unidad', price: 65, stock: 38 },
+    { code: 'LEC006', barcode: '7460001001006', name: 'Leche Rica 1 Litro', unit: 'Unidad', price: 75, stock: 57 },
+  ]
+
+  const [selectedClientCode, setSelectedClientCode] = useState('CONTADO')
+  const [barcodeValue, setBarcodeValue] = useState('')
+  const [productSearch, setProductSearch] = useState('')
+  const [paymentMethod, setPaymentMethod] = useState('Efectivo')
+  const [cashReceived, setCashReceived] = useState('600')
+  const [currentInvoiceNumber, setCurrentInvoiceNumber] = useState('')
+  const [comment, setComment] = useState('Gracias por su preferencia.')
+
+  const [cart, setCart] = useState([
+    { code: 'AGU001', name: 'Agua Cristal 16.9 oz', unit: 'Unidad', qty: 2, price: 25, discount: 0 },
+    { code: 'COC002', name: 'Coca Cola 20 oz', unit: 'Unidad', qty: 1, price: 50, discount: 0 },
+  ])
+
+  const selectedClient =
+    selectedClientCode === 'CONTADO'
+      ? walkInClient
+      : clients.find((client) => client.code === selectedClientCode) || walkInClient
+
+  const invoiceNumber = currentInvoiceNumber || `FAC-${String(invoices.length + 1).padStart(6, '0')}`
+
+  const filteredProducts = billingProducts.filter((product) => {
+    const search = productSearch.toLowerCase()
+
+    return (
+      product.code.toLowerCase().includes(search) ||
+      product.barcode.toLowerCase().includes(search) ||
+      product.name.toLowerCase().includes(search)
+    )
+  })
+
+  const subtotal = cart.reduce((sum, item) => sum + item.qty * item.price, 0)
+  const discount = cart.reduce((sum, item) => sum + Number(item.discount || 0), 0)
+  const taxableAmount = Math.max(subtotal - discount, 0)
+  const itbis = taxableAmount * 0.18
+  const total = taxableAmount + itbis
+  const paidAmount =
+    paymentMethod === 'Credito'
+      ? 0
+      : paymentMethod === 'Efectivo'
+        ? Math.min(Number(cashReceived || 0), total)
+        : total
+  const pendingAmount = Math.max(total - paidAmount, 0)
+  const cashReceivedAmount = Number(cashReceived || 0)
+  const change = paymentMethod === 'Efectivo' ? Math.max(cashReceivedAmount - total, 0) : 0
+
+  const issueDate = new Date().toLocaleDateString('es-DO')
+  const dueDate = new Date(Date.now() + 15 * 24 * 60 * 60 * 1000).toLocaleDateString('es-DO')
+
+  const addProductToCart = (product) => {
+    setCart((current) => {
+      const exists = current.find((item) => item.code === product.code)
+
+      if (exists) {
+        return current.map((item) =>
+          item.code === product.code ? { ...item, qty: item.qty + 1 } : item
+        )
+      }
+
+      return [
+        ...current,
+        {
+          code: product.code,
+          name: product.name,
+          unit: product.unit,
+          qty: 1,
+          price: product.price,
+          discount: 0,
+        },
+      ]
+    })
+  }
+
+  const addProductByBarcode = () => {
+    const value = barcodeValue.trim().toLowerCase()
+
+    if (!value) return
+
+    const foundProduct = billingProducts.find(
+      (product) =>
+        product.barcode.toLowerCase() === value ||
+        product.code.toLowerCase() === value
+    )
+
+    if (!foundProduct) {
+      alert('Producto no encontrado con ese codigo.')
+      return
+    }
+
+    addProductToCart(foundProduct)
+    setBarcodeValue('')
+  }
+
+  const updateCartItem = (code, field, value) => {
+    setCart((current) =>
+      current.map((item) =>
+        item.code === code
+          ? {
+              ...item,
+              [field]: field === 'qty' || field === 'discount' ? Number(value || 0) : value,
+            }
+          : item
+      )
+    )
+  }
+
+  const increaseQty = (code) => {
+    setCart((current) =>
+      current.map((item) =>
+        item.code === code ? { ...item, qty: item.qty + 1 } : item
+      )
+    )
+  }
+
+  const decreaseQty = (code) => {
+    setCart((current) =>
+      current.map((item) =>
+        item.code === code ? { ...item, qty: Math.max(item.qty - 1, 1) } : item
+      )
+    )
+  }
+
+  const removeItem = (code) => {
+    setCart((current) => current.filter((item) => item.code !== code))
+  }
+
+  const clearInvoice = () => {
+    setCart([])
+    setBarcodeValue('')
+    setProductSearch('')
+    setCashReceived('')
+    setComment('Gracias por su preferencia.')
+    setCurrentInvoiceNumber('')
+  }
+
+  const saveInvoice = () => {
+    if (cart.length === 0) {
+      alert('Debes agregar productos a la factura.')
+      return false
+    }
+
+    if (currentInvoiceNumber) {
+      return true
+    }
+
+    const invoiceStatus = paymentMethod === 'Credito' ? 'Pendiente' : 'Pagada'
+    const createdNumber = invoiceNumber
+
+    const createdInvoice = {
+      number: createdNumber,
+      customerCode: selectedClient.code,
+      customer: selectedClient.name,
+      document: selectedClient.document,
+      date: issueDate,
+      total,
+      payment: paymentMethod,
+      status: invoiceStatus,
+    }
+
+    setInvoices((current) => [createdInvoice, ...current])
+    setCurrentInvoiceNumber(createdNumber)
+
+    if (invoiceStatus === 'Pendiente' && selectedClient.code !== 'CONTADO') {
+      setClients((currentClients) =>
+        currentClients.map((client) =>
+          client.code === selectedClient.code
+            ? { ...client, balance: Number(client.balance || 0) + total }
+            : client
+        )
+      )
+    }
+
+    return true
+  }
+
+  const generateInvoice = () => {
+    if (saveInvoice()) {
+      setTimeout(() => window.print(), 150)
+    }
+  }
+
+  const printInvoice = () => {
+    if (saveInvoice()) {
+      setTimeout(() => window.print(), 150)
+    }
+  }
+
+  return (
+    <>
+      <section className="billing-v2-page">
+        <div className="billing-v2-main">
+          <div className="billing-v2-header">
+            <div>
+              <h3>Facturacion rapida</h3>
+              <p>Escanea, busca productos, cobra e imprime la factura en una sola pantalla.</p>
+            </div>
+
+            <div className="billing-v2-header-actions">
+              <button className="secondary-button" onClick={clearInvoice}>
+                Nueva factura
+              </button>
+              <button className="primary-button small" onClick={generateInvoice}>
+                Generar factura
+              </button>
+            </div>
+          </div>
+
+          <section className="billing-v2-top">
+            <div className="billing-v2-scanner">
+              <div className="billing-v2-scanner-icon">
+                <ScanBarcode size={32} />
+              </div>
+
+              <div>
+                <strong>Escanear codigo de barra</strong>
+                <span>Coloca el cursor aqui y pasa el producto por el lector</span>
+              </div>
+
+              <input
+                autoFocus
+                value={barcodeValue}
+                onChange={(event) => setBarcodeValue(event.target.value)}
+                onKeyDown={(event) => {
+                  if (event.key === 'Enter') {
+                    event.preventDefault()
+                    addProductByBarcode()
+                  }
+                }}
+                placeholder="Escanear o escribir codigo..."
+              />
+
+              <button onClick={addProductByBarcode}>Agregar</button>
+            </div>
+
+            <div className="billing-v2-search">
+              <label>Buscar producto</label>
+              <div>
+                <input
+                  value={productSearch}
+                  onChange={(event) => setProductSearch(event.target.value)}
+                  placeholder="Nombre, codigo o barra..."
+                />
+                <Search size={18} />
+              </div>
+            </div>
+          </section>
+
+          <section className="billing-v2-products">
+            <div className="card-header">
+              <h3>Productos frecuentes</h3>
+              <span>{filteredProducts.length} productos</span>
+            </div>
+
+            <div className="billing-v2-product-grid">
+              {filteredProducts.map((product) => (
+                <button key={product.code} onClick={() => addProductToCart(product)}>
+                  <span>{product.name.charAt(0)}</span>
+                  <div>
+                    <strong>{product.name}</strong>
+                    <small>{product.code} ÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã¢â‚¬Â ÃƒÂ¢Ã¢â€šÂ¬Ã¢â€žÂ¢ÃƒÆ’Ã†â€™ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÂ¢Ã¢â‚¬Å¾Ã‚Â¢ÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚Â ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¾Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã¢â‚¬Â ÃƒÂ¢Ã¢â€šÂ¬Ã¢â€žÂ¢ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â ÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€¦Ã‚Â¡ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â¬ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€¦Ã‚Â¾ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã¢â‚¬Â ÃƒÂ¢Ã¢â€šÂ¬Ã¢â€žÂ¢ÃƒÆ’Ã†â€™ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÂ¢Ã¢â‚¬Å¾Ã‚Â¢ÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€¦Ã‚Â¡ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â¬ÃƒÆ’Ã†â€™ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â ÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã¢â‚¬Â ÃƒÂ¢Ã¢â€šÂ¬Ã¢â€žÂ¢ÃƒÆ’Ã†â€™ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬ÃƒÆ’Ã¢â‚¬Â¦Ãƒâ€šÃ‚Â¡ÃƒÆ’Ã†â€™ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â¬ÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬ÃƒÆ’Ã¢â‚¬Â¦Ãƒâ€šÃ‚Â¾ÃƒÆ’Ã†â€™ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã¢â‚¬Â ÃƒÂ¢Ã¢â€šÂ¬Ã¢â€žÂ¢ÃƒÆ’Ã†â€™ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÂ¢Ã¢â‚¬Å¾Ã‚Â¢ÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚Â ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¾Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã¢â‚¬Â ÃƒÂ¢Ã¢â€šÂ¬Ã¢â€žÂ¢ÃƒÆ’Ã†â€™ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬ÃƒÆ’Ã¢â‚¬Â¦Ãƒâ€šÃ‚Â¡ÃƒÆ’Ã†â€™ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â¬ÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€¦Ã‚Â¡ÃƒÆ’Ã†â€™ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â ÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã¢â‚¬Â ÃƒÂ¢Ã¢â€šÂ¬Ã¢â€žÂ¢ÃƒÆ’Ã†â€™ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÂ¢Ã¢â‚¬Å¾Ã‚Â¢ÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€¦Ã‚Â¡ÃƒÆ’Ã†â€™ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã¢â‚¬Â ÃƒÂ¢Ã¢â€šÂ¬Ã¢â€žÂ¢ÃƒÆ’Ã†â€™ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€¦Ã‚Â¡ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â¬ÃƒÆ’Ã†â€™ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â¦ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â¡ÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€¦Ã‚Â¡ÃƒÆ’Ã†â€™ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â¬ÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã¢â‚¬Â ÃƒÂ¢Ã¢â€šÂ¬Ã¢â€žÂ¢ÃƒÆ’Ã†â€™ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€¦Ã‚Â¡ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â¬ÃƒÆ’Ã†â€™ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â¦ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â¾ÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€¦Ã‚Â¡ÃƒÆ’Ã†â€™ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã¢â‚¬Â ÃƒÂ¢Ã¢â€šÂ¬Ã¢â€žÂ¢ÃƒÆ’Ã†â€™ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÂ¢Ã¢â‚¬Å¾Ã‚Â¢ÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚Â ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¾Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã¢â‚¬Â ÃƒÂ¢Ã¢â€šÂ¬Ã¢â€žÂ¢ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â ÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€¦Ã‚Â¡ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â¬ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€¦Ã‚Â¾ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã¢â‚¬Â ÃƒÂ¢Ã¢â€šÂ¬Ã¢â€žÂ¢ÃƒÆ’Ã†â€™ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÂ¢Ã¢â‚¬Å¾Ã‚Â¢ÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€¦Ã‚Â¡ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â¬ÃƒÆ’Ã†â€™ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â¦ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â¡ÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã¢â‚¬Â ÃƒÂ¢Ã¢â€šÂ¬Ã¢â€žÂ¢ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬ÃƒÆ’Ã¢â‚¬Â¦Ãƒâ€šÃ‚Â¡ÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€¦Ã‚Â¡ÃƒÆ’Ã†â€™ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã¢â‚¬Â ÃƒÂ¢Ã¢â€šÂ¬Ã¢â€žÂ¢ÃƒÆ’Ã†â€™ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÂ¢Ã¢â‚¬Å¾Ã‚Â¢ÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚Â ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¾Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã¢â‚¬Â ÃƒÂ¢Ã¢â€šÂ¬Ã¢â€žÂ¢ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬ÃƒÆ’Ã¢â‚¬Â¦Ãƒâ€šÃ‚Â¡ÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€¦Ã‚Â¡ÃƒÆ’Ã†â€™ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã¢â‚¬Â ÃƒÂ¢Ã¢â€šÂ¬Ã¢â€žÂ¢ÃƒÆ’Ã†â€™ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÂ¢Ã¢â‚¬Å¾Ã‚Â¢ÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€¦Ã‚Â¡ÃƒÆ’Ã†â€™ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã¢â‚¬Â ÃƒÂ¢Ã¢â€šÂ¬Ã¢â€žÂ¢ÃƒÆ’Ã†â€™ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€¦Ã‚Â¡ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â¬ÃƒÆ’Ã†â€™ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â¦ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â¡ÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€¦Ã‚Â¡ÃƒÆ’Ã†â€™ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â¬ÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã¢â‚¬Â ÃƒÂ¢Ã¢â€šÂ¬Ã¢â€žÂ¢ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â¦ÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€¦Ã‚Â¡ÃƒÆ’Ã†â€™ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â¡ÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã¢â‚¬Â ÃƒÂ¢Ã¢â€šÂ¬Ã¢â€žÂ¢ÃƒÆ’Ã†â€™ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÂ¢Ã¢â‚¬Å¾Ã‚Â¢ÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€¦Ã‚Â¡ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â¬ÃƒÆ’Ã†â€™ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â¦ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â¡ÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã¢â‚¬Â ÃƒÂ¢Ã¢â€šÂ¬Ã¢â€žÂ¢ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬ÃƒÆ’Ã¢â‚¬Â¦Ãƒâ€šÃ‚Â¡ÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€¦Ã‚Â¡ÃƒÆ’Ã†â€™ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â¬ÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã¢â‚¬Â ÃƒÂ¢Ã¢â€šÂ¬Ã¢â€žÂ¢ÃƒÆ’Ã†â€™ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÂ¢Ã¢â‚¬Å¾Ã‚Â¢ÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚Â ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¾Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã¢â‚¬Â ÃƒÂ¢Ã¢â€šÂ¬Ã¢â€žÂ¢ÃƒÆ’Ã†â€™ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬ÃƒÆ’Ã¢â‚¬Â¦Ãƒâ€šÃ‚Â¡ÃƒÆ’Ã†â€™ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â¬ÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€¦Ã‚Â¡ÃƒÆ’Ã†â€™ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â¦ÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã¢â‚¬Â ÃƒÂ¢Ã¢â€šÂ¬Ã¢â€žÂ¢ÃƒÆ’Ã†â€™ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÂ¢Ã¢â‚¬Å¾Ã‚Â¢ÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€¦Ã‚Â¡ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â¬ÃƒÆ’Ã†â€™ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â¦ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â¡ÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã¢â‚¬Â ÃƒÂ¢Ã¢â€šÂ¬Ã¢â€žÂ¢ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬ÃƒÆ’Ã¢â‚¬Â¦Ãƒâ€šÃ‚Â¡ÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€¦Ã‚Â¡ÃƒÆ’Ã†â€™ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â¡ÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã¢â‚¬Â ÃƒÂ¢Ã¢â€šÂ¬Ã¢â€žÂ¢ÃƒÆ’Ã†â€™ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÂ¢Ã¢â‚¬Å¾Ã‚Â¢ÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚Â ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¾Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã¢â‚¬Â ÃƒÂ¢Ã¢â€šÂ¬Ã¢â€žÂ¢ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â ÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€¦Ã‚Â¡ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â¬ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€¦Ã‚Â¾ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã¢â‚¬Â ÃƒÂ¢Ã¢â€šÂ¬Ã¢â€žÂ¢ÃƒÆ’Ã†â€™ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÂ¢Ã¢â‚¬Å¾Ã‚Â¢ÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€¦Ã‚Â¡ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â¬ÃƒÆ’Ã†â€™ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â ÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã¢â‚¬Â ÃƒÂ¢Ã¢â€šÂ¬Ã¢â€žÂ¢ÃƒÆ’Ã†â€™ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬ÃƒÆ’Ã¢â‚¬Â¦Ãƒâ€šÃ‚Â¡ÃƒÆ’Ã†â€™ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â¬ÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬ÃƒÆ’Ã¢â‚¬Â¦Ãƒâ€šÃ‚Â¾ÃƒÆ’Ã†â€™ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã¢â‚¬Â ÃƒÂ¢Ã¢â€šÂ¬Ã¢â€žÂ¢ÃƒÆ’Ã†â€™ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÂ¢Ã¢â‚¬Å¾Ã‚Â¢ÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚Â ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¾Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã¢â‚¬Â ÃƒÂ¢Ã¢â€šÂ¬Ã¢â€žÂ¢ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬ÃƒÆ’Ã¢â‚¬Â¦Ãƒâ€šÃ‚Â¡ÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€¦Ã‚Â¡ÃƒÆ’Ã†â€™ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã¢â‚¬Â ÃƒÂ¢Ã¢â€šÂ¬Ã¢â€žÂ¢ÃƒÆ’Ã†â€™ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÂ¢Ã¢â‚¬Å¾Ã‚Â¢ÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€¦Ã‚Â¡ÃƒÆ’Ã†â€™ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã¢â‚¬Â ÃƒÂ¢Ã¢â€šÂ¬Ã¢â€žÂ¢ÃƒÆ’Ã†â€™ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬ÃƒÆ’Ã¢â‚¬Â¦Ãƒâ€šÃ‚Â¡ÃƒÆ’Ã†â€™ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â¬ÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚Â¦ÃƒÆ’Ã†â€™ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â¡ÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã¢â‚¬Â ÃƒÂ¢Ã¢â€šÂ¬Ã¢â€žÂ¢ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬ÃƒÆ’Ã¢â‚¬Â¦Ãƒâ€šÃ‚Â¡ÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€¦Ã‚Â¡ÃƒÆ’Ã†â€™ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â¬ÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã¢â‚¬Â ÃƒÂ¢Ã¢â€šÂ¬Ã¢â€žÂ¢ÃƒÆ’Ã†â€™ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÂ¢Ã¢â‚¬Å¾Ã‚Â¢ÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€¦Ã‚Â¡ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â¬ÃƒÆ’Ã†â€™ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â¦ÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã¢â‚¬Â ÃƒÂ¢Ã¢â€šÂ¬Ã¢â€žÂ¢ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬ÃƒÆ’Ã¢â‚¬Â¦Ãƒâ€šÃ‚Â¡ÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€¦Ã‚Â¡ÃƒÆ’Ã†â€™ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â¡ÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã¢â‚¬Â ÃƒÂ¢Ã¢â€šÂ¬Ã¢â€žÂ¢ÃƒÆ’Ã†â€™ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÂ¢Ã¢â‚¬Å¾Ã‚Â¢ÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚Â ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¾Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã¢â‚¬Â ÃƒÂ¢Ã¢â€šÂ¬Ã¢â€žÂ¢ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â ÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€¦Ã‚Â¡ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â¬ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€¦Ã‚Â¾ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã¢â‚¬Â ÃƒÂ¢Ã¢â€šÂ¬Ã¢â€žÂ¢ÃƒÆ’Ã†â€™ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÂ¢Ã¢â‚¬Å¾Ã‚Â¢ÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€¦Ã‚Â¡ÃƒÆ’Ã†â€™ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã¢â‚¬Â ÃƒÂ¢Ã¢â€šÂ¬Ã¢â€žÂ¢ÃƒÆ’Ã†â€™ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€¦Ã‚Â¡ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â¬ÃƒÆ’Ã†â€™ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â¦ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â¡ÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€¦Ã‚Â¡ÃƒÆ’Ã†â€™ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â¬ÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã¢â‚¬Â ÃƒÂ¢Ã¢â€šÂ¬Ã¢â€žÂ¢ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â¦ÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€¦Ã‚Â¡ÃƒÆ’Ã†â€™ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â¡ÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã¢â‚¬Â ÃƒÂ¢Ã¢â€šÂ¬Ã¢â€žÂ¢ÃƒÆ’Ã†â€™ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÂ¢Ã¢â‚¬Å¾Ã‚Â¢ÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚Â ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¾Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã¢â‚¬Â ÃƒÂ¢Ã¢â€šÂ¬Ã¢â€žÂ¢ÃƒÆ’Ã†â€™ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬ÃƒÆ’Ã¢â‚¬Â¦Ãƒâ€šÃ‚Â¡ÃƒÆ’Ã†â€™ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â¬ÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚Â¦ÃƒÆ’Ã†â€™ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â¡ÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã¢â‚¬Â ÃƒÂ¢Ã¢â€šÂ¬Ã¢â€žÂ¢ÃƒÆ’Ã†â€™ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÂ¢Ã¢â‚¬Å¾Ã‚Â¢ÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€¦Ã‚Â¡ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â¬ÃƒÆ’Ã†â€™ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â¦ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â¡ÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã¢â‚¬Â ÃƒÂ¢Ã¢â€šÂ¬Ã¢â€žÂ¢ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬ÃƒÆ’Ã¢â‚¬Â¦Ãƒâ€šÃ‚Â¡ÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€¦Ã‚Â¡ÃƒÆ’Ã†â€™ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â· Stock {product.stock}</small>
+                    <b>RD$ {product.price.toFixed(2)}</b>
+                  </div>
+                </button>
+              ))}
+            </div>
+          </section>
+
+          <section className="billing-v2-detail">
+            <div className="card-header">
+              <h3>Detalle de la factura ({cart.length})</h3>
+              <button onClick={() => setCart([])}>Limpiar productos</button>
+            </div>
+
+            <div className="billing-v2-table">
+              <div className="billing-v2-table-head">
+                <span>Codigo</span>
+                <span>Producto</span>
+                <span>Cantidad</span>
+                <span>Precio</span>
+                <span>Desc.</span>
+                <span>Total</span>
+                <span></span>
+              </div>
+
+              {cart.map((item) => (
+                <div key={item.code} className="billing-v2-table-row">
+                  <strong>{item.code}</strong>
+
+                  <div>
+                    <b>{item.name}</b>
+                    <small>{item.unit}</small>
+                  </div>
+
+                  <div className="qty-control">
+                    <button onClick={() => decreaseQty(item.code)}>-</button>
+                    <input
+                      type="number"
+                      value={item.qty}
+                      onChange={(event) => updateCartItem(item.code, 'qty', event.target.value)}
+                    />
+                    <button onClick={() => increaseQty(item.code)}>+</button>
+                  </div>
+
+                  <span>RD$ {item.price.toFixed(2)}</span>
+
+                  <input
+                    className="discount-input"
+                    type="number"
+                    value={item.discount}
+                    onChange={(event) => updateCartItem(item.code, 'discount', event.target.value)}
+                  />
+
+                  <b>RD$ {Math.max(item.qty * item.price - Number(item.discount || 0), 0).toFixed(2)}</b>
+
+                  <button className="remove-line" onClick={() => removeItem(item.code)}>X</button>
+                </div>
+              ))}
+
+              {cart.length === 0 && (
+                <div className="empty-cart">
+                  Escanea o busca productos para agregarlos a la factura.
+                </div>
+              )}
+            </div>
+
+            <textarea
+              className="invoice-comment"
+              value={comment}
+              onChange={(event) => setComment(event.target.value)}
+              placeholder="Observacion de la factura..."
+            />
+          </section>
+        </div>
+
+        <aside className="billing-v2-side">
+          <section className="billing-v2-side-card">
+            <h3>Cliente</h3>
+
+            <div className="client-select-row">
+              <select
+                value={selectedClientCode}
+                onChange={(event) => setSelectedClientCode(event.target.value)}
+              >
+                <option value="CONTADO">Cliente de mostrador</option>
+                {clients.map((client) => (
+                  <option key={client.code} value={client.code}>
+                    {client.code} - {client.name}
+                  </option>
+                ))}
+              </select>
+
+              <button>
+                <UserPlus size={18} />
+              </button>
+            </div>
+
+            <div className="billing-v2-client">
+              <div>{selectedClient.name.charAt(0)}</div>
+              <section>
+                <strong>{selectedClient.name}</strong>
+                <span>RNC/Cedula: {selectedClient.document}</span>
+                <span>Tipo: {selectedClient.type || 'Consumidor final'}</span>
+              </section>
+              <em>{paymentMethod === 'Credito' ? 'Credito' : 'Contado'}</em>
+            </div>
+          </section>
+
+          <section className="billing-v2-side-card billing-v2-totals">
+            <div>
+              <span>Subtotal</span>
+              <strong>RD$ {subtotal.toFixed(2)}</strong>
+            </div>
+
+            <div>
+              <span>Descuento</span>
+              <strong className="negative">- RD$ {discount.toFixed(2)}</strong>
+            </div>
+
+            <div>
+              <span>ITBIS (18%)</span>
+              <strong>RD$ {itbis.toFixed(2)}</strong>
+            </div>
+
+            <hr />
+
+            <div className="billing-v2-grand-total">
+              <span>Total general</span>
+              <strong>RD$ {total.toFixed(2)}</strong>
+            </div>
+          </section>
+
+          <section className="billing-v2-side-card">
+            <h3>Metodo de pago</h3>
+
+            <div className="payment-grid">
+              {['Efectivo', 'Tarjeta', 'Transferencia', 'Credito'].map((method) => (
+                <button
+                  key={method}
+                  className={paymentMethod === method ? 'active' : ''}
+                  onClick={() => setPaymentMethod(method)}
+                >
+                  {method}
+                </button>
+              ))}
+            </div>
+
+            {paymentMethod === 'Efectivo' && (
+              <>
+                <label className="cash-input">
+                  Efectivo recibido
+                  <input
+                    type="number"
+                    value={cashReceived}
+                    onChange={(event) => setCashReceived(event.target.value)}
+                    placeholder="0"
+                  />
+                </label>
+
+                <div className="change-box">
+                  <span>Cambio</span>
+                  <strong className={change >= 0 ? 'positive' : 'negative'}>
+                    RD$ {change.toFixed(2)}
+                  </strong>
+                </div>
+              </>
+            )}
+          </section>
+
+          <button className="generate-invoice-button" onClick={generateInvoice}>
+            Generar factura
+          </button>
+        </aside>
+      </section>
+
+      <section className="print-invoice-sheet">
+        <div className="print-invoice-header">
+          <div>
+            <div className="print-brand">
+              <div className="print-logo-mark">V</div>
+              <div>
+                <h1>INVE-FAT</h1>
+                <span>SYSTEM</span>
+              </div>
+            </div>
+
+            <h3>INVE-FAT SYSTEM, SRL</h3>
+            <p>Soluciones Integrales de Inventario, Facturacion y Punto de Venta</p>
+            <p><strong>RNC:</strong> 1-31-12345-6</p>
+            <p><strong>Tel:</strong> (809) 555-1234</p>
+            <p><strong>Email:</strong> info@invefatsystem.com</p>
+            <p>Av. Winston Churchill No. 1099, Santo Domingo, R.D.</p>
+          </div>
+
+          <div className="print-invoice-title">
+            <h2>FACTURA</h2>
+            <strong>No. {invoiceNumber}</strong>
+
+            <div className="print-date-box">
+              <p><span>Fecha de emision:</span> {issueDate}</p>
+              <p><span>Fecha de vencimiento:</span> {dueDate}</p>
+              <p><span>Condicion de pago:</span> {paymentMethod === 'Credito' ? 'Credito a 15 dias' : 'Contado'}</p>
+            </div>
+          </div>
+        </div>
+
+        <div className="print-info-grid">
+          <div className="print-info-card">
+            <h4>DATOS DEL CLIENTE</h4>
+            <p><span>Cliente:</span> <strong>{selectedClient.name}</strong></p>
+            <p><span>RNC / Cedula:</span> {selectedClient.document}</p>
+            <p><span>Telefono:</span> {selectedClient.phone}</p>
+            <p><span>Direccion:</span> {selectedClient.address || 'N/A'}</p>
+          </div>
+
+          <div className="print-info-card">
+            <h4>INFORMACION DE LA FACTURA</h4>
+            <p><span>Vendedor:</span> Administrador</p>
+            <p><span>Metodo de pago:</span> {paymentMethod}</p>
+            <p><span>Moneda:</span> Pesos Dominicanos (RD$)</p>
+            <p><span>Estado:</span> {paymentMethod === 'Credito' ? 'Pendiente' : 'Pagada'}</p>
+          </div>
+        </div>
+
+        <table className="print-products-table">
+          <thead>
+            <tr>
+              <th>Codigo</th>
+              <th>Descripcion</th>
+              <th>Cantidad</th>
+              <th>Precio Unitario</th>
+              <th>ITBIS (18%)</th>
+              <th>Total</th>
+            </tr>
+          </thead>
+
+          <tbody>
+            {cart.map((item) => {
+              const lineBase = Math.max(item.qty * item.price - Number(item.discount || 0), 0)
+              const lineTax = lineBase * 0.18
+              const lineTotal = lineBase + lineTax
+
+              return (
+                <tr key={item.code}>
+                  <td>{item.code}</td>
+                  <td>
+                    <strong>{item.name}</strong>
+                    <span>{item.unit}</span>
+                  </td>
+                  <td>{item.qty}</td>
+                  <td>RD$ {item.price.toFixed(2)}</td>
+                  <td>RD$ {lineTax.toFixed(2)}</td>
+                  <td><strong>RD$ {lineTotal.toFixed(2)}</strong></td>
+                </tr>
+              )
+            })}
+          </tbody>
+        </table>
+
+        <div className="print-bottom-grid">
+          <div>
+            <h4>OBSERVACIONES</h4>
+            <div className="print-observations">
+              <p>{comment || 'Gracias por su preferencia.'}</p>
+              <p>Conserve esta factura para cualquier reclamo.</p>
+            </div>
+          </div>
+
+          <div className="print-total-box">
+            <p><span>Subtotal:</span> <strong>RD$ {subtotal.toFixed(2)}</strong></p>
+            <p><span>Descuento:</span> <strong>- RD$ {discount.toFixed(2)}</strong></p>
+            <p><span>ITBIS (18%):</span> <strong>RD$ {itbis.toFixed(2)}</strong></p>
+            <hr />
+            <h3><span>TOTAL GENERAL:</span> RD$ {total.toFixed(2)}</h3>
+          </div>
+        </div>
+
+        <div className="print-payment-summary">
+          <div>
+            <h4>RESUMEN DE PAGO</h4>
+            <section>
+              <p><span>Total General</span><strong>RD$ {total.toFixed(2)}</strong></p>
+              <p><span>Pagado</span><strong>RD$ {paidAmount.toFixed(2)}</strong></p>
+              <p><span>Pendiente</span><strong>RD$ {pendingAmount.toFixed(2)}</strong></p>
+            </section>
+          </div>
+
+          <div>
+            <h4>Gracias por su confianza</h4>
+            <p>Su pago oportuno nos permite seguir ofreciendo un mejor servicio.</p>
+          </div>
+        </div>
+
+        <footer className="print-footer">
+          Esta factura fue generada por <strong>INVE-FAT SYSTEM</strong>
+          <br />
+          Software de Gestion Empresarial
+        </footer>
+      </section>
+    </>
+  )
+}
+
+function SalesBillingProV3({ clients, setClients, invoices, setInvoices }) {
+  const walkInClient = {
+    code: 'CONTADO',
+    name: 'Cliente de mostrador',
+    document: '000-0000000-0',
+    phone: 'N/A',
+    email: 'N/A',
+    address: 'N/A',
+    type: 'Consumidor final',
+    balance: 0,
+    status: 'Activo',
+  }
+
+  const billingProducts = [
+    { code: 'AGU001', barcode: '7460001001001', name: 'Agua Cristal 16.9 oz', unit: 'Unidad', price: 25, stock: 120 },
+    { code: 'COC002', barcode: '7460001001002', name: 'Coca Cola 20 oz', unit: 'Unidad', price: 50, stock: 85 },
+    { code: 'PAP003', barcode: '7460001001003', name: 'Papel Higienico Elite', unit: 'Unidad', price: 120, stock: 42 },
+    { code: 'DET004', barcode: '7460001001004', name: 'Detergente Ace 360 g', unit: 'Unidad', price: 85, stock: 64 },
+    { code: 'PAN005', barcode: '7460001001005', name: 'Pan de Molde Bimbo', unit: 'Unidad', price: 65, stock: 38 },
+    { code: 'LEC006', barcode: '7460001001006', name: 'Leche Rica 1 Litro', unit: 'Unidad', price: 75, stock: 57 },
+  ]
+
+  const [billingStarted, setBillingStarted] = useState(false)
+  const [invoiceType, setInvoiceType] = useState('consumidor')
+  const [selectedClientCode, setSelectedClientCode] = useState('CONTADO')
+  const [barcodeValue, setBarcodeValue] = useState('')
+  const [productSearch, setProductSearch] = useState('')
+  const [paymentMethod, setPaymentMethod] = useState('Efectivo')
+  const [cashReceived, setCashReceived] = useState('')
+  const [currentInvoiceNumber, setCurrentInvoiceNumber] = useState('')
+  const [comment, setComment] = useState('Gracias por su preferencia.')
+  const [cart, setCart] = useState([])
+
+  const selectedClient =
+    selectedClientCode === 'CONTADO'
+      ? walkInClient
+      : clients.find((client) => client.code === selectedClientCode) || walkInClient
+
+  const invoiceNumber = currentInvoiceNumber || `FAC-${String(invoices.length + 1).padStart(6, '0')}`
+  const ncfPrefix = invoiceType === 'comprobante' ? 'B01' : 'B02'
+  const ncfNumber = `${ncfPrefix}${String(invoices.length + 1).padStart(8, '0')}`
+  const invoiceTypeLabel = invoiceType === 'comprobante' ? 'Factura con comprobante fiscal' : 'Consumidor final'
+
+  const filteredProducts = billingProducts.filter((product) => {
+    const search = productSearch.toLowerCase()
+
+    return (
+      product.code.toLowerCase().includes(search) ||
+      product.barcode.toLowerCase().includes(search) ||
+      product.name.toLowerCase().includes(search)
+    )
+  })
+
+  const subtotal = cart.reduce((sum, item) => sum + item.qty * item.price, 0)
+  const discount = cart.reduce((sum, item) => sum + Number(item.discount || 0), 0)
+  const taxableAmount = Math.max(subtotal - discount, 0)
+  const itbis = taxableAmount * 0.18
+  const total = taxableAmount + itbis
+  const paidAmount =
+    paymentMethod === 'Credito'
+      ? 0
+      : paymentMethod === 'Efectivo'
+        ? Math.min(Number(cashReceived || 0), total)
+        : total
+  const pendingAmount = Math.max(total - paidAmount, 0)
+  const change = paymentMethod === 'Efectivo' ? Number(cashReceived || 0) - total : 0
+
+  const issueDate = new Date().toLocaleDateString('es-DO')
+  const dueDate = new Date(Date.now() + 15 * 24 * 60 * 60 * 1000).toLocaleDateString('es-DO')
+
+  const handleInvoiceTypeChange = (type) => {
+    setInvoiceType(type)
+
+    if (type === 'consumidor') {
+      setSelectedClientCode('CONTADO')
+    }
+
+    if (type === 'comprobante' && selectedClientCode === 'CONTADO' && clients.length > 0) {
+      setSelectedClientCode(clients[0].code)
+    }
+  }
+
+  const startBilling = () => {
+    if (invoiceType === 'comprobante' && selectedClientCode === 'CONTADO') {
+      alert('Para factura con comprobante debes seleccionar un cliente registrado.')
+      return
+    }
+
+    setBillingStarted(true)
+    setTimeout(() => {
+      const input = document.querySelector('.billing-v2-scanner input')
+      if (input) input.focus()
+    }, 100)
+  }
+
+  const goBackToSetup = () => {
+    setBillingStarted(false)
+  }
+
+  const addProductToCart = (product) => {
+    setCart((current) => {
+      const exists = current.find((item) => item.code === product.code)
+
+      if (exists) {
+        return current.map((item) =>
+          item.code === product.code ? { ...item, qty: item.qty + 1 } : item
+        )
+      }
+
+      return [
+        ...current,
+        {
+          code: product.code,
+          name: product.name,
+          unit: product.unit,
+          qty: 1,
+          price: product.price,
+          discount: 0,
+        },
+      ]
+    })
+  }
+
+  const addProductByBarcode = () => {
+    const value = barcodeValue.trim().toLowerCase()
+
+    if (!value) return
+
+    const foundProduct = billingProducts.find(
+      (product) =>
+        product.barcode.toLowerCase() === value ||
+        product.code.toLowerCase() === value
+    )
+
+    if (!foundProduct) {
+      alert('Producto no encontrado con ese codigo.')
+      return
+    }
+
+    addProductToCart(foundProduct)
+    setBarcodeValue('')
+  }
+
+  const updateCartItem = (code, field, value) => {
+    setCart((current) =>
+      current.map((item) =>
+        item.code === code
+          ? {
+              ...item,
+              [field]: field === 'qty' || field === 'discount' ? Number(value || 0) : value,
+            }
+          : item
+      )
+    )
+  }
+
+  const increaseQty = (code) => {
+    setCart((current) =>
+      current.map((item) =>
+        item.code === code ? { ...item, qty: item.qty + 1 } : item
+      )
+    )
+  }
+
+  const decreaseQty = (code) => {
+    setCart((current) =>
+      current.map((item) =>
+        item.code === code ? { ...item, qty: Math.max(item.qty - 1, 1) } : item
+      )
+    )
+  }
+
+  const removeItem = (code) => {
+    setCart((current) => current.filter((item) => item.code !== code))
+  }
+
+  const clearInvoice = () => {
+    setCart([])
+    setBarcodeValue('')
+    setProductSearch('')
+    setCashReceived('')
+    setComment('Gracias por su preferencia.')
+    setCurrentInvoiceNumber('')
+    setBillingStarted(false)
+    setInvoiceType('consumidor')
+    setSelectedClientCode('CONTADO')
+  }
+
+  const saveInvoice = () => {
+    if (cart.length === 0) {
+      alert('Debes agregar productos a la factura.')
+      return false
+    }
+
+    if (invoiceType === 'comprobante' && selectedClientCode === 'CONTADO') {
+      alert('Para factura con comprobante debes seleccionar un cliente registrado.')
+      return false
+    }
+
+    if (currentInvoiceNumber) {
+      return true
+    }
+
+    const invoiceStatus = paymentMethod === 'Credito' ? 'Pendiente' : 'Pagada'
+    const createdNumber = invoiceNumber
+
+    const createdInvoice = {
+      number: createdNumber,
+      ncf: ncfNumber,
+      invoiceType: invoiceTypeLabel,
+      customerCode: selectedClient.code,
+      customer: selectedClient.name,
+      document: selectedClient.document,
+      date: issueDate,
+      total,
+      payment: paymentMethod,
+      status: invoiceStatus,
+    }
+
+    setInvoices((current) => [createdInvoice, ...current])
+    setCurrentInvoiceNumber(createdNumber)
+
+    if (invoiceStatus === 'Pendiente' && selectedClient.code !== 'CONTADO') {
+      setClients((currentClients) =>
+        currentClients.map((client) =>
+          client.code === selectedClient.code
+            ? { ...client, balance: Number(client.balance || 0) + total }
+            : client
+        )
+      )
+    }
+
+    return true
+  }
+
+  const generateInvoice = () => {
+    if (saveInvoice()) {
+      setTimeout(() => window.print(), 150)
+    }
+  }
+
+  const printInvoice = () => {
+    if (saveInvoice()) {
+      setTimeout(() => window.print(), 150)
+    }
+  }
+
+  if (!billingStarted) {
+    return (
+      <section className="billing-setup-page">
+        <div className="billing-setup-card">
+          <div className="billing-setup-header">
+            <span>Paso 1 de facturacion</span>
+            <h3>Configurar factura</h3>
+            <p>Primero selecciona si la factura sera consumidor final o con comprobante. Luego elige el cliente antes de agregar productos.</p>
+          </div>
+
+          <div className="invoice-type-grid">
+            <button
+              className={invoiceType === 'consumidor' ? 'active' : ''}
+              onClick={() => handleInvoiceTypeChange('consumidor')}
+            >
+              <strong>Consumidor final</strong>
+              <span>Para ventas rapidas o cliente de mostrador.</span>
+              <b>NCF: B02</b>
+            </button>
+
+            <button
+              className={invoiceType === 'comprobante' ? 'active' : ''}
+              onClick={() => handleInvoiceTypeChange('comprobante')}
+            >
+              <strong>Con comprobante fiscal</strong>
+              <span>Para clientes registrados con RNC o cedula.</span>
+              <b>NCF: B01</b>
+            </button>
+          </div>
+
+          <div className="billing-client-setup">
+            <label>
+              Cliente de la factura
+              <select
+                value={selectedClientCode}
+                onChange={(event) => setSelectedClientCode(event.target.value)}
+              >
+                {invoiceType === 'consumidor' && (
+                  <option value="CONTADO">Cliente de mostrador</option>
+                )}
+
+                {clients.map((client) => (
+                  <option key={client.code} value={client.code}>
+                    {client.code} - {client.name} - {client.document}
+                  </option>
+                ))}
+              </select>
+            </label>
+
+            {invoiceType === 'comprobante' && selectedClientCode === 'CONTADO' && (
+              <p className="required-client-note">
+                Para comprobante fiscal debes seleccionar un cliente registrado.
+              </p>
+            )}
+
+            <div className="billing-selected-client-review">
+              <div>
+                <span>Cliente seleccionado</span>
+                <strong>{selectedClient.name}</strong>
+              </div>
+
+              <div>
+                <span>RNC / Cedula</span>
+                <strong>{selectedClient.document}</strong>
+              </div>
+
+              <div>
+                <span>Tipo de factura</span>
+                <strong>{invoiceTypeLabel}</strong>
+              </div>
+
+              <div>
+                <span>NCF</span>
+                <strong>{ncfNumber}</strong>
+              </div>
+            </div>
+          </div>
+
+          <div className="billing-setup-actions">
+            <button className="secondary-button" onClick={clearInvoice}>
+              Cancelar
+            </button>
+
+            <button className="primary-button" onClick={startBilling}>
+              Continuar a seleccionar productos
+            </button>
+          </div>
+        </div>
+      </section>
+    )
+  }
+
+  return (
+    <>
+      <section className="billing-v2-page">
+        <div className="billing-v2-main">
+          <div className="billing-v2-header">
+            <div>
+              <h3>Facturacion rapida</h3>
+              <p>Escanea, busca productos, cobra e imprime la factura en una sola pantalla.</p>
+
+              <div className="billing-process-pills">
+                <span>{invoiceTypeLabel}</span>
+                <span>NCF: {ncfNumber}</span>
+                <span>Cliente: {selectedClient.name}</span>
+              </div>
+            </div>
+
+            <div className="billing-v2-header-actions">
+              <button className="secondary-button" onClick={goBackToSetup}>
+                Cambiar cliente / comprobante
+              </button>
+              <button className="secondary-button" onClick={clearInvoice}>
+                Nueva factura
+              </button>
+              <button className="primary-button small" onClick={generateInvoice}>
+                Generar factura
+              </button>
+            </div>
+          </div>
+
+          <section className="billing-v2-top">
+            <div className="billing-v2-scanner">
+              <div className="billing-v2-scanner-icon">
+                <ScanBarcode size={32} />
+              </div>
+
+              <div>
+                <strong>Escanear codigo de barra</strong>
+                <span>Coloca el cursor aqui y pasa el producto por el lector</span>
+              </div>
+
+              <input
+                autoFocus
+                value={barcodeValue}
+                onChange={(event) => setBarcodeValue(event.target.value)}
+                onKeyDown={(event) => {
+                  if (event.key === 'Enter') {
+                    event.preventDefault()
+                    addProductByBarcode()
+                  }
+                }}
+                placeholder="Escanear o escribir codigo..."
+              />
+
+              <button onClick={addProductByBarcode}>Agregar</button>
+            </div>
+
+            <div className="billing-v2-search">
+              <label>Buscar producto</label>
+              <div>
+                <input
+                  value={productSearch}
+                  onChange={(event) => setProductSearch(event.target.value)}
+                  placeholder="Nombre, codigo o barra..."
+                />
+                <Search size={18} />
+              </div>
+            </div>
+          </section>
+
+          <section className="billing-v2-products">
+            <div className="card-header">
+              <h3>Productos frecuentes</h3>
+              <span>{filteredProducts.length} productos</span>
+            </div>
+
+            <div className="billing-v2-product-grid">
+              {filteredProducts.map((product) => (
+                <button key={product.code} onClick={() => addProductToCart(product)}>
+                  <span>{product.name.charAt(0)}</span>
+                  <div>
+                    <strong>{product.name}</strong>
+                    <small>{product.code} ÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã¢â‚¬Â ÃƒÂ¢Ã¢â€šÂ¬Ã¢â€žÂ¢ÃƒÆ’Ã†â€™ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÂ¢Ã¢â‚¬Å¾Ã‚Â¢ÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚Â ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¾Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã¢â‚¬Â ÃƒÂ¢Ã¢â€šÂ¬Ã¢â€žÂ¢ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â ÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€¦Ã‚Â¡ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â¬ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€¦Ã‚Â¾ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã¢â‚¬Â ÃƒÂ¢Ã¢â€šÂ¬Ã¢â€žÂ¢ÃƒÆ’Ã†â€™ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÂ¢Ã¢â‚¬Å¾Ã‚Â¢ÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€¦Ã‚Â¡ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â¬ÃƒÆ’Ã†â€™ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â ÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã¢â‚¬Â ÃƒÂ¢Ã¢â€šÂ¬Ã¢â€žÂ¢ÃƒÆ’Ã†â€™ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬ÃƒÆ’Ã¢â‚¬Â¦Ãƒâ€šÃ‚Â¡ÃƒÆ’Ã†â€™ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â¬ÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬ÃƒÆ’Ã¢â‚¬Â¦Ãƒâ€šÃ‚Â¾ÃƒÆ’Ã†â€™ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã¢â‚¬Â ÃƒÂ¢Ã¢â€šÂ¬Ã¢â€žÂ¢ÃƒÆ’Ã†â€™ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÂ¢Ã¢â‚¬Å¾Ã‚Â¢ÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚Â ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¾Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã¢â‚¬Â ÃƒÂ¢Ã¢â€šÂ¬Ã¢â€žÂ¢ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬ÃƒÆ’Ã¢â‚¬Â¦Ãƒâ€šÃ‚Â¡ÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€¦Ã‚Â¡ÃƒÆ’Ã†â€™ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã¢â‚¬Â ÃƒÂ¢Ã¢â€šÂ¬Ã¢â€žÂ¢ÃƒÆ’Ã†â€™ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÂ¢Ã¢â‚¬Å¾Ã‚Â¢ÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€¦Ã‚Â¡ÃƒÆ’Ã†â€™ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã¢â‚¬Â ÃƒÂ¢Ã¢â€šÂ¬Ã¢â€žÂ¢ÃƒÆ’Ã†â€™ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬ÃƒÆ’Ã¢â‚¬Â¦Ãƒâ€šÃ‚Â¡ÃƒÆ’Ã†â€™ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â¬ÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚Â¦ÃƒÆ’Ã†â€™ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â¡ÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã¢â‚¬Â ÃƒÂ¢Ã¢â€šÂ¬Ã¢â€žÂ¢ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬ÃƒÆ’Ã¢â‚¬Â¦Ãƒâ€šÃ‚Â¡ÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€¦Ã‚Â¡ÃƒÆ’Ã†â€™ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â¬ÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã¢â‚¬Â ÃƒÂ¢Ã¢â€šÂ¬Ã¢â€žÂ¢ÃƒÆ’Ã†â€™ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÂ¢Ã¢â‚¬Å¾Ã‚Â¢ÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€¦Ã‚Â¡ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â¬ÃƒÆ’Ã†â€™ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â¦ÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã¢â‚¬Â ÃƒÂ¢Ã¢â€šÂ¬Ã¢â€žÂ¢ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬ÃƒÆ’Ã¢â‚¬Â¦Ãƒâ€šÃ‚Â¡ÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€¦Ã‚Â¡ÃƒÆ’Ã†â€™ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â¡ÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã¢â‚¬Â ÃƒÂ¢Ã¢â€šÂ¬Ã¢â€žÂ¢ÃƒÆ’Ã†â€™ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÂ¢Ã¢â‚¬Å¾Ã‚Â¢ÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚Â ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¾Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã¢â‚¬Â ÃƒÂ¢Ã¢â€šÂ¬Ã¢â€žÂ¢ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â ÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€¦Ã‚Â¡ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â¬ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€¦Ã‚Â¾ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã¢â‚¬Â ÃƒÂ¢Ã¢â€šÂ¬Ã¢â€žÂ¢ÃƒÆ’Ã†â€™ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÂ¢Ã¢â‚¬Å¾Ã‚Â¢ÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€¦Ã‚Â¡ÃƒÆ’Ã†â€™ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã¢â‚¬Â ÃƒÂ¢Ã¢â€šÂ¬Ã¢â€žÂ¢ÃƒÆ’Ã†â€™ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€¦Ã‚Â¡ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â¬ÃƒÆ’Ã†â€™ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â¦ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â¡ÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€¦Ã‚Â¡ÃƒÆ’Ã†â€™ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â¬ÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã¢â‚¬Â ÃƒÂ¢Ã¢â€šÂ¬Ã¢â€žÂ¢ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â¦ÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€¦Ã‚Â¡ÃƒÆ’Ã†â€™ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â¡ÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã¢â‚¬Â ÃƒÂ¢Ã¢â€šÂ¬Ã¢â€žÂ¢ÃƒÆ’Ã†â€™ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÂ¢Ã¢â‚¬Å¾Ã‚Â¢ÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚Â ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¾Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã¢â‚¬Â ÃƒÂ¢Ã¢â€šÂ¬Ã¢â€žÂ¢ÃƒÆ’Ã†â€™ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬ÃƒÆ’Ã¢â‚¬Â¦Ãƒâ€šÃ‚Â¡ÃƒÆ’Ã†â€™ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â¬ÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚Â¦ÃƒÆ’Ã†â€™ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â¡ÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã¢â‚¬Â ÃƒÂ¢Ã¢â€šÂ¬Ã¢â€žÂ¢ÃƒÆ’Ã†â€™ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÂ¢Ã¢â‚¬Å¾Ã‚Â¢ÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€¦Ã‚Â¡ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â¬ÃƒÆ’Ã†â€™ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â¦ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â¡ÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã¢â‚¬Â ÃƒÂ¢Ã¢â€šÂ¬Ã¢â€žÂ¢ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬ÃƒÆ’Ã¢â‚¬Â¦Ãƒâ€šÃ‚Â¡ÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€¦Ã‚Â¡ÃƒÆ’Ã†â€™ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â· Stock {product.stock}</small>
+                    <b>RD$ {product.price.toFixed(2)}</b>
+                  </div>
+                </button>
+              ))}
+            </div>
+          </section>
+
+          <section className="billing-v2-detail">
+            <div className="card-header">
+              <h3>Detalle de la factura ({cart.length})</h3>
+              <button onClick={() => setCart([])}>Limpiar productos</button>
+            </div>
+
+            <div className="billing-v2-table">
+              <div className="billing-v2-table-head">
+                <span>Codigo</span>
+                <span>Producto</span>
+                <span>Cantidad</span>
+                <span>Precio</span>
+                <span>Desc.</span>
+                <span>Total</span>
+                <span></span>
+              </div>
+
+              {cart.map((item) => (
+                <div key={item.code} className="billing-v2-table-row">
+                  <strong>{item.code}</strong>
+
+                  <div>
+                    <b>{item.name}</b>
+                    <small>{item.unit}</small>
+                  </div>
+
+                  <div className="qty-control">
+                    <button onClick={() => decreaseQty(item.code)}>-</button>
+                    <input
+                      type="number"
+                      value={item.qty}
+                      onChange={(event) => updateCartItem(item.code, 'qty', event.target.value)}
+                    />
+                    <button onClick={() => increaseQty(item.code)}>+</button>
+                  </div>
+
+                  <span>RD$ {item.price.toFixed(2)}</span>
+
+                  <input
+                    className="discount-input"
+                    type="number"
+                    value={item.discount}
+                    onChange={(event) => updateCartItem(item.code, 'discount', event.target.value)}
+                  />
+
+                  <b>RD$ {Math.max(item.qty * item.price - Number(item.discount || 0), 0).toFixed(2)}</b>
+
+                  <button className="remove-line" onClick={() => removeItem(item.code)}>X</button>
+                </div>
+              ))}
+
+              {cart.length === 0 && (
+                <div className="empty-cart">
+                  Escanea o busca productos para agregarlos a la factura.
+                </div>
+              )}
+            </div>
+
+            <textarea
+              className="invoice-comment"
+              value={comment}
+              onChange={(event) => setComment(event.target.value)}
+              placeholder="Observacion de la factura..."
+            />
+          </section>
+        </div>
+
+        <aside className="billing-v2-side">
+          <section className="billing-v2-side-card">
+            <h3>Factura configurada</h3>
+
+            <div className="billing-v2-client">
+              <div>{selectedClient.name.charAt(0)}</div>
+              <section>
+                <strong>{selectedClient.name}</strong>
+                <span>RNC/Cedula: {selectedClient.document}</span>
+                <span>{invoiceTypeLabel}</span>
+                <span>NCF: {ncfNumber}</span>
+              </section>
+              <em>{paymentMethod === 'Credito' ? 'Credito' : 'Contado'}</em>
+            </div>
+
+            <button className="change-setup-button" onClick={goBackToSetup}>
+              Cambiar cliente o comprobante
+            </button>
+          </section>
+
+          <section className="billing-v2-side-card billing-v2-totals">
+            <div>
+              <span>Subtotal</span>
+              <strong>RD$ {subtotal.toFixed(2)}</strong>
+            </div>
+
+            <div>
+              <span>Descuento</span>
+              <strong className="negative">- RD$ {discount.toFixed(2)}</strong>
+            </div>
+
+            <div>
+              <span>ITBIS (18%)</span>
+              <strong>RD$ {itbis.toFixed(2)}</strong>
+            </div>
+
+            <hr />
+
+            <div className="billing-v2-grand-total">
+              <span>Total general</span>
+              <strong>RD$ {total.toFixed(2)}</strong>
+            </div>
+          </section>
+
+          <section className="billing-v2-side-card">
+            <h3>Metodo de pago</h3>
+
+            <div className="payment-grid">
+              {['Efectivo', 'Tarjeta', 'Transferencia', 'Credito'].map((method) => (
+                <button
+                  key={method}
+                  className={paymentMethod === method ? 'active' : ''}
+                  onClick={() => setPaymentMethod(method)}
+                >
+                  {method}
+                </button>
+              ))}
+            </div>
+
+            {paymentMethod === 'Efectivo' && (
+              <>
+                <label className="cash-input">
+                  Efectivo recibido
+                  <input
+                    type="number"
+                    value={cashReceived}
+                    onChange={(event) => setCashReceived(event.target.value)}
+                    placeholder="0"
+                  />
+                </label>
+
+                <div className="change-box">
+                  <span>Cambio</span>
+                  <strong className={change >= 0 ? 'positive' : 'negative'}>
+                    RD$ {change.toFixed(2)}
+                  </strong>
+                </div>
+              </>
+            )}
+          </section>
+
+          <button className="generate-invoice-button" onClick={generateInvoice}>
+            Generar factura
+          </button>
+        </aside>
+      </section>
+
+      <section className="print-invoice-sheet">
+        <div className="print-invoice-header">
+          <div>
+            <div className="print-brand">
+              <div className="print-logo-mark">V</div>
+              <div>
+                <h1>INVE-FAT</h1>
+                <span>SYSTEM</span>
+              </div>
+            </div>
+
+            <h3>INVE-FAT SYSTEM, SRL</h3>
+            <p>Soluciones Integrales de Inventario, Facturacion y Punto de Venta</p>
+            <p><strong>RNC:</strong> 1-31-12345-6</p>
+            <p><strong>Tel:</strong> (809) 555-1234</p>
+            <p><strong>Email:</strong> info@invefatsystem.com</p>
+            <p>Av. Winston Churchill No. 1099, Santo Domingo, R.D.</p>
+          </div>
+
+          <div className="print-invoice-title">
+            <h2>FACTURA</h2>
+            <strong>No. {invoiceNumber}</strong>
+            <strong>NCF: {ncfNumber}</strong>
+
+            <div className="print-date-box">
+              <p><span>Fecha de emision:</span> {issueDate}</p>
+              <p><span>Fecha de vencimiento:</span> {dueDate}</p>
+              <p><span>Tipo:</span> {invoiceTypeLabel}</p>
+              <p><span>Condicion de pago:</span> {paymentMethod === 'Credito' ? 'Credito a 15 dias' : 'Contado'}</p>
+            </div>
+          </div>
+        </div>
+
+        <div className="print-info-grid">
+          <div className="print-info-card">
+            <h4>DATOS DEL CLIENTE</h4>
+            <p><span>Cliente:</span> <strong>{selectedClient.name}</strong></p>
+            <p><span>RNC / Cedula:</span> {selectedClient.document}</p>
+            <p><span>Telefono:</span> {selectedClient.phone}</p>
+            <p><span>Direccion:</span> {selectedClient.address || 'N/A'}</p>
+          </div>
+
+          <div className="print-info-card">
+            <h4>INFORMACION DE LA FACTURA</h4>
+            <p><span>Vendedor:</span> Administrador</p>
+            <p><span>Metodo de pago:</span> {paymentMethod}</p>
+            <p><span>Comprobante:</span> {invoiceTypeLabel}</p>
+            <p><span>NCF:</span> {ncfNumber}</p>
+            <p><span>Moneda:</span> Pesos Dominicanos (RD$)</p>
+          </div>
+        </div>
+
+        <table className="print-products-table">
+          <thead>
+            <tr>
+              <th>Codigo</th>
+              <th>Descripcion</th>
+              <th>Cantidad</th>
+              <th>Precio Unitario</th>
+              <th>ITBIS (18%)</th>
+              <th>Total</th>
+            </tr>
+          </thead>
+
+          <tbody>
+            {cart.map((item) => {
+              const lineBase = Math.max(item.qty * item.price - Number(item.discount || 0), 0)
+              const lineTax = lineBase * 0.18
+              const lineTotal = lineBase + lineTax
+
+              return (
+                <tr key={item.code}>
+                  <td>{item.code}</td>
+                  <td>
+                    <strong>{item.name}</strong>
+                    <span>{item.unit}</span>
+                  </td>
+                  <td>{item.qty}</td>
+                  <td>RD$ {item.price.toFixed(2)}</td>
+                  <td>RD$ {lineTax.toFixed(2)}</td>
+                  <td><strong>RD$ {lineTotal.toFixed(2)}</strong></td>
+                </tr>
+              )
+            })}
+          </tbody>
+        </table>
+
+        <div className="print-bottom-grid">
+          <div>
+            <h4>OBSERVACIONES</h4>
+            <div className="print-observations">
+              <p>{comment || 'Gracias por su preferencia.'}</p>
+              <p>Conserve esta factura para cualquier reclamo.</p>
+            </div>
+          </div>
+
+          <div className="print-total-box">
+            <p><span>Subtotal:</span> <strong>RD$ {subtotal.toFixed(2)}</strong></p>
+            <p><span>Descuento:</span> <strong>- RD$ {discount.toFixed(2)}</strong></p>
+            <p><span>ITBIS (18%):</span> <strong>RD$ {itbis.toFixed(2)}</strong></p>
+            <hr />
+            <h3><span>TOTAL GENERAL:</span> RD$ {total.toFixed(2)}</h3>
+          </div>
+        </div>
+
+        <div className="print-payment-summary">
+          <div>
+            <h4>RESUMEN DE PAGO</h4>
+            <section>
+              <p><span>Total General</span><strong>RD$ {total.toFixed(2)}</strong></p>
+              <p><span>Pagado</span><strong>RD$ {paidAmount.toFixed(2)}</strong></p>
+              <p><span>Pendiente</span><strong>RD$ {pendingAmount.toFixed(2)}</strong></p>
+            </section>
+          </div>
+
+          <div>
+            <h4>Gracias por su confianza</h4>
+            <p>Su pago oportuno nos permite seguir ofreciendo un mejor servicio.</p>
+          </div>
+        </div>
+
+        <footer className="print-footer">
+          Esta factura fue generada por <strong>INVE-FAT SYSTEM</strong>
+          <br />
+          Software de Gestion Empresarial
+        </footer>
+      </section>
+    </>
+  )
+}
+
+function SalesBillingProV4({ clients, setClients, invoices, setInvoices }) {
+  const businessSettings = getBusinessSettings()
+
+  const walkInClient = {
+    code: 'CONTADO',
+    name: 'Cliente de mostrador',
+    document: '000-0000000-0',
+    phone: 'N/A',
+    email: 'N/A',
+    address: 'N/A',
+    type: 'Consumidor final',
+    balance: 0,
+    status: 'Activo',
+  }
+
+  const billingProducts = [
+    { code: 'AGU001', barcode: '7460001001001', name: 'Agua Cristal 16.9 oz', unit: 'Unidad', price: 25, stock: 120 },
+    { code: 'COC002', barcode: '7460001001002', name: 'Coca Cola 20 oz', unit: 'Unidad', price: 50, stock: 85 },
+    { code: 'PAP003', barcode: '7460001001003', name: 'Papel Higienico Elite', unit: 'Unidad', price: 120, stock: 42 },
+    { code: 'DET004', barcode: '7460001001004', name: 'Detergente Ace 360 g', unit: 'Unidad', price: 85, stock: 64 },
+    { code: 'PAN005', barcode: '7460001001005', name: 'Pan de Molde Bimbo', unit: 'Unidad', price: 65, stock: 38 },
+    { code: 'LEC006', barcode: '7460001001006', name: 'Leche Rica 1 Litro', unit: 'Unidad', price: 75, stock: 57 },
+  ]
+
+  const [billingStarted, setBillingStarted] = useState(false)
+  const [invoiceType, setInvoiceType] = useState('consumidor')
+  const [selectedClientCode, setSelectedClientCode] = useState('CONTADO')
+  const [barcodeValue, setBarcodeValue] = useState('')
+  const [productSearch, setProductSearch] = useState('')
+  const [paymentMethod, setPaymentMethod] = useState('Efectivo')
+  const [cashReceived, setCashReceived] = useState('')
+  const [currentInvoiceNumber, setCurrentInvoiceNumber] = useState('')
+  const [currentNcfNumber, setCurrentNcfNumber] = useState('')
+  const [comment, setComment] = useState('Gracias por su preferencia.')
+  const [cart, setCart] = useState([])
+
+  const selectedClient =
+    selectedClientCode === 'CONTADO'
+      ? walkInClient
+      : clients.find((client) => client.code === selectedClientCode) || walkInClient
+
+  const invoiceNumber = currentInvoiceNumber || `FAC-${String(invoices.length + 1).padStart(6, '0')}`
+  const ncfPrefix = invoiceType === 'comprobante' ? 'B01' : 'B02'
+  const ncfNumber = currentNcfNumber || `${ncfPrefix}${String(invoices.length + 1).padStart(8, '0')}`
+  const invoiceTypeLabel = invoiceType === 'comprobante' ? 'Factura con comprobante fiscal' : 'Consumidor final'
+
+  const billingSearchTerm = barcodeValue.toLowerCase().trim()
+
+  const filteredProducts = billingProducts.filter((product) => {
+    if (!billingSearchTerm) return false
+
+    return (
+      product.code.toLowerCase().includes(billingSearchTerm) ||
+      product.barcode.toLowerCase().includes(billingSearchTerm) ||
+      product.name.toLowerCase().includes(billingSearchTerm)
+    )
+  })
+
+  const subtotal = cart.reduce((sum, item) => sum + item.qty * item.price, 0)
+  const discount = cart.reduce((sum, item) => sum + Number(item.discount || 0), 0)
+  const taxableAmount = Math.max(subtotal - discount, 0)
+  const itbis = taxableAmount * 0.18
+  const total = taxableAmount + itbis
+  const paidAmount =
+    paymentMethod === 'Credito'
+      ? 0
+      : paymentMethod === 'Efectivo'
+        ? Math.min(Number(cashReceived || 0), total)
+        : total
+  const pendingAmount = Math.max(total - paidAmount, 0)
+  const cashReceivedAmount = Number(cashReceived || 0)
+  const change = paymentMethod === 'Efectivo' ? Math.max(cashReceivedAmount - total, 0) : 0
+
+  const issueDate = new Date().toLocaleDateString('es-DO')
+  const dueDate = new Date(Date.now() + 15 * 24 * 60 * 60 * 1000).toLocaleDateString('es-DO')
+
+  const handleInvoiceTypeChange = (type) => {
+    setInvoiceType(type)
+
+    if (type === 'consumidor') {
+      setSelectedClientCode('CONTADO')
+    }
+
+    if (type === 'comprobante' && selectedClientCode === 'CONTADO' && clients.length > 0) {
+      setSelectedClientCode(clients[0].code)
+    }
+  }
+
+  const startBilling = () => {
+    if (invoiceType === 'comprobante' && selectedClientCode === 'CONTADO') {
+      alert('Para factura con comprobante debes seleccionar un cliente registrado.')
+      return
+    }
+
+    setBillingStarted(true)
+
+    setTimeout(() => {
+      const input = document.querySelector('.billing-v4-scanner input')
+      if (input) input.focus()
+    }, 100)
+  }
+
+  const goBackToSetup = () => {
+    setBillingStarted(false)
+  }
+
+  const addProductToCart = (product) => {
+    setCart((current) => {
+      const exists = current.find((item) => item.code === product.code)
+
+      if (exists) {
+        return current.map((item) =>
+          item.code === product.code ? { ...item, qty: item.qty + 1 } : item
+        )
+      }
+
+      return [
+        ...current,
+        {
+          code: product.code,
+          name: product.name,
+          unit: product.unit,
+          qty: 1,
+          price: product.price,
+          discount: 0,
+        },
+      ]
+    })
+  }
+
+  const addProductByBarcode = () => {
+    const value = barcodeValue.trim().toLowerCase()
+
+    if (!value) return
+
+    const foundProduct =
+      billingProducts.find(
+        (product) =>
+          product.barcode.toLowerCase() === value ||
+          product.code.toLowerCase() === value
+      ) || filteredProducts[0]
+
+    if (!foundProduct) {
+      alert('Producto no encontrado con ese codigo o nombre.')
+      return
+    }
+
+    addProductToCart(foundProduct)
+    setBarcodeValue('')
+  }
+
+  const updateCartItem = (code, field, value) => {
+    setCart((current) =>
+      current.map((item) =>
+        item.code === code
+          ? {
+              ...item,
+              [field]: field === 'qty' || field === 'discount' ? Number(value || 0) : value,
+            }
+          : item
+      )
+    )
+  }
+
+  const increaseQty = (code) => {
+    setCart((current) =>
+      current.map((item) =>
+        item.code === code ? { ...item, qty: item.qty + 1 } : item
+      )
+    )
+  }
+
+  const decreaseQty = (code) => {
+    setCart((current) =>
+      current.map((item) =>
+        item.code === code ? { ...item, qty: Math.max(item.qty - 1, 1) } : item
+      )
+    )
+  }
+
+  const removeItem = (code) => {
+    setCart((current) => current.filter((item) => item.code !== code))
+  }
+
+  const clearInvoice = () => {
+    setCart([])
+    setBarcodeValue('')
+    setProductSearch('')
+    setCashReceived('')
+    setComment('Gracias por su preferencia.')
+    setCurrentInvoiceNumber('')
+    setCurrentNcfNumber('')
+    setBillingStarted(false)
+    setInvoiceType('consumidor')
+    setSelectedClientCode('CONTADO')
+    setPaymentMethod('Efectivo')
+  }
+
+  const saveInvoice = () => {
+    if (cart.length === 0) {
+      alert('Debes agregar productos a la factura.')
+      return false
+    }
+
+    if (invoiceType === 'comprobante' && selectedClientCode === 'CONTADO') {
+      alert('Para factura con comprobante debes seleccionar un cliente registrado.')
+      return false
+    }
+
+    if (currentInvoiceNumber) {
+      return true
+    }
+
+    const invoiceStatus = paymentMethod === 'Credito' ? 'Pendiente' : 'Pagada'
+    const nextNumber = invoices.length + 1
+    const createdNumber = `FAC-${String(nextNumber).padStart(6, '0')}`
+    const createdNcf = `${ncfPrefix}${String(nextNumber).padStart(8, '0')}`
+
+    const createdInvoice = {
+      number: createdNumber,
+      ncf: createdNcf,
+      invoiceType: invoiceTypeLabel,
+      customerCode: selectedClient.code,
+      customer: selectedClient.name,
+      document: selectedClient.document,
+      date: issueDate,
+      total,
+      payment: paymentMethod,
+      status: invoiceStatus,
+    }
+
+    setInvoices((currentInvoices) => {
+      const alreadyExists = currentInvoices.some((invoice) => invoice.number === createdNumber)
+
+      if (alreadyExists) {
+        return currentInvoices
+      }
+
+      return [createdInvoice, ...currentInvoices]
+    })
+
+    setCurrentInvoiceNumber(createdNumber)
+    setCurrentNcfNumber(createdNcf)
+
+    if (invoiceStatus === 'Pendiente' && selectedClient.code !== 'CONTADO') {
+      setClients((currentClients) =>
+        currentClients.map((client) =>
+          client.code === selectedClient.code
+            ? { ...client, balance: Number(client.balance || 0) + total }
+            : client
+        )
+      )
+    }
+
+    return true
+  }
+
+  const generateInvoice = () => {
+    const invoiceSaved = saveInvoice()
+
+    if (!invoiceSaved) return
+
+    let cleaned = false
+
+    const cleanAfterPrint = () => {
+      if (cleaned) return
+
+      cleaned = true
+      window.removeEventListener('afterprint', cleanAfterPrint)
+      clearInvoice()
+    }
+
+    window.addEventListener('afterprint', cleanAfterPrint)
+
+    setTimeout(() => {
+      window.print()
+
+      setTimeout(() => {
+        cleanAfterPrint()
+      }, 900)
+    }, 500)
+  }
+
+  if (!billingStarted) {
+    return (
+      <section className="billing-setup-page">
+        <div className="billing-setup-card">
+          <div className="billing-setup-header">
+            <span>Paso 1 de facturacion</span>
+            <h3>Configurar factura</h3>
+            <p>Primero selecciona si la factura sera consumidor final o con comprobante. Luego elige el cliente antes de agregar productos.</p>
+          </div>
+
+          <div className="invoice-type-grid">
+            <button
+              className={invoiceType === 'consumidor' ? 'active' : ''}
+              onClick={() => handleInvoiceTypeChange('consumidor')}
+            >
+              <strong>Consumidor final</strong>
+              <span>Para ventas rapidas o cliente de mostrador.</span>
+              <b>NCF: B02</b>
+            </button>
+
+            <button
+              className={invoiceType === 'comprobante' ? 'active' : ''}
+              onClick={() => handleInvoiceTypeChange('comprobante')}
+            >
+              <strong>Con comprobante fiscal</strong>
+              <span>Para clientes registrados con RNC o cedula.</span>
+              <b>NCF: B01</b>
+            </button>
+          </div>
+
+          <div className="billing-client-setup">
+            <label>
+              Cliente de la factura
+              <select
+                value={selectedClientCode}
+                onChange={(event) => setSelectedClientCode(event.target.value)}
+              >
+                {invoiceType === 'consumidor' && (
+                  <option value="CONTADO">Cliente de mostrador</option>
+                )}
+
+                {clients.map((client) => (
+                  <option key={client.code} value={client.code}>
+                    {client.code} - {client.name} - {client.document}
+                  </option>
+                ))}
+              </select>
+            </label>
+
+            {invoiceType === 'comprobante' && selectedClientCode === 'CONTADO' && (
+              <p className="required-client-note">
+                Para comprobante fiscal debes seleccionar un cliente registrado.
+              </p>
+            )}
+
+            <div className="billing-selected-client-review">
+              <div>
+                <span>Cliente seleccionado</span>
+                <strong>{selectedClient.name}</strong>
+              </div>
+
+              <div>
+                <span>RNC / Cedula</span>
+                <strong>{selectedClient.document}</strong>
+              </div>
+
+              <div>
+                <span>Tipo de factura</span>
+                <strong>{invoiceTypeLabel}</strong>
+              </div>
+
+              <div>
+                <span>NCF</span>
+                <strong>{ncfNumber}</strong>
+              </div>
+            </div>
+          </div>
+
+          <div className="billing-setup-actions">
+            <button className="secondary-button" onClick={clearInvoice}>
+              Cancelar
+            </button>
+
+            <button className="primary-button" onClick={startBilling}>
+              Continuar a seleccionar productos
+            </button>
+          </div>
+        </div>
+      </section>
+    )
+  }
+
+  return (
+    <>
+      <section className="billing-v4-page">
+        <div className="billing-v4-main">
+          <div className="billing-v4-title">
+            <div>
+              <h3>Facturacion rapida</h3>
+              <p>Cliente, comprobante y metodo de pago ya configurados. Ahora escanea o busca productos.</p>
+            </div>
+
+            <div className="billing-v4-title-actions">
+              <button className="secondary-button" onClick={goBackToSetup}>
+                Cambiar cliente / comprobante
+              </button>
+
+              <button className="secondary-button" onClick={clearInvoice}>
+                Nueva factura
+              </button>
+
+              <button className="primary-button small" onClick={generateInvoice}>
+                Generar factura
+              </button>
+            </div>
+          </div>
+
+          <section className="billing-v4-header-panel">
+            <div className="billing-v4-info-card">
+              <span>Cliente</span>
+              <strong>{selectedClient.name}</strong>
+              <small>RNC/Cedula: {selectedClient.document}</small>
+              <small>Telefono: {selectedClient.phone}</small>
+            </div>
+
+            <div className="billing-v4-info-card">
+              <span>Factura</span>
+              <strong>{invoiceNumber}</strong>
+              <small>{invoiceTypeLabel}</small>
+              <small>NCF: {ncfNumber}</small>
+            </div>
+
+            <div className="billing-v4-payment-card">
+              <span>Metodo de pago</span>
+
+              <div className="billing-v4-payment-grid">
+                {['Efectivo', 'Tarjeta', 'Transferencia', 'Credito'].map((method) => (
+                  <button
+                    key={method}
+                    className={paymentMethod === method ? 'active' : ''}
+                    onClick={() => setPaymentMethod(method)}
+                  >
+                    {method}
+                  </button>
+                ))}
+              </div>
+
+              {paymentMethod === 'Efectivo' && (
+                <div className="billing-v4-cash-row">
+                  <input
+                    type="number"
+                    value={cashReceived}
+                    onChange={(event) => setCashReceived(event.target.value)}
+                    placeholder="Efectivo recibido"
+                  />
+
+                  <strong className={cashReceivedAmount >= total ? 'positive' : 'negative'}>
+                    {cashReceivedAmount >= total ? 'Cambio' : 'Falta'}: RD$ {Math.abs(cashReceivedAmount - total).toFixed(2)}
+                  </strong>
+                </div>
+              )}
+            </div>
+          </section>
+
+          <section className="billing-v4-product-entry">
+            <div className="billing-v4-scanner">
+              <div className="billing-v4-scanner-icon">
+                <ScanBarcode size={32} />
+              </div>
+
+              <div>
+                <strong>Escanear o buscar producto</strong>
+                <span>Escanea codigo de barra, escribe codigo interno o nombre del producto</span>
+              </div>
+
+              <input
+                autoFocus
+                value={barcodeValue}
+                onChange={(event) => setBarcodeValue(event.target.value)}
+                onKeyDown={(event) => {
+                  if (event.key === 'Enter') {
+                    event.preventDefault()
+                    addProductByBarcode()
+                  }
+                }}
+                placeholder="Escanear codigo, escribir codigo o nombre..."
+              />
+
+              <button onClick={addProductByBarcode}>Agregar</button>
+
+              {billingSearchTerm && (
+                <div className="billing-v4-scanner-results">
+                  {filteredProducts.length === 0 ? (
+                    <p>No se encontraron productos.</p>
+                  ) : (
+                    filteredProducts.map((product) => (
+                      <button key={product.code} onClick={() => addProductToCart(product)}>
+                        <span>{product.code}</span>
+                        <strong>{product.name}</strong>
+                        <small>Stock {product.stock}</small>
+                        <b>RD$ {product.price.toFixed(2)}</b>
+                      </button>
+                    ))
+                  )}
+                </div>
+              )}
+            </div>
+
+            <div className="billing-v4-search-panel">
+              <label>Buscar producto</label>
+
+              <div className="billing-v4-search-box">
+                <input
+                  value={productSearch}
+                  onChange={(event) => setProductSearch(event.target.value)}
+                  placeholder="Nombre, codigo o barra..."
+                />
+                <Search size={18} />
+              </div>
+
+              <div className="billing-v4-search-results">
+                {productSearch.trim() === '' ? (
+                  <p>Escribe el nombre, codigo o barra para buscar productos.</p>
+                ) : filteredProducts.length === 0 ? (
+                  <p>No se encontraron productos.</p>
+                ) : (
+                  filteredProducts.map((product) => (
+                    <button key={product.code} onClick={() => addProductToCart(product)}>
+                      <span>{product.code}</span>
+                      <strong>{product.name}</strong>
+                      <small>Stock {product.stock}</small>
+                      <b>RD$ {product.price.toFixed(2)}</b>
+                    </button>
+                  ))
+                )}
+              </div>
+            </div>
+          </section>
+
+          <section className="billing-v2-detail">
+            <div className="card-header">
+              <h3>Detalle de la factura ({cart.length})</h3>
+              <button onClick={() => setCart([])}>Limpiar productos</button>
+            </div>
+
+            <div className="billing-v2-table">
+              <div className="billing-v2-table-head">
+                <span>Codigo</span>
+                <span>Producto</span>
+                <span>Cantidad</span>
+                <span>Precio</span>
+                <span>Desc.</span>
+                <span>Total</span>
+                <span></span>
+              </div>
+
+              {cart.map((item) => (
+                <div key={item.code} className="billing-v2-table-row">
+                  <strong>{item.code}</strong>
+
+                  <div>
+                    <b>{item.name}</b>
+                    <small>{item.unit}</small>
+                  </div>
+
+                  <div className="qty-control">
+                    <button onClick={() => decreaseQty(item.code)}>-</button>
+                    <input
+                      type="number"
+                      value={item.qty}
+                      onChange={(event) => updateCartItem(item.code, 'qty', event.target.value)}
+                    />
+                    <button onClick={() => increaseQty(item.code)}>+</button>
+                  </div>
+
+                  <span>RD$ {item.price.toFixed(2)}</span>
+
+                  <input
+                    className="discount-input"
+                    type="number"
+                    value={item.discount}
+                    onChange={(event) => updateCartItem(item.code, 'discount', event.target.value)}
+                  />
+
+                  <b>RD$ {Math.max(item.qty * item.price - Number(item.discount || 0), 0).toFixed(2)}</b>
+
+                  <button className="remove-line" onClick={() => removeItem(item.code)}>X</button>
+                </div>
+              ))}
+
+              {cart.length === 0 && (
+                <div className="empty-cart">
+                  Escanea o busca productos para agregarlos a la factura.
+                </div>
+              )}
+            </div>
+
+            <textarea
+              className="invoice-comment"
+              value={comment}
+              onChange={(event) => setComment(event.target.value)}
+              placeholder="Observacion de la factura..."
+            />
+          </section>
+        </div>
+
+        <aside className="billing-v4-side">
+          <section className="billing-v2-side-card billing-v2-totals">
+            <div>
+              <span>Subtotal</span>
+              <strong>RD$ {subtotal.toFixed(2)}</strong>
+            </div>
+
+            <div>
+              <span>Descuento</span>
+              <strong className="negative">- RD$ {discount.toFixed(2)}</strong>
+            </div>
+
+            <div>
+              <span>ITBIS (18%)</span>
+              <strong>RD$ {itbis.toFixed(2)}</strong>
+            </div>
+
+            <hr />
+
+            <div className="billing-v2-grand-total">
+              <span>Total general</span>
+              <strong>RD$ {total.toFixed(2)}</strong>
+            </div>
+          </section>
+
+          <button className="generate-invoice-button" onClick={generateInvoice}>
+            Generar factura
+          </button>
+        </aside>
+      </section>
+
+      <section className="print-invoice-sheet">
+        <div className="print-invoice-header">
+          <div>
+            <div className="print-brand">
+              <div className="print-logo-mark">
+                {businessSettings.logo ? (
+                  <img src={businessSettings.logo} alt="Logo" />
+                ) : (
+                  businessSettings.businessShortName.charAt(0)
+                )}
+              </div>
+              <div>
+                <h1>{businessSettings.businessShortName}</h1>
+                <span>{businessSettings.systemLabel}</span>
+              </div>
+            </div>
+
+            <h3>{businessSettings.businessName}</h3>
+            <p>{businessSettings.slogan}</p>
+            <p><strong>RNC:</strong> {businessSettings.rnc}</p>
+            <p><strong>Tel:</strong> {businessSettings.phone}</p>
+            <p><strong>Email:</strong> {businessSettings.email}</p>
+            <p>{businessSettings.address}</p>
+          </div>
+
+          <div className="print-invoice-title">
+            <h2>FACTURA</h2>
+            <strong>No. {invoiceNumber}</strong>
+            <strong>NCF: {ncfNumber}</strong>
+
+            <div className="print-date-box">
+              <p><span>Fecha de emision:</span> {issueDate}</p>
+              <p><span>Fecha de vencimiento:</span> {dueDate}</p>
+              <p><span>Tipo:</span> {invoiceTypeLabel}</p>
+              <p><span>Condicion de pago:</span> {paymentMethod === 'Credito' ? 'Credito a 15 dias' : 'Contado'}</p>
+            </div>
+          </div>
+        </div>
+
+        <div className="print-info-grid">
+          <div className="print-info-card">
+            <h4>DATOS DEL CLIENTE</h4>
+            <p><span>Cliente:</span> <strong>{selectedClient.name}</strong></p>
+            <p><span>RNC / Cedula:</span> {selectedClient.document}</p>
+            <p><span>Telefono:</span> {selectedClient.phone}</p>
+            <p><span>Direccion:</span> {selectedClient.address || 'N/A'}</p>
+          </div>
+
+          <div className="print-info-card">
+            <h4>INFORMACION DE LA FACTURA</h4>
+            <p><span>Vendedor:</span> Administrador</p>
+            <p><span>Metodo de pago:</span> {paymentMethod}</p>
+            <p><span>Comprobante:</span> {invoiceTypeLabel}</p>
+            <p><span>NCF:</span> {ncfNumber}</p>
+            <p><span>Moneda:</span> Pesos Dominicanos (RD$)</p>
+          </div>
+        </div>
+
+        <table className="print-products-table">
+          <thead>
+            <tr>
+              <th>Codigo</th>
+              <th>Descripcion</th>
+              <th>Cantidad</th>
+              <th>Precio Unitario</th>
+              <th>ITBIS (18%)</th>
+              <th>Total</th>
+            </tr>
+          </thead>
+
+          <tbody>
+            {cart.map((item) => {
+              const lineBase = Math.max(item.qty * item.price - Number(item.discount || 0), 0)
+              const lineTax = lineBase * 0.18
+              const lineTotal = lineBase + lineTax
+
+              return (
+                <tr key={item.code}>
+                  <td>{item.code}</td>
+                  <td>
+                    <strong>{item.name}</strong>
+                    <span>{item.unit}</span>
+                  </td>
+                  <td>{item.qty}</td>
+                  <td>RD$ {item.price.toFixed(2)}</td>
+                  <td>RD$ {lineTax.toFixed(2)}</td>
+                  <td><strong>RD$ {lineTotal.toFixed(2)}</strong></td>
+                </tr>
+              )
+            })}
+          </tbody>
+        </table>
+
+        <div className="print-bottom-grid">
+          <div>
+            <h4>OBSERVACIONES</h4>
+            <div className="print-observations">
+              <p>{comment || 'Gracias por su preferencia.'}</p>
+              <p>Conserve esta factura para cualquier reclamo.</p>
+            </div>
+          </div>
+
+          <div className="print-total-box">
+            <p><span>Subtotal:</span> <strong>RD$ {subtotal.toFixed(2)}</strong></p>
+            <p><span>Descuento:</span> <strong>- RD$ {discount.toFixed(2)}</strong></p>
+            <p><span>ITBIS (18%):</span> <strong>RD$ {itbis.toFixed(2)}</strong></p>
+            <hr />
+            <h3><span>TOTAL GENERAL:</span> RD$ {total.toFixed(2)}</h3>
+          </div>
+        </div>
+
+        <div className="print-payment-summary">
+          <div>
+            <h4>RESUMEN DE PAGO</h4>
+            <section>
+              <p><span>Total General</span><strong>RD$ {total.toFixed(2)}</strong></p>
+              <p><span>Pagado</span><strong>RD$ {paidAmount.toFixed(2)}</strong></p>
+              <p><span>Pendiente</span><strong>RD$ {pendingAmount.toFixed(2)}</strong></p>
+            </section>
+          </div>
+
+          <div>
+            <h4>Gracias por su confianza</h4>
+            <p>Su pago oportuno nos permite seguir ofreciendo un mejor servicio.</p>
+          </div>
+        </div>
+
+        <footer className="print-footer">
+          Esta factura fue generada por <strong>{businessSettings.businessShortName}</strong>
+          <br />
+          Software de Gestion Empresarial
+        </footer>
+      </section>
+    </>
+  )
+}
+
+
+function SalesQuotesModule({ clients }) {
+  const quoteProducts = [
+    { code: 'AGU001', barcode: '7460001001001', name: 'Agua Cristal 16.9 oz', unit: 'Unidad', price: 25, stock: 120 },
+    { code: 'COC002', barcode: '7460001001002', name: 'Coca Cola 20 oz', unit: 'Unidad', price: 50, stock: 85 },
+    { code: 'PAP003', barcode: '7460001001003', name: 'Papel Higienico Elite', unit: 'Unidad', price: 120, stock: 42 },
+    { code: 'DET004', barcode: '7460001001004', name: 'Detergente Ace 360 g', unit: 'Unidad', price: 85, stock: 64 },
+    { code: 'PAN005', barcode: '7460001001005', name: 'Pan de Molde Bimbo', unit: 'Unidad', price: 65, stock: 38 },
+    { code: 'LEC006', barcode: '7460001001006', name: 'Leche Rica 1 Litro', unit: 'Unidad', price: 75, stock: 57 },
+  ]
+
+  const businessSettings = getBusinessSettings()
+
+  const walkInClient = {
+    code: 'CONTADO',
+    name: 'Cliente de mostrador',
+    document: '000-0000000-0',
+    phone: 'N/A',
+    email: 'N/A',
+    address: 'N/A',
+  }
+
+  const [quoteStarted, setQuoteStarted] = useState(false)
+  const [selectedClientCode, setSelectedClientCode] = useState('CONTADO')
+  const [searchValue, setSearchValue] = useState('')
+  const [validUntil, setValidUntil] = useState('')
+  const [quoteNote, setQuoteNote] = useState('Esta cotizacion tiene validez segun la fecha indicada.')
+  const [currentQuoteNumber, setCurrentQuoteNumber] = useState('')
+  const [quoteItems, setQuoteItems] = useState([])
+  const [quotes, setQuotes] = useState([
+    {
+      number: 'COT-000001',
+      customer: 'Colegio San Miguel',
+      document: '131-4567890-1',
+      date: '14/05/2026',
+      validUntil: '29/05/2026',
+      total: 18500,
+      status: 'Enviada',
+    },
+    {
+      number: 'COT-000002',
+      customer: 'Comercial La Fe',
+      document: '001-1234567-8',
+      date: '13/05/2026',
+      validUntil: '28/05/2026',
+      total: 7250,
+      status: 'Borrador',
+    },
+  ])
+
+  const selectedClient =
+    selectedClientCode === 'CONTADO'
+      ? walkInClient
+      : clients.find((client) => client.code === selectedClientCode) || walkInClient
+
+  const quoteNumber = currentQuoteNumber || `COT-${String(quotes.length + 1).padStart(6, '0')}`
+
+  const today = new Date().toLocaleDateString('es-DO')
+  const defaultValidUntil = new Date(Date.now() + 15 * 24 * 60 * 60 * 1000).toLocaleDateString('es-DO')
+
+  const searchTerm = searchValue.toLowerCase().trim()
+
+  const filteredQuoteProducts = quoteProducts.filter((product) => {
+    if (!searchTerm) return false
+
+    return (
+      product.code.toLowerCase().includes(searchTerm) ||
+      product.barcode.toLowerCase().includes(searchTerm) ||
+      product.name.toLowerCase().includes(searchTerm)
+    )
+  })
+
+  const subtotal = quoteItems.reduce((sum, item) => sum + item.qty * item.price, 0)
+  const discount = quoteItems.reduce((sum, item) => sum + Number(item.discount || 0), 0)
+  const taxableAmount = Math.max(subtotal - discount, 0)
+  const itbis = taxableAmount * 0.18
+  const total = taxableAmount + itbis
+
+  const addProductToQuote = (product) => {
+    setQuoteItems((current) => {
+      const exists = current.find((item) => item.code === product.code)
+
+      if (exists) {
+        return current.map((item) =>
+          item.code === product.code ? { ...item, qty: item.qty + 1 } : item
+        )
+      }
+
+      return [
+        ...current,
+        {
+          code: product.code,
+          name: product.name,
+          unit: product.unit,
+          qty: 1,
+          price: product.price,
+          discount: 0,
+        },
+      ]
+    })
+
+    setSearchValue('')
+
+    setTimeout(() => {
+      const input = document.querySelector('.quote-product-search input')
+      if (input) input.focus()
+    }, 50)
+  }
+
+  const addProductFromSearch = () => {
+    if (!searchTerm) return
+
+    const exactProduct =
+      quoteProducts.find(
+        (product) =>
+          product.code.toLowerCase() === searchTerm ||
+          product.barcode.toLowerCase() === searchTerm
+      ) || filteredQuoteProducts[0]
+
+    if (!exactProduct) {
+      alert('Producto no encontrado.')
+      return
+    }
+
+    addProductToQuote(exactProduct)
+  }
+
+  const updateQuoteItem = (code, field, value) => {
+    setQuoteItems((current) =>
+      current.map((item) =>
+        item.code === code
+          ? {
+              ...item,
+              [field]: field === 'qty' || field === 'discount' ? Number(value || 0) : value,
+            }
+          : item
+      )
+    )
+  }
+
+  const increaseQuoteQty = (code) => {
+    setQuoteItems((current) =>
+      current.map((item) =>
+        item.code === code ? { ...item, qty: item.qty + 1 } : item
+      )
+    )
+  }
+
+  const decreaseQuoteQty = (code) => {
+    setQuoteItems((current) =>
+      current.map((item) =>
+        item.code === code ? { ...item, qty: Math.max(item.qty - 1, 1) } : item
+      )
+    )
+  }
+
+  const removeQuoteItem = (code) => {
+    setQuoteItems((current) => current.filter((item) => item.code !== code))
+  }
+
+  const clearQuote = () => {
+    setQuoteStarted(false)
+    setSelectedClientCode('CONTADO')
+    setSearchValue('')
+    setQuoteItems([])
+    setQuoteNote('Esta cotizacion tiene validez segun la fecha indicada.')
+    setValidUntil('')
+    setCurrentQuoteNumber('')
+  }
+
+  const startQuote = () => {
+    setQuoteStarted(true)
+
+    setTimeout(() => {
+      const input = document.querySelector('.quote-product-search input')
+      if (input) input.focus()
+    }, 100)
+  }
+
+  const saveQuote = () => {
+    if (quoteItems.length === 0) {
+      alert('Debes agregar productos a la cotizacion.')
+      return false
+    }
+
+    if (currentQuoteNumber) {
+      return true
+    }
+
+    const createdNumber = `COT-${String(quotes.length + 1).padStart(6, '0')}`
+
+    const createdQuote = {
+      number: createdNumber,
+      customer: selectedClient.name,
+      document: selectedClient.document,
+      date: today,
+      validUntil: validUntil || defaultValidUntil,
+      total,
+      status: 'Borrador',
+    }
+
+    setQuotes((current) => [createdQuote, ...current])
+    setCurrentQuoteNumber(createdNumber)
+
+    return true
+  }
+
+  const printQuote = () => {
+    if (saveQuote()) {
+      setTimeout(() => window.print(), 400)
+    }
+  }
+
+  if (!quoteStarted) {
+    return (
+      <section className="quotes-page">
+        <div className="quotes-header">
+          <div>
+            <span>Modulo de ventas</span>
+            <h3>Cotizaciones</h3>
+            <p>Crea cotizaciones profesionales, imprime el documento y luego conviertela en factura.</p>
+          </div>
+
+          <button className="primary-button" onClick={startQuote}>
+            Nueva cotizacion
+          </button>
+        </div>
+
+        <section className="quotes-summary-grid">
+          <div className="quote-summary-card">
+            <p>Total cotizaciones</p>
+            <h4>{quotes.length}</h4>
+            <span>Registradas</span>
+          </div>
+
+          <div className="quote-summary-card">
+            <p>Borradores</p>
+            <h4>{quotes.filter((quote) => quote.status === 'Borrador').length}</h4>
+            <span>Pendientes de enviar</span>
+          </div>
+
+          <div className="quote-summary-card">
+            <p>Enviadas</p>
+            <h4>{quotes.filter((quote) => quote.status === 'Enviada').length}</h4>
+            <span>Esperando respuesta</span>
+          </div>
+
+          <div className="quote-summary-card">
+            <p>Monto cotizado</p>
+            <h4>RD$ {quotes.reduce((sum, quote) => sum + quote.total, 0).toLocaleString('es-DO')}</h4>
+            <span>Total general</span>
+          </div>
+        </section>
+
+        <section className="card quotes-list-card">
+          <div className="card-header">
+            <h3>Listado de cotizaciones</h3>
+            <button onClick={startQuote}>Crear cotizacion</button>
+          </div>
+
+          <div className="quotes-table">
+            <div className="quotes-table-head">
+              <span>No. Cotizacion</span>
+              <span>Cliente</span>
+              <span>RNC/Cedula</span>
+              <span>Fecha</span>
+              <span>Valida hasta</span>
+              <span>Total</span>
+              <span>Estado</span>
+              <span>Acciones</span>
+            </div>
+
+            {quotes.map((quote) => (
+              <div key={quote.number} className="quotes-table-row">
+                <strong>{quote.number}</strong>
+                <span>{quote.customer}</span>
+                <span>{quote.document}</span>
+                <span>{quote.date}</span>
+                <span>{quote.validUntil}</span>
+                <b>RD$ {quote.total.toLocaleString('es-DO')}</b>
+                <em className={quote.status === 'Enviada' ? 'status-ok' : 'status-neutral'}>
+                  {quote.status}
+                </em>
+                <div className="quote-row-actions">
+                  <button title="Ver">Ver</button>
+                  <button title="Convertir">Facturar</button>
+                </div>
+              </div>
+            ))}
+          </div>
+        </section>
+      </section>
+    )
+  }
+
+  return (
+    <>
+      <section className="quote-create-page">
+        <div className="quote-main">
+          <div className="quote-create-header">
+            <div>
+              <h3>Nueva cotizacion</h3>
+              <p>Selecciona cliente, agrega productos y genera una cotizacion profesional.</p>
+            </div>
+
+            <div className="quote-header-actions">
+              <button className="secondary-button" onClick={clearQuote}>
+                Cancelar
+              </button>
+
+              <button className="secondary-button" onClick={saveQuote}>
+                Guardar borrador
+              </button>
+
+              <button className="primary-button small" onClick={printQuote}>
+                Generar cotizacion
+              </button>
+            </div>
+          </div>
+
+          <section className="quote-top-panel">
+            <div className="quote-info-card">
+              <span>Cliente</span>
+
+              <select
+                value={selectedClientCode}
+                onChange={(event) => setSelectedClientCode(event.target.value)}
+              >
+                <option value="CONTADO">Cliente de mostrador</option>
+                {clients.map((client) => (
+                  <option key={client.code} value={client.code}>
+                    {client.code} - {client.name} - {client.document}
+                  </option>
+                ))}
+              </select>
+
+              <strong>{selectedClient.name}</strong>
+              <small>RNC/Cedula: {selectedClient.document}</small>
+            </div>
+
+            <div className="quote-info-card">
+              <span>Cotizacion</span>
+              <strong>{quoteNumber}</strong>
+              <small>Fecha: {today}</small>
+
+              <label>
+                Valida hasta
+                <input
+                  type="date"
+                  value={validUntil}
+                  onChange={(event) => setValidUntil(event.target.value)}
+                />
+              </label>
+            </div>
+
+            <div className="quote-total-card">
+              <span>Total cotizado</span>
+              <strong>RD$ {total.toFixed(2)}</strong>
+              <small>Incluye ITBIS calculado al 18%</small>
+            </div>
+          </section>
+
+          <section className="quote-product-entry">
+            <div className="quote-product-search">
+              <div className="quote-search-icon">
+                <ScanBarcode size={30} />
+              </div>
+
+              <div>
+                <strong>Buscar o escanear producto</strong>
+                <span>Escribe codigo, codigo de barra o nombre del producto</span>
+              </div>
+
+              <input
+                value={searchValue}
+                onChange={(event) => setSearchValue(event.target.value)}
+                onKeyDown={(event) => {
+                  if (event.key === 'Enter') {
+                    event.preventDefault()
+                    addProductFromSearch()
+                  }
+                }}
+                placeholder="Buscar producto..."
+              />
+
+              <button onClick={addProductFromSearch}>Agregar</button>
+
+              {searchTerm && (
+                <div className="quote-search-results">
+                  {filteredQuoteProducts.length === 0 ? (
+                    <p>No se encontraron productos.</p>
+                  ) : (
+                    filteredQuoteProducts.map((product) => (
+                      <button key={product.code} onClick={() => addProductToQuote(product)}>
+                        <span>{product.code}</span>
+                        <strong>{product.name}</strong>
+                        <small>Stock {product.stock}</small>
+                        <b>RD$ {product.price.toFixed(2)}</b>
+                      </button>
+                    ))
+                  )}
+                </div>
+              )}
+            </div>
+          </section>
+
+          <section className="quote-detail-card">
+            <div className="card-header">
+              <h3>Productos cotizados ({quoteItems.length})</h3>
+              <button onClick={() => setQuoteItems([])}>Limpiar productos</button>
+            </div>
+
+            <div className="quote-detail-table">
+              <div className="quote-detail-head">
+                <span>Codigo</span>
+                <span>Producto</span>
+                <span>Cantidad</span>
+                <span>Precio</span>
+                <span>Desc.</span>
+                <span>Total</span>
+                <span></span>
+              </div>
+
+              {quoteItems.map((item) => (
+                <div key={item.code} className="quote-detail-row">
+                  <strong>{item.code}</strong>
+
+                  <div>
+                    <b>{item.name}</b>
+                    <small>{item.unit}</small>
+                  </div>
+
+                  <div className="qty-control">
+                    <button onClick={() => decreaseQuoteQty(item.code)}>-</button>
+                    <input
+                      type="number"
+                      value={item.qty}
+                      onChange={(event) => updateQuoteItem(item.code, 'qty', event.target.value)}
+                    />
+                    <button onClick={() => increaseQuoteQty(item.code)}>+</button>
+                  </div>
+
+                  <span>RD$ {item.price.toFixed(2)}</span>
+
+                  <input
+                    className="discount-input"
+                    type="number"
+                    value={item.discount}
+                    onChange={(event) => updateQuoteItem(item.code, 'discount', event.target.value)}
+                  />
+
+                  <b>RD$ {Math.max(item.qty * item.price - Number(item.discount || 0), 0).toFixed(2)}</b>
+
+                  <button className="remove-line" onClick={() => removeQuoteItem(item.code)}>X</button>
+                </div>
+              ))}
+
+              {quoteItems.length === 0 && (
+                <div className="empty-cart">
+                  Busca o escanea productos para agregarlos a la cotizacion.
+                </div>
+              )}
+            </div>
+
+            <textarea
+              className="invoice-comment"
+              value={quoteNote}
+              onChange={(event) => setQuoteNote(event.target.value)}
+              placeholder="Nota u observacion de la cotizacion..."
+            />
+          </section>
+        </div>
+
+        <aside className="quote-side">
+          <section className="billing-v2-side-card billing-v2-totals">
+            <div>
+              <span>Subtotal</span>
+              <strong>RD$ {subtotal.toFixed(2)}</strong>
+            </div>
+
+            <div>
+              <span>Descuento</span>
+              <strong className="negative">- RD$ {discount.toFixed(2)}</strong>
+            </div>
+
+            <div>
+              <span>ITBIS (18%)</span>
+              <strong>RD$ {itbis.toFixed(2)}</strong>
+            </div>
+
+            <hr />
+
+            <div className="billing-v2-grand-total">
+              <span>Total general</span>
+              <strong>RD$ {total.toFixed(2)}</strong>
+            </div>
+          </section>
+
+          <button className="generate-invoice-button" onClick={printQuote}>
+            Generar cotizacion
+          </button>
+
+          <button className="secondary-button">
+            Convertir en factura
+          </button>
+        </aside>
+      </section>
+
+      <section className="print-quote-sheet">
+        <div className="print-invoice-header">
+          <div>
+            <div className="print-brand">
+              <div className="print-logo-mark">
+                {businessSettings.logo ? (
+                  <img src={businessSettings.logo} alt="Logo" />
+                ) : (
+                  businessSettings.businessShortName.charAt(0)
+                )}
+              </div>
+              <div>
+                <h1>{businessSettings.businessShortName}</h1>
+                <span>{businessSettings.systemLabel}</span>
+              </div>
+            </div>
+
+            <h3>{businessSettings.businessName}</h3>
+            <p>{businessSettings.slogan}</p>
+            <p><strong>RNC:</strong> {businessSettings.rnc}</p>
+            <p><strong>Tel:</strong> {businessSettings.phone}</p>
+            <p><strong>Email:</strong> {businessSettings.email}</p>
+            <p>{businessSettings.address}</p>
+          </div>
+
+          <div className="print-invoice-title">
+            <h2>COTIZACION</h2>
+            <strong>No. {quoteNumber}</strong>
+
+            <div className="print-date-box">
+              <p><span>Fecha de emision:</span> {today}</p>
+              <p><span>Valida hasta:</span> {validUntil || defaultValidUntil}</p>
+              <p><span>Condicion:</span> Sujeto a disponibilidad</p>
+            </div>
+          </div>
+        </div>
+
+        <div className="print-info-grid">
+          <div className="print-info-card">
+            <h4>DATOS DEL CLIENTE</h4>
+            <p><span>Cliente:</span> <strong>{selectedClient.name}</strong></p>
+            <p><span>RNC / Cedula:</span> {selectedClient.document}</p>
+            <p><span>Telefono:</span> {selectedClient.phone}</p>
+            <p><span>Direccion:</span> {selectedClient.address || 'N/A'}</p>
+          </div>
+
+          <div className="print-info-card">
+            <h4>INFORMACION DE LA COTIZACION</h4>
+            <p><span>Vendedor:</span> Administrador</p>
+            <p><span>Moneda:</span> Pesos Dominicanos (RD$)</p>
+            <p><span>Estado:</span> Borrador</p>
+            <p><span>Validez:</span> {validUntil || defaultValidUntil}</p>
+          </div>
+        </div>
+
+        <table className="print-products-table">
+          <thead>
+            <tr>
+              <th>Codigo</th>
+              <th>Descripcion</th>
+              <th>Cantidad</th>
+              <th>Precio Unitario</th>
+              <th>ITBIS (18%)</th>
+              <th>Total</th>
+            </tr>
+          </thead>
+
+          <tbody>
+            {quoteItems.map((item) => {
+              const lineBase = Math.max(item.qty * item.price - Number(item.discount || 0), 0)
+              const lineTax = lineBase * 0.18
+              const lineTotal = lineBase + lineTax
+
+              return (
+                <tr key={item.code}>
+                  <td>{item.code}</td>
+                  <td>
+                    <strong>{item.name}</strong>
+                    <span>{item.unit}</span>
+                  </td>
+                  <td>{item.qty}</td>
+                  <td>RD$ {item.price.toFixed(2)}</td>
+                  <td>RD$ {lineTax.toFixed(2)}</td>
+                  <td><strong>RD$ {lineTotal.toFixed(2)}</strong></td>
+                </tr>
+              )
+            })}
+          </tbody>
+        </table>
+
+        <div className="print-bottom-grid">
+          <div>
+            <h4>OBSERVACIONES</h4>
+            <div className="print-observations">
+              <p>{quoteNote || 'Esta cotizacion tiene validez segun la fecha indicada.'}</p>
+              <p>Los precios pueden variar segun disponibilidad de inventario.</p>
+            </div>
+          </div>
+
+          <div className="print-total-box">
+            <p><span>Subtotal:</span> <strong>RD$ {subtotal.toFixed(2)}</strong></p>
+            <p><span>Descuento:</span> <strong>- RD$ {discount.toFixed(2)}</strong></p>
+            <p><span>ITBIS (18%):</span> <strong>RD$ {itbis.toFixed(2)}</strong></p>
+            <hr />
+            <h3><span>TOTAL GENERAL:</span> RD$ {total.toFixed(2)}</h3>
+          </div>
+        </div>
+
+        <footer className="print-footer">
+          Esta cotizacion fue generada por <strong>INVE-FAT SYSTEM</strong>
+          <br />
+          Software de Gestion Empresarial
+        </footer>
+      </section>
+    </>
+  )
+}
+
+function SalesSafeInvoiceTable({ invoices }) {
+  return (
+    <div className="sales-safe-table">
+      <div className="sales-safe-table-head">
+        <span>No. factura</span>
+        <span>Cliente</span>
+        <span>RNC/Cedula</span>
+        <span>Fecha</span>
+        <span>Total</span>
+        <span>Pago</span>
+        <span>Estado</span>
+      </div>
+
+      {invoices.map((invoice) => (
+        <div key={invoice.number} className="sales-safe-table-row">
+          <strong>{invoice.number}</strong>
+          <span>{invoice.customer}</span>
+          <span>{invoice.document}</span>
+          <span>{invoice.date}</span>
+          <b>RD$ {invoice.total.toLocaleString('es-DO')}</b>
+          <span>{invoice.payment}</span>
+          <em className={invoice.status === 'Pagada' ? 'status-ok' : 'status-low'}>
+            {invoice.status}
+          </em>
+        </div>
+      ))}
+
+      {invoices.length === 0 && (
+        <div className="empty-products">
+          No hay facturas para mostrar.
+        </div>
+      )}
+    </div>
+  )
+}
+
+function SalesSafeClientTable({ clients }) {
+  return (
+    <div className="sales-safe-client-table">
+      <div className="sales-safe-client-head">
+        <span>Codigo</span>
+        <span>Cliente</span>
+        <span>RNC/Cedula</span>
+        <span>Telefono</span>
+        <span>Correo</span>
+        <span>Tipo</span>
+        <span>Credito</span>
+        <span>Balance</span>
+        <span>Estado</span>
+      </div>
+
+      {clients.map((client) => (
+        <div key={client.code} className="sales-safe-client-row">
+          <strong>{client.code}</strong>
+          <span>{client.name}</span>
+          <span>{client.document}</span>
+          <span>{client.phone}</span>
+          <span>{client.email}</span>
+          <span>{client.type}</span>
+          <b>RD$ {client.creditLimit.toLocaleString('es-DO')}</b>
+          <b className={client.balance > 0 ? 'negative' : 'positive'}>
+            RD$ {client.balance.toLocaleString('es-DO')}
+          </b>
+          <em className={client.status === 'Activo' ? 'status-ok' : 'status-low'}>
+            {client.status}
+          </em>
+        </div>
+      ))}
+    </div>
+  )
+}
+
+function SalesSafePlaceholder({ title }) {
+  return (
+    <section className="card sales-safe-placeholder">
+      <h3>{title}</h3>
+      <p>Esta parte del modulo Ventas sera trabajada en el siguiente paso.</p>
+      <button className="primary-button small">Crear nuevo</button>
+    </section>
+  )
+}
+
+export default function App() {
+  const [activeModule, setActiveModule] = useState('dashboard')
+  const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false)
+  const [theme, setTheme] = useState(() => localStorage.getItem('invefat-theme') || 'light')
+
+  useEffect(() => {
+    localStorage.setItem('invefat-theme', theme)
+  }, [theme])
+
+  const toggleTheme = () => {
+    setTheme((currentTheme) => currentTheme === 'dark' ? 'light' : 'dark')
+  }
+
+  return (
+    <div className={'app-shell ' + (theme === 'dark' ? 'dark-theme' : '')}>
+      <Sidebar
+        activeModule={activeModule}
+        setActiveModule={setActiveModule}
+        isMobileOpen={mobileSidebarOpen}
+        closeMobileMenu={() => setMobileSidebarOpen(false)}
+      />
+
+      {mobileSidebarOpen && (
+        <button
+          className="mobile-overlay"
+          onClick={() => setMobileSidebarOpen(false)}
+          aria-label="Cerrar menu"
+        />
+      )}
+
+      <div className="workspace">
+        <Navbar
+          theme={theme}
+          toggleTheme={toggleTheme}
+          onOpenSidebar={() => setMobileSidebarOpen(true)}
+        />
+        <Content activeModule={activeModule} setActiveModule={setActiveModule} />
+      </div>
+    </div>
+  )
+}
