@@ -9133,3 +9133,368 @@ body.sidebar-collapsed-mode .topbar {
     grid-column: span 1;
   }
 }
+/* DESPACHO FIFO FEFO LIFO */
+.inventory-dispatch-card {
+  min-height: 640px;
+}
+
+.dispatch-header-actions {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+}
+
+.dispatch-header-actions select {
+  height: 42px;
+  border-radius: 13px;
+  border: 1px solid rgba(15, 61, 74, 0.14);
+  padding: 0 12px;
+  background: #ffffff;
+  color: #0f172a;
+  font-size: 13px;
+  font-weight: 850;
+}
+
+.dispatch-kpi-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 12px;
+  margin-bottom: 14px;
+}
+
+.dispatch-kpi-grid article {
+  border-radius: 17px;
+  padding: 15px;
+  background: #f8fafc;
+  border: 1px solid rgba(15, 61, 74, 0.10);
+}
+
+.dispatch-kpi-grid span {
+  display: block;
+  color: #64748b;
+  font-size: 12px;
+  font-weight: 850;
+}
+
+.dispatch-kpi-grid strong {
+  display: block;
+  margin: 7px 0 3px;
+  color: #0f172a;
+  font-size: 25px;
+  font-weight: 950;
+}
+
+.dispatch-kpi-grid p {
+  margin: 0;
+  color: #64748b;
+  font-size: 12px;
+  font-weight: 650;
+}
+
+.dispatch-toolbar {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 14px;
+}
+
+.dispatch-toolbar .product-search-box {
+  width: 100%;
+  max-width: 780px;
+}
+
+.dispatch-form-card {
+  border-radius: 18px;
+  padding: 16px;
+  margin-bottom: 16px;
+  background: #f8fafc;
+  border: 1px solid rgba(15, 61, 74, 0.10);
+}
+
+.dispatch-form-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.dispatch-form-grid label {
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+  color: #334155;
+  font-size: 12px;
+  font-weight: 850;
+}
+
+.dispatch-form-grid input,
+.dispatch-form-grid select {
+  height: 42px;
+  border: 1px solid rgba(15, 61, 74, 0.13);
+  border-radius: 12px;
+  outline: 0;
+  padding: 0 12px;
+  background: #ffffff;
+  color: #0f172a;
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.dispatch-wide-field {
+  grid-column: span 2;
+}
+
+.dispatch-layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1.35fr) minmax(340px, 0.65fr);
+  gap: 16px;
+}
+
+.dispatch-orders-panel,
+.dispatch-lots-panel {
+  min-width: 0;
+}
+
+.dispatch-order-list,
+.dispatch-lots-list {
+  display: grid;
+  gap: 12px;
+}
+
+.dispatch-order-card,
+.dispatch-lots-list article {
+  border-radius: 18px;
+  padding: 15px;
+  background: #f8fafc;
+  border: 1px solid rgba(15, 61, 74, 0.10);
+}
+
+.dispatch-order-top {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 12px;
+}
+
+.dispatch-order-top strong,
+.dispatch-order-top span {
+  display: block;
+}
+
+.dispatch-order-top strong {
+  color: #0f172a;
+  font-size: 14px;
+  font-weight: 950;
+}
+
+.dispatch-order-top span {
+  margin-top: 4px;
+  color: #64748b;
+  font-size: 12px;
+  font-weight: 750;
+}
+
+.dispatch-order-top em,
+.allocation-list em,
+.dispatch-lots-list em {
+  width: max-content;
+  border-radius: 999px;
+  padding: 6px 10px;
+  font-style: normal;
+  font-size: 11px;
+  font-weight: 950;
+}
+
+.dispatch-order-meta {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 8px;
+  margin-bottom: 12px;
+}
+
+.dispatch-order-meta div {
+  border-radius: 13px;
+  padding: 10px;
+  background: #ffffff;
+  border: 1px solid rgba(15, 61, 74, 0.08);
+}
+
+.dispatch-order-meta span,
+.dispatch-order-meta strong {
+  display: block;
+}
+
+.dispatch-order-meta span {
+  color: #64748b;
+  font-size: 11px;
+  font-weight: 850;
+}
+
+.dispatch-order-meta strong {
+  margin-top: 4px;
+  color: #0f172a;
+  font-size: 13px;
+  font-weight: 950;
+}
+
+.allocation-list {
+  display: grid;
+  gap: 8px;
+}
+
+.allocation-list div {
+  display: grid;
+  grid-template-columns: 1fr auto auto auto;
+  gap: 10px;
+  align-items: center;
+  border-radius: 12px;
+  padding: 9px 10px;
+  background: #ffffff;
+  border: 1px solid rgba(15, 61, 74, 0.08);
+}
+
+.allocation-list span,
+.allocation-list small {
+  color: #475569;
+  font-size: 12px;
+  font-weight: 750;
+}
+
+.allocation-list b {
+  color: #0f172a;
+  font-size: 12px;
+  font-weight: 950;
+}
+
+.allocation-list p {
+  margin: 0;
+  color: #dc2626;
+  font-size: 12px;
+  font-weight: 850;
+}
+
+.dispatch-simulate-button {
+  width: 100%;
+  min-height: 42px;
+  margin-top: 12px;
+  border-radius: 13px;
+  background: var(--color-primary, #0f3d4a);
+  color: #ffffff;
+  font-size: 13px;
+  font-weight: 950;
+}
+
+.dispatch-simulate-button:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+.dispatch-lots-list article {
+  display: grid;
+  grid-template-columns: 1fr auto auto;
+  gap: 12px;
+  align-items: center;
+}
+
+.dispatch-lots-list strong,
+.dispatch-lots-list span {
+  display: block;
+}
+
+.dispatch-lots-list strong {
+  color: #0f172a;
+  font-size: 13px;
+  font-weight: 950;
+}
+
+.dispatch-lots-list span {
+  margin-top: 4px;
+  color: #64748b;
+  font-size: 12px;
+  font-weight: 750;
+}
+
+.dispatch-lots-list b {
+  color: #0f172a;
+  font-weight: 950;
+}
+
+.app-shell.dark-theme .dispatch-header-actions select,
+.app-shell.dark-theme .dispatch-kpi-grid article,
+.app-shell.dark-theme .dispatch-form-card,
+.app-shell.dark-theme .dispatch-order-card,
+.app-shell.dark-theme .dispatch-lots-list article,
+.app-shell.dark-theme .dispatch-order-meta div,
+.app-shell.dark-theme .allocation-list div {
+  background: rgba(6, 26, 34, 0.82);
+  border-color: rgba(255, 255, 255, 0.10);
+}
+
+.app-shell.dark-theme .dispatch-header-actions select,
+.app-shell.dark-theme .dispatch-kpi-grid strong,
+.app-shell.dark-theme .dispatch-form-grid label,
+.app-shell.dark-theme .dispatch-order-top strong,
+.app-shell.dark-theme .dispatch-order-meta strong,
+.app-shell.dark-theme .allocation-list b,
+.app-shell.dark-theme .dispatch-lots-list strong,
+.app-shell.dark-theme .dispatch-lots-list b {
+  color: #f8fafc;
+}
+
+.app-shell.dark-theme .dispatch-kpi-grid span,
+.app-shell.dark-theme .dispatch-kpi-grid p,
+.app-shell.dark-theme .dispatch-order-top span,
+.app-shell.dark-theme .dispatch-order-meta span,
+.app-shell.dark-theme .allocation-list span,
+.app-shell.dark-theme .allocation-list small,
+.app-shell.dark-theme .dispatch-lots-list span {
+  color: #cbd5e1;
+}
+
+.app-shell.dark-theme .dispatch-form-grid input,
+.app-shell.dark-theme .dispatch-form-grid select {
+  background: rgba(3, 17, 23, 0.92);
+  border-color: rgba(255, 255, 255, 0.12);
+  color: #f8fafc;
+}
+
+@media (max-width: 1300px) {
+  .dispatch-layout {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 1200px) {
+  .dispatch-kpi-grid,
+  .dispatch-form-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 700px) {
+  .dispatch-header-actions {
+    width: 100%;
+    flex-direction: column;
+  }
+
+  .dispatch-header-actions button,
+  .dispatch-header-actions select {
+    width: 100%;
+  }
+
+  .dispatch-kpi-grid,
+  .dispatch-form-grid,
+  .dispatch-order-meta {
+    grid-template-columns: 1fr;
+  }
+
+  .dispatch-wide-field {
+    grid-column: span 1;
+  }
+
+  .allocation-list div,
+  .dispatch-lots-list article {
+    grid-template-columns: 1fr;
+  }
+}
