@@ -30,7 +30,7 @@ export default function AppWorkspace({
 }) {
   const [currentPageId, setCurrentPageId] = useState(DEFAULT_PAGE_ID)
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false)
-  const [expandedModules, setExpandedModules] = useState(['sales', 'purchases', 'inventory', 'warehouse'])
+  const [expandedModules, setExpandedModules] = useState([])
   const [pageWindowState, setPageWindowState] = useState('normal')
   const [pageSearches, setPageSearches] = useState({})
   const [notice, setNotice] = useState('')
@@ -44,25 +44,23 @@ export default function AppWorkspace({
 
     setCurrentPageId(meta.id)
     setPageWindowState('normal')
-
-    if (meta.moduleId && !expandedModules.includes(meta.moduleId) && meta.moduleId !== 'dashboard') {
-      setExpandedModules((current) => [...current, meta.moduleId])
-    }
+    setExpandedModules([])
   }
 
   const toggleModule = (moduleId) => {
     setExpandedModules((current) => {
       if (current.includes(moduleId)) {
-        return current.filter((id) => id !== moduleId)
+        return []
       }
 
-      return [...current, moduleId]
+      return [moduleId]
     })
   }
 
   const closePage = () => {
     setCurrentPageId(DEFAULT_PAGE_ID)
     setPageWindowState('normal')
+    setExpandedModules([])
   }
 
   const showNotice = (message) => {

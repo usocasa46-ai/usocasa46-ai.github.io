@@ -1,190 +1,983 @@
-import { Ban, Download, Edit3, FilePlus2, History, PackageSearch, Save } from 'lucide-react'
+import {
+  Ban,
+  CheckCircle2,
+  Download,
+  Edit3,
+  FilePlus2,
+  History,
+  PackageSearch,
+  Printer,
+  Save,
+  Upload,
+  X,
+} from 'lucide-react'
 import { useMemo, useState } from 'react'
 import ModulePageLayout from '../shared/ModulePageLayout.jsx'
+import './InventoryProductsPage.css'
 
-const products = [
-  { code: 'PRD-1020', name: 'Aceite premium 1L', category: 'Lubricantes', stock: 148, price: 'RD$ 385.00', status: 'Activo' },
-  { code: 'PRD-1104', name: 'Filtro industrial', category: 'Repuestos', stock: 34, price: 'RD$ 890.00', status: 'Activo' },
-  { code: 'PRD-1322', name: 'Empaque sellado', category: 'Materiales', stock: 12, price: 'RD$ 125.00', status: 'Bajo stock' },
-  { code: 'PRD-1405', name: 'Valvula acero', category: 'Repuestos', stock: 0, price: 'RD$ 760.00', status: 'Sin stock' },
+const STORAGE_KEY = 'inveFatInventoryProducts'
+
+const defaultProducts = [
+  {
+    code: 'PRD-1020',
+    name: 'Aceite premium 1L',
+    description: 'Aceite premium para venta regular.',
+    category: 'Lubricantes',
+    brand: 'Linea Pro',
+    unit: 'Unidad',
+    barcode: '7460001020007',
+    cost: 280,
+    price: 385,
+    tax: 'ITBIS 18%',
+    minStock: 40,
+    maxStock: 240,
+    stock: 148,
+    status: 'Activo',
+    createdAt: '2026-05-17T09:00:00.000Z',
+    updatedAt: '2026-05-17T09:00:00.000Z',
+  },
+  {
+    code: 'PRD-1104',
+    name: 'Filtro industrial',
+    description: 'Filtro para mantenimiento industrial.',
+    category: 'Repuestos',
+    brand: 'MaxParts',
+    unit: 'Unidad',
+    barcode: '7460001104004',
+    cost: 640,
+    price: 890,
+    tax: 'ITBIS 18%',
+    minStock: 20,
+    maxStock: 120,
+    stock: 34,
+    status: 'Activo',
+    createdAt: '2026-05-16T11:30:00.000Z',
+    updatedAt: '2026-05-16T11:30:00.000Z',
+  },
+  {
+    code: 'PRD-1322',
+    name: 'Empaque sellado',
+    description: 'Empaque sellado para proteccion de productos.',
+    category: 'Materiales',
+    brand: 'PackLine',
+    unit: 'Caja',
+    barcode: '7460001322002',
+    cost: 78,
+    price: 125,
+    tax: 'ITBIS 18%',
+    minStock: 30,
+    maxStock: 260,
+    stock: 12,
+    status: 'Activo',
+    createdAt: '2026-05-15T15:20:00.000Z',
+    updatedAt: '2026-05-15T15:20:00.000Z',
+  },
+  {
+    code: 'PRD-1405',
+    name: 'Valvula acero',
+    description: 'Valvula de acero para repuesto tecnico.',
+    category: 'Repuestos',
+    brand: 'SteelPro',
+    unit: 'Unidad',
+    barcode: '7460001405002',
+    cost: 510,
+    price: 760,
+    tax: 'ITBIS 18%',
+    minStock: 15,
+    maxStock: 90,
+    stock: 0,
+    status: 'Inactivo',
+    createdAt: '2026-05-14T10:10:00.000Z',
+    updatedAt: '2026-05-14T10:10:00.000Z',
+  },
 ]
 
-function badgeClass(status) {
-  if (status === 'Activo') return 'erp-badge is-success'
-  if (status === 'Bajo stock') return 'erp-badge is-warning'
-  return 'erp-badge is-danger'
+const initialFilters = {
+  code: '',
+  name: '',
+  category: '',
+  brand: '',
+  status: 'Todos',
+}
+
+const bulkImportExample = `codigo,nombre,categoria,unidad,costo,precio,stock,codigoBarra
+PRD-001,Producto A,General,UND,100,150,10,123456
+PRD-002,Producto B,General,UND,200,250,5,789456`
+
+function normalizeNumber(value) {
+  const numericValue = Number(value)
+  return Number.isFinite(numericValue) ? numericValue : 0
+}
+
+function normalizeProduct(product) {
+  return {
+    code: String(product.code || '').trim(),
+    name: String(product.name || '').trim(),
+    description: String(product.description || '').trim(),
+    category: String(product.category || '').trim(),
+    brand: String(product.brand || '').trim(),
+    unit: String(product.unit || 'Unidad').trim(),
+    barcode: String(product.barcode || '').trim(),
+    cost: normalizeNumber(product.cost),
+    price: normalizeNumber(product.price),
+    tax: String(product.tax || 'ITBIS 18%').trim(),
+    minStock: normalizeNumber(product.minStock),
+    maxStock: normalizeNumber(product.maxStock),
+    stock: normalizeNumber(product.stock),
+    status: product.status === 'Inactivo' ? 'Inactivo' : 'Activo',
+    createdAt: product.createdAt || new Date().toISOString(),
+    updatedAt: product.updatedAt || new Date().toISOString(),
+  }
+}
+
+function saveProducts(products) {
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(products))
+}
+
+function loadProducts() {
+  try {
+    const savedProducts = localStorage.getItem(STORAGE_KEY)
+    const parsedProducts = savedProducts ? JSON.parse(savedProducts) : null
+
+    if (Array.isArray(parsedProducts) && parsedProducts.length > 0) {
+      return parsedProducts.map(normalizeProduct)
+    }
+  } catch {
+    // Usar productos base si hay datos corruptos.
+  }
+
+  saveProducts(defaultProducts)
+  return defaultProducts
+}
+
+function nextProductCode(products) {
+  const highestNumber = products.reduce((highest, product) => {
+    const match = String(product.code || '').match(/PRD-(\d+)/)
+    const value = match ? Number(match[1]) : 0
+    return Math.max(highest, value)
+  }, 0)
+
+  return `PRD-${String(highestNumber + 1).padStart(4, '0')}`
+}
+
+function createEmptyProduct(products) {
+  return {
+    code: nextProductCode(products),
+    name: '',
+    description: '',
+    category: '',
+    brand: '',
+    unit: 'Unidad',
+    barcode: '',
+    cost: '',
+    price: '',
+    tax: 'ITBIS 18%',
+    minStock: '',
+    maxStock: '',
+    stock: '',
+    status: 'Activo',
+  }
+}
+
+function formatCurrency(value) {
+  return `RD$ ${normalizeNumber(value).toLocaleString('es-DO', {
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  })}`
+}
+
+function isLowStock(product) {
+  return product.status === 'Activo' && normalizeNumber(product.stock) <= normalizeNumber(product.minStock)
+}
+
+function productMatchesText(product, value) {
+  const text = String(value || '').toLowerCase().trim()
+  if (!text) return true
+
+  return [
+    product.code,
+    product.name,
+    product.description,
+    product.category,
+    product.brand,
+    product.unit,
+    product.barcode,
+    product.status,
+  ].some((field) => String(field || '').toLowerCase().includes(text))
+}
+
+function exportProducts(products) {
+  const headers = ['Codigo', 'Producto', 'Categoria', 'Unidad', 'Costo', 'Precio', 'Stock', 'Estado']
+  const rows = products.map((product) => [
+    product.code,
+    product.name,
+    product.category,
+    product.unit,
+    product.cost,
+    product.price,
+    product.stock,
+    product.status,
+  ])
+
+  const csv = [headers, ...rows]
+    .map((row) => row.map((cell) => `"${String(cell ?? '').replaceAll('"', '""')}"`).join(','))
+    .join('\n')
+
+  const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' })
+  const url = URL.createObjectURL(blob)
+  const link = document.createElement('a')
+  link.href = url
+  link.download = 'productos-inventario.csv'
+  link.click()
+  URL.revokeObjectURL(url)
+}
+
+function productStatusClass(product) {
+  if (product.status === 'Inactivo') return 'erp-badge is-danger'
+  if (isLowStock(product)) return 'erp-badge is-warning'
+  return 'erp-badge is-success'
 }
 
 export default function InventoryProductsPage({ controls, onAction, searchValue = '', onSearchChange }) {
+  const [products, setProducts] = useState(() => loadProducts())
+  const [filters, setFilters] = useState(initialFilters)
+  const [selectedCode, setSelectedCode] = useState('')
+  const [formData, setFormData] = useState(() => createEmptyProduct(loadProducts()))
+  const [message, setMessage] = useState('')
+  const [showBulkImport, setShowBulkImport] = useState(false)
+  const [bulkText, setBulkText] = useState('')
+  const [viewMode, setViewMode] = useState('list')
+  const [activePanel, setActivePanel] = useState(null)
+
   const search = searchValue
   const setSearch = onSearchChange || (() => {})
-  const [categoryFilter, setCategoryFilter] = useState('Todas')
+
+  const categories = useMemo(() => {
+    return Array.from(new Set(products.map((product) => product.category).filter(Boolean))).sort()
+  }, [products])
+
+  const brands = useMemo(() => {
+    return Array.from(new Set(products.map((product) => product.brand).filter(Boolean))).sort()
+  }, [products])
+
+  const summary = useMemo(() => {
+    const activeProducts = products.filter((product) => product.status === 'Activo')
+    const inactiveProducts = products.filter((product) => product.status === 'Inactivo')
+    const lowStockProducts = products.filter(isLowStock)
+    const latestProduct = [...products].sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt))[0]
+
+    return {
+      total: products.length,
+      active: activeProducts.length,
+      inactive: inactiveProducts.length,
+      lowStock: lowStockProducts.length,
+      latestProduct: latestProduct?.name || 'Sin productos',
+    }
+  }, [products])
 
   const filteredProducts = useMemo(() => {
-    const text = search.toLowerCase().trim()
-
     return products.filter((product) => {
-      const matchesCategory = categoryFilter === 'Todas' || product.category === categoryFilter
-      const matchesText = !text || [product.code, product.name, product.category, product.status].some((value) => value.toLowerCase().includes(text))
-      return matchesCategory && matchesText
-    })
-  }, [search, categoryFilter])
+      const matchesGlobalSearch = productMatchesText(product, search)
+      const matchesCode = productMatchesText({ code: product.code }, filters.code)
+      const matchesName = productMatchesText({ name: product.name }, filters.name)
+      const matchesCategory = !filters.category || product.category.toLowerCase().includes(filters.category.toLowerCase())
+      const matchesBrand = !filters.brand || product.brand.toLowerCase().includes(filters.brand.toLowerCase())
+      const matchesStatus = filters.status === 'Todos' || product.status === filters.status
 
-  const notify = (message) => onAction?.(message)
+      return (
+        matchesGlobalSearch &&
+        matchesCode &&
+        matchesName &&
+        matchesCategory &&
+        matchesBrand &&
+        matchesStatus
+      )
+    })
+  }, [filters, products, search])
+
+  const selectedProduct = useMemo(() => {
+    return products.find((product) => product.code === selectedCode) || null
+  }, [products, selectedCode])
+
+  const isFormOpen = viewMode === 'form'
+
+  const notify = (text) => {
+    setMessage(text)
+    onAction?.(text)
+  }
+
+  const updateFilter = (field, value) => {
+    setFilters((current) => ({
+      ...current,
+      [field]: value,
+    }))
+  }
+
+  const updateForm = (field, value) => {
+    setFormData((current) => ({
+      ...current,
+      [field]: value,
+    }))
+  }
+
+  const startNewProduct = () => {
+    const emptyProduct = createEmptyProduct(products)
+    setSelectedCode('')
+    setFormData(emptyProduct)
+    setShowBulkImport(false)
+    setActivePanel(null)
+    setViewMode('form')
+    notify('Formulario listo para nuevo producto')
+  }
+
+  const selectProduct = (product) => {
+    setSelectedCode(product.code)
+    setFormData({
+      ...product,
+      cost: String(product.cost),
+      price: String(product.price),
+      minStock: String(product.minStock),
+      maxStock: String(product.maxStock),
+      stock: String(product.stock),
+    })
+    notify(`Producto seleccionado: ${product.code}`)
+  }
+
+  const saveProduct = () => {
+    const productToSave = normalizeProduct({
+      ...formData,
+      code: formData.code,
+      createdAt: selectedProduct?.createdAt || new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+    })
+
+    if (!productToSave.code || !productToSave.name) {
+      notify('Completa codigo y nombre del producto')
+      return
+    }
+
+    const duplicatedCode = products.some((product) => {
+      return product.code === productToSave.code && product.code !== selectedCode
+    })
+
+    if (duplicatedCode) {
+      notify('Ya existe un producto con ese codigo')
+      return
+    }
+
+    const productExists = products.some((product) => product.code === selectedCode)
+    const nextProducts = productExists
+      ? products.map((product) => (product.code === selectedCode ? productToSave : product))
+      : [productToSave, ...products]
+
+    setProducts(nextProducts)
+    saveProducts(nextProducts)
+    setSelectedCode(productToSave.code)
+    setFormData({
+      ...productToSave,
+      cost: String(productToSave.cost),
+      price: String(productToSave.price),
+      minStock: String(productToSave.minStock),
+      maxStock: String(productToSave.maxStock),
+      stock: String(productToSave.stock),
+    })
+    setViewMode('list')
+    notify('Producto guardado correctamente')
+  }
+
+  const inactivateProduct = (codeToInactivate) => {
+    if (!codeToInactivate) {
+      notify('Selecciona un producto para inactivar')
+      return
+    }
+
+    const nextProducts = products.map((product) => {
+      if (product.code !== codeToInactivate) return product
+      return {
+        ...product,
+        status: 'Inactivo',
+        updatedAt: new Date().toISOString(),
+      }
+    })
+
+    setProducts(nextProducts)
+    saveProducts(nextProducts)
+    setSelectedCode(codeToInactivate)
+    setFormData((current) => ({
+      ...current,
+      ...(nextProducts.find((product) => product.code === codeToInactivate) || {}),
+      status: 'Inactivo',
+    }))
+    notify('Producto inactivado correctamente')
+  }
+
+  const inactivateSelectedProduct = () => {
+    inactivateProduct(selectedCode)
+  }
+
+  const editSelectedProduct = () => {
+    if (!selectedProduct) {
+      notify('Selecciona un producto de la tabla para editar')
+      return
+    }
+
+    selectProduct(selectedProduct)
+    setShowBulkImport(false)
+    setActivePanel(null)
+    setViewMode('form')
+    notify(`Editando producto ${selectedProduct.code}`)
+  }
+
+  const closeForm = () => {
+    setViewMode('list')
+    notify('Formulario cerrado')
+  }
+
+  const openStockPanel = () => {
+    if (!selectedProduct) {
+      notify('Selecciona un producto para ver stock')
+      return
+    }
+
+    setShowBulkImport(false)
+    setActivePanel('stock')
+  }
+
+  const openMovementsPanel = () => {
+    if (!selectedProduct) {
+      notify('Selecciona un producto para ver movimientos')
+      return
+    }
+
+    setShowBulkImport(false)
+    setActivePanel('movements')
+  }
+
+  const clearFilters = () => {
+    setFilters(initialFilters)
+    setSearch('')
+    notify('Filtros limpiados')
+  }
+
+  const printProducts = () => {
+    notify('Preparando impresion de productos')
+    window.setTimeout(() => window.print(), 150)
+  }
+
+  const importBulkProducts = () => {
+    const lines = bulkText
+      .split(/\r?\n/)
+      .map((line) => line.trim())
+      .filter(Boolean)
+
+    if (lines.length === 0) {
+      notify('Pega productos para importar')
+      return
+    }
+
+    const existingCodes = new Set(products.map((product) => product.code.toLowerCase()))
+    const importedCodes = new Set()
+    const importedProducts = []
+    let skippedLines = 0
+
+    lines.forEach((line, index) => {
+      const lowerLine = line.toLowerCase()
+
+      if (index === 0 && lowerLine.includes('codigo') && lowerLine.includes('nombre')) {
+        return
+      }
+
+      const fields = line.split(',').map((field) => field.trim())
+
+      if (fields.length < 8) {
+        skippedLines += 1
+        return
+      }
+
+      const [code, name, category, unit, cost, price, stock, barcode] = fields
+      const cleanCode = String(code || '').trim()
+
+      if (!cleanCode || !name || existingCodes.has(cleanCode.toLowerCase()) || importedCodes.has(cleanCode.toLowerCase())) {
+        skippedLines += 1
+        return
+      }
+
+      importedCodes.add(cleanCode.toLowerCase())
+      importedProducts.push(normalizeProduct({
+        code: cleanCode,
+        name,
+        description: '',
+        category,
+        brand: '',
+        unit,
+        barcode,
+        cost,
+        price,
+        tax: 'ITBIS 18%',
+        minStock: 0,
+        maxStock: 0,
+        stock,
+        status: 'Activo',
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+      }))
+    })
+
+    if (importedProducts.length === 0) {
+      notify(`No se importaron productos. Lineas omitidas: ${skippedLines}`)
+      return
+    }
+
+    const nextProducts = [...importedProducts, ...products]
+    setProducts(nextProducts)
+    saveProducts(nextProducts)
+    setBulkText('')
+    setShowBulkImport(false)
+    notify(`${importedProducts.length} producto(s) importado(s). Omitidos: ${skippedLines}`)
+  }
+
+  const closeInternalView = () => {
+    if (isFormOpen) {
+      closeForm()
+      return
+    }
+
+    if (activePanel) {
+      setActivePanel(null)
+      return
+    }
+
+    controls?.onClose?.()
+  }
+
+  const pageControls = {
+    ...controls,
+    onClose: closeInternalView,
+  }
 
   return (
     <ModulePageLayout
       title="Productos"
       moduleLabel="Inventario"
-      description="Catalogo maestro de productos con precios, categorias, stock y acceso directo al Kardex."
+      description="Catalogo maestro de productos con busqueda, edicion, estado y persistencia local."
       breadcrumb={['Inventario', 'Productos']}
       searchValue={search}
-      searchPlaceholder="Buscar por codigo, nombre, categoria o estado"
+      searchPlaceholder="Buscar por codigo, nombre, categoria, marca o estado"
       onSearchChange={setSearch}
       actions={[
-        { id: 'new', label: 'Crear producto', icon: FilePlus2, variant: 'primary', onClick: () => notify('Formulario listo para crear producto') },
-        { id: 'save', label: 'Guardar', icon: Save, onClick: () => notify('Producto guardado') },
-        { id: 'edit', label: 'Editar', icon: Edit3, onClick: () => notify('Producto listo para edicion') },
-        { id: 'inactive', label: 'Inactivar', icon: Ban, variant: 'danger', onClick: () => notify('Producto marcado como inactivo') },
-        { id: 'stock', label: 'Ver stock', icon: PackageSearch, onClick: () => notify('Consulta de stock abierta') },
-        { id: 'kardex', label: 'Kardex', icon: History, onClick: () => notify('Movimientos Kardex filtrados') },
-        { id: 'export', label: 'Exportar', icon: Download, onClick: () => notify('Exportando catalogo de productos') },
+        { id: 'new', label: 'Nuevo producto', icon: FilePlus2, variant: 'primary', onClick: startNewProduct },
+        { id: 'save', label: 'Guardar', icon: Save, onClick: saveProduct, disabled: !isFormOpen },
+        { id: 'edit', label: 'Editar', icon: Edit3, onClick: editSelectedProduct, disabled: !selectedProduct },
+        { id: 'inactive', label: 'Inactivar', icon: Ban, variant: 'danger', onClick: inactivateSelectedProduct, disabled: !selectedProduct },
+        { id: 'stock', label: 'Ver stock', icon: PackageSearch, onClick: openStockPanel, disabled: !selectedProduct },
+        { id: 'movements', label: 'Ver movimientos', icon: History, onClick: openMovementsPanel, disabled: !selectedProduct },
+        { id: 'print', label: 'Imprimir', icon: Printer, onClick: printProducts },
+        { id: 'export', label: 'Exportar', icon: Download, onClick: () => { exportProducts(filteredProducts); notify('Productos exportados') } },
+        { id: 'bulk', label: 'Carga masiva', icon: Upload, disabled: isFormOpen, onClick: () => { setActivePanel(null); setShowBulkImport((current) => !current) } },
       ]}
-      statusCards={[
-        { label: 'Productos activos', value: '1,248', detail: 'catalogo maestro' },
-        { label: 'Bajo stock', value: '18', detail: 'requieren reposicion' },
-        { label: 'Sin stock', value: '6', detail: 'bloquean ventas' },
-        { label: 'Valor inventario', value: 'RD$ 4.8M', detail: 'costo estimado' },
-      ]}
-      sidePanel={(
-        <>
-          <section className="erp-panel">
-            <h3>Resumen de stock</h3>
-            <dl className="erp-detail-list">
-              <div className="erp-detail-row"><span>Disponible</span><strong>148 uds</strong></div>
-              <div className="erp-detail-row"><span>Comprometido</span><strong>22 uds</strong></div>
-              <div className="erp-detail-row"><span>En compra</span><strong>180 uds</strong></div>
-              <div className="erp-detail-row"><span>Minimo</span><strong>40 uds</strong></div>
-            </dl>
-          </section>
-          <section className="erp-panel">
-            <h3>Acciones relacionadas</h3>
-            <ul className="erp-note-list">
-              <li>Ver movimientos Kardex del producto seleccionado.</li>
-              <li>Consultar stock por almacen antes de facturar.</li>
-              <li>Revisar lista de precios activa.</li>
-            </ul>
-          </section>
-        </>
-      )}
-      {...controls}
+      {...pageControls}
     >
-      <div className="erp-data-grid">
-        <section className="erp-panel">
-          <h2>Filtros de producto</h2>
-          <div className="erp-filter-grid">
+      <div className="inventory-products-page erp-data-grid">
+        {message && (
+          <div className="inventory-save-message" role="status">
+            <CheckCircle2 size={17} />
+            <span>{message}</span>
+          </div>
+        )}
+
+        <section className="erp-panel inventory-filter-panel">
+          <div className="inventory-panel-heading">
+            <div>
+              <span>Busqueda avanzada</span>
+              <h2>Filtros de producto</h2>
+            </div>
+            <button type="button" onClick={clearFilters}>Limpiar filtros</button>
+          </div>
+
+          <div className="inventory-filter-grid">
             <label>
-              Codigo
-              <input value={search} onChange={(event) => setSearch(event.target.value)} placeholder="PRD-1020" />
+              Buscar por codigo
+              <input
+                value={filters.code}
+                onChange={(event) => updateFilter('code', event.target.value)}
+                placeholder="PRD-1020"
+              />
             </label>
             <label>
-              Nombre
-              <input onChange={(event) => setSearch(event.target.value)} placeholder="Nombre del producto" />
+              Buscar por nombre
+              <input
+                value={filters.name}
+                onChange={(event) => updateFilter('name', event.target.value)}
+                placeholder="Nombre del producto"
+              />
             </label>
             <label>
-              Categoria
-              <select value={categoryFilter} onChange={(event) => setCategoryFilter(event.target.value)}>
-                <option>Todas</option>
-                <option>Lubricantes</option>
-                <option>Repuestos</option>
-                <option>Materiales</option>
-              </select>
+              Buscar por categoria
+              <input
+                value={filters.category}
+                onChange={(event) => updateFilter('category', event.target.value)}
+                placeholder="Categoria"
+                list="inventory-product-categories"
+              />
+            </label>
+            <label>
+              Buscar por marca
+              <input
+                value={filters.brand}
+                onChange={(event) => updateFilter('brand', event.target.value)}
+                placeholder="Marca"
+                list="inventory-product-brands"
+              />
             </label>
             <label>
               Estado
-              <select onChange={(event) => setSearch(event.target.value)}>
-                <option value="">Todos</option>
+              <select value={filters.status} onChange={(event) => updateFilter('status', event.target.value)}>
+                <option>Todos</option>
                 <option>Activo</option>
-                <option>Bajo stock</option>
-                <option>Sin stock</option>
+                <option>Inactivo</option>
               </select>
             </label>
           </div>
+
+          <datalist id="inventory-product-categories">
+            {categories.map((category) => <option key={category} value={category} />)}
+          </datalist>
+          <datalist id="inventory-product-brands">
+            {brands.map((brand) => <option key={brand} value={brand} />)}
+          </datalist>
         </section>
 
-        <section className="erp-panel">
-          <h2>Tabla de productos</h2>
+        {isFormOpen && (
+          <div className="inventory-modal-backdrop" role="dialog" aria-modal="true" aria-labelledby="inventory-product-form-title">
+            <section className="inventory-modal inventory-product-modal">
+              <header className="inventory-modal-header">
+                <div>
+                  <span>{selectedCode ? 'Edicion' : 'Nuevo registro'}</span>
+                  <h2 id="inventory-product-form-title">{selectedCode ? 'Editar producto' : 'Nuevo producto'}</h2>
+                </div>
+                <button type="button" className="inventory-modal-close" onClick={closeForm} aria-label="Cerrar formulario">
+                  <X size={18} />
+                </button>
+              </header>
+
+              <div className="inventory-modal-body">
+                <div className="inventory-product-form">
+                  <label>
+                    Codigo
+                    <input value={formData.code} onChange={(event) => updateForm('code', event.target.value)} />
+                  </label>
+                  <label>
+                    Nombre del producto
+                    <input value={formData.name} onChange={(event) => updateForm('name', event.target.value)} />
+                  </label>
+                  <label className="inventory-span-2">
+                    Descripcion
+                    <textarea value={formData.description} onChange={(event) => updateForm('description', event.target.value)} />
+                  </label>
+                  <label>
+                    Categoria
+                    <input value={formData.category} onChange={(event) => updateForm('category', event.target.value)} list="inventory-product-categories" />
+                  </label>
+                  <label>
+                    Marca
+                    <input value={formData.brand} onChange={(event) => updateForm('brand', event.target.value)} list="inventory-product-brands" />
+                  </label>
+                  <label>
+                    Unidad de medida
+                    <select value={formData.unit} onChange={(event) => updateForm('unit', event.target.value)}>
+                      <option>Unidad</option>
+                      <option>Caja</option>
+                      <option>Paquete</option>
+                      <option>Litro</option>
+                      <option>Galon</option>
+                      <option>Kilogramo</option>
+                    </select>
+                  </label>
+                  <label>
+                    Codigo de barra
+                    <input value={formData.barcode} onChange={(event) => updateForm('barcode', event.target.value)} />
+                  </label>
+                  <label>
+                    Costo
+                    <input type="number" min="0" step="0.01" value={formData.cost} onChange={(event) => updateForm('cost', event.target.value)} />
+                  </label>
+                  <label>
+                    Precio de venta
+                    <input type="number" min="0" step="0.01" value={formData.price} onChange={(event) => updateForm('price', event.target.value)} />
+                  </label>
+                  <label>
+                    Impuesto
+                    <select value={formData.tax} onChange={(event) => updateForm('tax', event.target.value)}>
+                      <option>ITBIS 18%</option>
+                      <option>Exento</option>
+                      <option>Impuesto incluido</option>
+                    </select>
+                  </label>
+                  <label>
+                    Stock actual
+                    <input type="number" min="0" step="1" value={formData.stock} onChange={(event) => updateForm('stock', event.target.value)} />
+                  </label>
+                  <label>
+                    Stock minimo
+                    <input type="number" min="0" step="1" value={formData.minStock} onChange={(event) => updateForm('minStock', event.target.value)} />
+                  </label>
+                  <label>
+                    Stock maximo
+                    <input type="number" min="0" step="1" value={formData.maxStock} onChange={(event) => updateForm('maxStock', event.target.value)} />
+                  </label>
+                  <label>
+                    Estado
+                    <select value={formData.status} onChange={(event) => updateForm('status', event.target.value)}>
+                      <option>Activo</option>
+                      <option>Inactivo</option>
+                    </select>
+                  </label>
+                </div>
+              </div>
+
+              <footer className="inventory-modal-footer">
+                <button type="button" className="inventory-primary-action" onClick={saveProduct}>
+                  Guardar
+                </button>
+                <button type="button" onClick={closeForm}>
+                  Cancelar
+                </button>
+              </footer>
+            </section>
+          </div>
+        )}
+
+        {!isFormOpen && showBulkImport && (
+          <section className="erp-panel inventory-bulk-panel">
+            <div className="inventory-panel-heading">
+              <div>
+                <span>Importacion simple</span>
+                <h2>Carga masiva</h2>
+              </div>
+              <button type="button" onClick={() => setBulkText(bulkImportExample)}>
+                Usar ejemplo
+              </button>
+            </div>
+
+            <label className="inventory-bulk-field">
+              Pega productos en formato: codigo,nombre,categoria,unidad,costo,precio,stock,codigoBarra
+              <textarea
+                value={bulkText}
+                onChange={(event) => setBulkText(event.target.value)}
+                placeholder={bulkImportExample}
+              />
+            </label>
+
+            <div className="inventory-bulk-actions">
+              <button type="button" className="inventory-primary-action" onClick={importBulkProducts}>
+                Importar productos
+              </button>
+              <button type="button" onClick={() => setShowBulkImport(false)}>
+                Cerrar
+              </button>
+            </div>
+          </section>
+        )}
+
+        {activePanel === 'stock' && selectedProduct && (
+          <div className="inventory-modal-backdrop" role="dialog" aria-modal="true" aria-labelledby="inventory-stock-title">
+            <section className="inventory-modal inventory-info-modal">
+              <header className="inventory-modal-header">
+                <div>
+                  <span>Consulta</span>
+                  <h2 id="inventory-stock-title">Stock del producto</h2>
+                </div>
+                <button type="button" className="inventory-modal-close" onClick={() => setActivePanel(null)} aria-label="Cerrar stock">
+                  <X size={18} />
+                </button>
+              </header>
+
+              <div className="inventory-modal-body">
+                <div className="inventory-info-grid">
+                  <article><span>Codigo</span><strong>{selectedProduct.code}</strong></article>
+                  <article><span>Nombre</span><strong>{selectedProduct.name}</strong></article>
+                  <article><span>Stock actual</span><strong>{selectedProduct.stock}</strong></article>
+                  <article><span>Stock minimo</span><strong>{selectedProduct.minStock}</strong></article>
+                  <article><span>Stock maximo</span><strong>{selectedProduct.maxStock}</strong></article>
+                  <article><span>Estado</span><strong>{selectedProduct.status}</strong></article>
+                </div>
+
+                <div className="inventory-modal-section-title">Stock por almacen</div>
+                <div className="erp-table-wrap">
+                  <table className="erp-table inventory-movements-table">
+                    <thead>
+                      <tr>
+                        <th>Almacen</th>
+                        <th>Ubicacion</th>
+                        <th>Disponible</th>
+                        <th>Reservado</th>
+                        <th>Estado</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      <tr>
+                        <td>Principal</td>
+                        <td>A-01</td>
+                        <td>{selectedProduct.stock}</td>
+                        <td>0</td>
+                        <td>{selectedProduct.status}</td>
+                      </tr>
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+
+              <footer className="inventory-modal-footer">
+                <button type="button" onClick={() => setActivePanel(null)}>
+                  Cerrar
+                </button>
+              </footer>
+            </section>
+          </div>
+        )}
+
+        {activePanel === 'movements' && selectedProduct && (
+          <div className="inventory-modal-backdrop" role="dialog" aria-modal="true" aria-labelledby="inventory-movements-title">
+            <section className="inventory-modal inventory-info-modal">
+              <header className="inventory-modal-header">
+                <div>
+                  <span>Kardex</span>
+                  <h2 id="inventory-movements-title">Movimientos del producto</h2>
+                </div>
+                <button type="button" className="inventory-modal-close" onClick={() => setActivePanel(null)} aria-label="Cerrar movimientos">
+                  <X size={18} />
+                </button>
+              </header>
+
+              <div className="inventory-modal-body">
+                <div className="inventory-selected-title">
+                  <strong>{selectedProduct.code}</strong>
+                  <span>{selectedProduct.name}</span>
+                </div>
+                <div className="erp-table-wrap">
+                  <table className="erp-table inventory-movements-table">
+                    <thead>
+                      <tr>
+                        <th>Fecha</th>
+                        <th>Tipo</th>
+                        <th>Documento</th>
+                        <th>Entrada</th>
+                        <th>Salida</th>
+                        <th>Balance</th>
+                        <th>Usuario</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      <tr>
+                        <td>2026-05-17</td>
+                        <td>Inventario inicial</td>
+                        <td>INI-0001</td>
+                        <td>{selectedProduct.stock}</td>
+                        <td>0</td>
+                        <td>{selectedProduct.stock}</td>
+                        <td>Administrador</td>
+                      </tr>
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+
+              <footer className="inventory-modal-footer">
+                <button type="button" onClick={() => setActivePanel(null)}>
+                  Cerrar
+                </button>
+              </footer>
+            </section>
+          </div>
+        )}
+
+        <section className="erp-panel inventory-table-panel">
+          <div className="inventory-panel-heading">
+            <div>
+              <span>{filteredProducts.length} resultado(s)</span>
+              <h2>Tabla de productos</h2>
+            </div>
+          </div>
+
           <div className="erp-table-wrap">
-            <table className="erp-table">
+            <table className="erp-table inventory-products-table">
               <thead>
                 <tr>
                   <th>Codigo</th>
                   <th>Producto</th>
                   <th>Categoria</th>
-                  <th>Stock</th>
+                  <th>Unidad</th>
+                  <th>Costo</th>
                   <th>Precio</th>
+                  <th>Stock</th>
                   <th>Estado</th>
+                  <th>Acciones</th>
                 </tr>
               </thead>
               <tbody>
                 {filteredProducts.map((product) => (
-                  <tr key={product.code}>
+                  <tr
+                    key={product.code}
+                    className={selectedCode === product.code ? 'is-selected' : ''}
+                    onClick={() => selectProduct(product)}
+                  >
                     <td>{product.code}</td>
-                    <td>{product.name}</td>
-                    <td>{product.category}</td>
-                    <td>{product.stock}</td>
-                    <td>{product.price}</td>
-                    <td><span className={badgeClass(product.status)}>{product.status}</span></td>
+                    <td>
+                      <strong>{product.name}</strong>
+                      <small>{product.brand || 'Sin marca'}</small>
+                    </td>
+                    <td>{product.category || 'Sin categoria'}</td>
+                    <td>{product.unit}</td>
+                    <td>{formatCurrency(product.cost)}</td>
+                    <td>{formatCurrency(product.price)}</td>
+                    <td>
+                      <span className={isLowStock(product) ? 'inventory-stock-low' : ''}>
+                        {product.stock}
+                      </span>
+                    </td>
+                    <td><span className={productStatusClass(product)}>{product.status}</span></td>
+                    <td>
+                      <div className="erp-table-actions">
+                        <button
+                          type="button"
+                          onClick={(event) => {
+                            event.stopPropagation()
+                            selectProduct(product)
+                            setViewMode('form')
+                            setActivePanel(null)
+                            setShowBulkImport(false)
+                          }}
+                          title="Editar producto"
+                        >
+                          <Edit3 size={15} />
+                        </button>
+                        <button
+                          type="button"
+                          onClick={(event) => {
+                            event.stopPropagation()
+                            selectProduct(product)
+                            inactivateProduct(product.code)
+                          }}
+                          title="Inactivar producto"
+                          disabled={product.status === 'Inactivo'}
+                        >
+                          <Ban size={15} />
+                        </button>
+                      </div>
+                    </td>
                   </tr>
                 ))}
+                {filteredProducts.length === 0 && (
+                  <tr>
+                    <td colSpan="9">
+                      <div className="inventory-empty-table">
+                        No hay productos que coincidan con la busqueda.
+                      </div>
+                    </td>
+                  </tr>
+                )}
               </tbody>
             </table>
-          </div>
-        </section>
-
-        <section className="erp-panel">
-          <h2>Formulario de producto</h2>
-          <div className="erp-form-grid">
-            <label>
-              Codigo
-              <input defaultValue="PRD-1020" />
-            </label>
-            <label>
-              Nombre
-              <input defaultValue="Aceite premium 1L" />
-            </label>
-            <label>
-              Categoria
-              <select defaultValue="Lubricantes">
-                <option>Lubricantes</option>
-                <option>Repuestos</option>
-                <option>Materiales</option>
-              </select>
-            </label>
-            <label>
-              Marca
-              <input defaultValue="Linea Pro" />
-            </label>
-            <label>
-              Unidad
-              <select defaultValue="Unidad">
-                <option>Unidad</option>
-                <option>Caja</option>
-                <option>Galon</option>
-              </select>
-            </label>
-            <label>
-              Precio venta
-              <input defaultValue="385.00" />
-            </label>
-            <label>
-              Stock minimo
-              <input type="number" defaultValue="40" />
-            </label>
-            <label>
-              Codigo de barra
-              <input defaultValue="7460001020007" />
-            </label>
           </div>
         </section>
       </div>
