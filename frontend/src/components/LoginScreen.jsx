@@ -116,10 +116,6 @@ export default function LoginScreen({ onLogin }) {
           <button type="submit" className="login-submit">
             Entrar al sistema
           </button>
-
-          <div className="login-demo-note">
-            <strong>Acceso principal:</strong> admin / admin123. Luego crea usuarios desde el panel de usuarios.
-          </div>
         </form>
       </section>
     </main>

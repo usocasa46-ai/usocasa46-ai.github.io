@@ -11,8 +11,9 @@ import {
   Upload,
   X,
 } from 'lucide-react'
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import ModulePageLayout from '../shared/ModulePageLayout.jsx'
+import { productsService } from '../../services/productsService.js'
 import './InventoryProductsPage.css'
 
 const STORAGE_KEY = 'inveFatInventoryProducts'
@@ -148,6 +149,7 @@ function normalizeProduct(product) {
 
 function saveProducts(products) {
   localStorage.setItem(STORAGE_KEY, JSON.stringify(products))
+  void productsService.replaceAll(products)
 }
 
 function loadProducts() {
@@ -473,6 +475,21 @@ export default function InventoryProductsPage({ controls, onAction, searchValue 
   const [activePanel, setActivePanel] = useState(null)
   const [modalWindowState, setModalWindowState] = useState('normal')
   const [movementFilters, setMovementFilters] = useState(initialMovementFilters)
+
+  useEffect(() => {
+    let isActive = true
+
+    productsService.getAll().then((storedProducts) => {
+      if (!isActive || !Array.isArray(storedProducts) || storedProducts.length === 0) return
+      const normalizedProducts = storedProducts.map(normalizeProduct)
+      setProducts(normalizedProducts)
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(normalizedProducts))
+    })
+
+    return () => {
+      isActive = false
+    }
+  }, [])
 
   const search = searchValue
   const setSearch = onSearchChange || (() => {})

@@ -1,4 +1,6 @@
 import { DEFAULT_PAGE_ID, erpModules, pageRegistry } from '../config/modulesMap.js'
+import { securityService } from '../services/securityService.js'
+import { usersService } from '../services/usersService.js'
 
 export const SECURITY_ACTIONS = [
   { id: 'view', label: 'Ver' },
@@ -256,6 +258,7 @@ export function loadRoles() {
 export function saveRoles(roles) {
   const normalizedRoles = roles.map(normalizeRole)
   writeAll(SECURITY_STORAGE.roles, normalizedRoles)
+  void securityService.roles.replaceAll(normalizedRoles)
   return normalizedRoles
 }
 
@@ -303,6 +306,7 @@ export function loadUsers() {
 export function saveUsers(users) {
   const normalizedUsers = users.map(normalizeUser)
   writeAll(SECURITY_STORAGE.users, normalizedUsers)
+  void usersService.replaceAll(normalizedUsers)
   return normalizedUsers
 }
 
@@ -327,6 +331,7 @@ export function loadPermissions() {
 export function savePermissions(permissions) {
   if (!canUseStorage()) return permissions
   localStorage.setItem(SECURITY_STORAGE.permissions[0], JSON.stringify(permissions))
+  void securityService.permissions.replaceAll(permissions)
   return permissions
 }
 
@@ -415,6 +420,7 @@ export function appendAuditLog(action, payload = {}) {
   }
 
   writeAll(SECURITY_STORAGE.audit, [nextRecord, ...currentLog].slice(0, 500))
+  void securityService.audit.create(nextRecord)
 }
 
 export function loadAuditLog() {

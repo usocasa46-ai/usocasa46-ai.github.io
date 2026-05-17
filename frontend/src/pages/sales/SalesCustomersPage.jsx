@@ -10,8 +10,9 @@ import {
   Upload,
   X,
 } from 'lucide-react'
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import ModulePageLayout from '../shared/ModulePageLayout.jsx'
+import { customersService } from '../../services/customersService.js'
 import './SalesCustomersPage.css'
 
 const CUSTOMERS_KEY = 'invefat_customers'
@@ -93,6 +94,7 @@ function loadCustomers() {
 
 function saveCustomers(customers) {
   localStorage.setItem(CUSTOMERS_KEY, JSON.stringify(customers))
+  void customersService.replaceAll(customers)
 }
 
 function loadInvoices() {
@@ -124,6 +126,21 @@ export default function SalesCustomersPage({ controls, onAction, searchValue = '
   })
   const [activeModal, setActiveModal] = useState('')
   const [message, setMessage] = useState('')
+
+  useEffect(() => {
+    let isActive = true
+
+    customersService.getAll().then((storedCustomers) => {
+      if (!isActive || !Array.isArray(storedCustomers) || storedCustomers.length === 0) return
+      const normalizedCustomers = storedCustomers.map(normalizeCustomer)
+      setCustomers(normalizedCustomers)
+      localStorage.setItem(CUSTOMERS_KEY, JSON.stringify(normalizedCustomers))
+    })
+
+    return () => {
+      isActive = false
+    }
+  }, [])
 
   const selectedCustomer = useMemo(() => (
     customers.find((customer) => customer.code === selectedCode)

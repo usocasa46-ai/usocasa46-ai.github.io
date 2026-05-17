@@ -12,8 +12,12 @@ import {
   Trash2,
   X,
 } from 'lucide-react'
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import ModulePageLayout from '../shared/ModulePageLayout.jsx'
+import { customersService } from '../../services/customersService.js'
+import { invoicesService } from '../../services/invoicesService.js'
+import { productsService } from '../../services/productsService.js'
+import { settingsService } from '../../services/settingsService.js'
 import {
   createPdfMetadata,
   downloadSalesDocumentPdf,
@@ -66,6 +70,17 @@ const defaultSettings = {
     showSignature: true,
     showStamp: false,
     footerMessage: 'Documento generado por INVE-FAT SYSTEM.',
+  },
+  fiscal: {
+    useNcf: false,
+    defaultReceiptType: 'Consumidor final',
+    ncfPrefix: 'B02',
+    nextNcf: 1,
+    ncfLength: 8,
+    ncfValidUntil: '',
+    showNcf: true,
+    showNcfValidUntil: true,
+    showPaymentCondition: true,
   },
   branches: [
     {
@@ -214,6 +229,7 @@ function loadProducts() {
 
 function saveProducts(products) {
   localStorage.setItem(PRODUCTS_KEY, JSON.stringify(products))
+  void productsService.replaceAll(products)
 }
 
 function loadInvoices() {
@@ -223,6 +239,7 @@ function loadInvoices() {
 
 function saveInvoices(invoices) {
   localStorage.setItem(INVOICES_KEY, JSON.stringify(invoices))
+  void invoicesService.replaceAll(invoices)
 }
 
 function loadSettings() {
@@ -236,6 +253,7 @@ function loadSettings() {
     brand: { ...defaultSettings.brand, ...saved.brand },
     documentOptions: { ...defaultSettings.documentOptions, ...saved.documentOptions },
     billing: { ...defaultSettings.billing, ...saved.billing },
+    fiscal: { ...defaultSettings.fiscal, ...saved.fiscal },
     preferences: { ...defaultSettings.preferences, ...saved.preferences },
     numbering: { ...defaultSettings.numbering, ...saved.numbering },
     branches: Array.isArray(saved.branches) && saved.branches.length ? saved.branches : defaultSettings.branches,
@@ -257,6 +275,21 @@ function nextInvoiceNumber(settings, invoices) {
   }, 0)
 
   return `${prefix}${separator}${String(Math.max(configuredNext, maxExisting + 1)).padStart(length, '0')}`
+}
+
+function nextNcf(settings, invoices) {
+  if (!settings.fiscal?.useNcf) return ''
+
+  const prefix = settings.fiscal.ncfPrefix || 'B02'
+  const length = Number(settings.fiscal.ncfLength) || 8
+  const configuredNext = Number(settings.fiscal.nextNcf) || 1
+  const maxExisting = invoices.reduce((max, invoice) => {
+    const numberPart = String(invoice.ncf || '').replace(prefix, '')
+    const parsed = Number.parseInt(numberPart, 10)
+    return Number.isFinite(parsed) ? Math.max(max, parsed) : max
+  }, 0)
+
+  return `${prefix}${String(Math.max(configuredNext, maxExisting + 1)).padStart(length, '0')}`
 }
 
 function defaultBranch(settings) {
@@ -288,6 +321,9 @@ function emptyInvoice(settings, invoices) {
     warehouse: defaultWarehouse(settings, branch.code),
     paymentCondition: 'Contado',
     paymentMethod: 'Efectivo',
+    receiptType: settings.fiscal?.defaultReceiptType || 'Consumidor final',
+    ncf: nextNcf(settings, invoices),
+    ncfValidUntil: settings.fiscal?.ncfValidUntil || '',
     dueDate: todayDate(),
     creditDays: 0,
     creditLimit: 0,
@@ -386,6 +422,43 @@ export default function SalesInvoicePage({ controls, onAction, searchValue = '',
   const [message, setMessage] = useState('')
   const [activeModal, setActiveModal] = useState('')
   const [invoiceModalState, setInvoiceModalState] = useState('normal')
+
+  useEffect(() => {
+    let isActive = true
+
+    Promise.all([
+      settingsService.getById(),
+      productsService.getAll(),
+      invoicesService.getAll(),
+      customersService.getAll(),
+    ]).then(([storedSettings, storedProducts, storedInvoices, storedCustomers]) => {
+      if (!isActive) return
+
+      if (storedSettings && Object.keys(storedSettings).length > 0) {
+        localStorage.setItem(SETTINGS_KEY, JSON.stringify(storedSettings))
+      }
+
+      if (Array.isArray(storedProducts) && storedProducts.length > 0) {
+        const normalizedProducts = storedProducts.map(normalizeProduct)
+        setProducts(normalizedProducts)
+        localStorage.setItem(PRODUCTS_KEY, JSON.stringify(normalizedProducts))
+      }
+
+      if (Array.isArray(storedInvoices) && storedInvoices.length > 0) {
+        setInvoices(storedInvoices)
+        localStorage.setItem(INVOICES_KEY, JSON.stringify(storedInvoices))
+      }
+
+      if (Array.isArray(storedCustomers) && storedCustomers.length > 0) {
+        localStorage.setItem('invefat_customers', JSON.stringify(storedCustomers))
+        setCustomers(loadCustomers(Array.isArray(storedInvoices) ? storedInvoices : loadInvoices()))
+      }
+    })
+
+    return () => {
+      isActive = false
+    }
+  }, [])
 
   const branches = useMemo(() => settings.branches || defaultSettings.branches, [settings.branches])
   const warehouses = useMemo(() => settings.warehouses || defaultSettings.warehouses, [settings.warehouses])
@@ -764,10 +837,16 @@ export default function SalesInvoicePage({ controls, onAction, searchValue = '',
     const nextTotals = calculateTotals(invoice)
     const existing = invoices.find((item) => item.number === invoice.number)
     const shouldApplyInventory = !existing?.inventoryApplied && !invoice.inventoryApplied && invoice.state !== 'Anulada'
-    const pdfInfo = createPdfMetadata(invoice, settings, 'invoice')
-    const savedInvoice = {
+    const fiscalInvoice = {
       ...invoice,
-      state: finalState(invoice, nextTotals),
+      receiptType: invoice.receiptType || settings.fiscal?.defaultReceiptType || 'Consumidor final',
+      ncf: invoice.ncf || nextNcf(settings, invoices),
+      ncfValidUntil: invoice.ncfValidUntil || settings.fiscal?.ncfValidUntil || '',
+    }
+    const pdfInfo = createPdfMetadata(fiscalInvoice, settings, 'invoice')
+    const savedInvoice = {
+      ...fiscalInvoice,
+      state: finalState(fiscalInvoice, nextTotals),
       totals: nextTotals,
       inventoryApplied: Boolean(existing?.inventoryApplied || invoice.inventoryApplied || shouldApplyInventory),
       pdf: pdfInfo,
@@ -834,11 +913,11 @@ export default function SalesInvoicePage({ controls, onAction, searchValue = '',
     notify(`Factura ${targetInvoice.number} anulada.`)
   }
 
-  const showPreview = (targetInvoice = selectedInvoice || invoice) => {
+  const showPreview = async (targetInvoice = selectedInvoice || invoice) => {
     const printableInvoice = ensurePrintableInvoice(targetInvoice)
     if (!printableInvoice) return false
 
-    const pdfInfo = openSalesDocumentPdf({
+    const pdfInfo = await openSalesDocumentPdf({
       documentData: printableInvoice,
       settings,
       documentType: 'invoice',
@@ -848,11 +927,11 @@ export default function SalesInvoicePage({ controls, onAction, searchValue = '',
     return true
   }
 
-  const printInvoice = (targetInvoice = selectedInvoice || invoice) => {
+  const printInvoice = async (targetInvoice = selectedInvoice || invoice) => {
     const printableInvoice = ensurePrintableInvoice(targetInvoice)
     if (!printableInvoice) return
 
-    const pdfInfo = printSalesDocumentPdf({
+    const pdfInfo = await printSalesDocumentPdf({
       documentData: printableInvoice,
       settings,
       documentType: 'invoice',
@@ -861,11 +940,11 @@ export default function SalesInvoicePage({ controls, onAction, searchValue = '',
     notify(`Factura ${printableInvoice.number} enviada a impresion.`)
   }
 
-  const downloadInvoicePdf = (targetInvoice = selectedInvoice || invoice) => {
+  const downloadInvoicePdf = async (targetInvoice = selectedInvoice || invoice) => {
     const printableInvoice = ensurePrintableInvoice(targetInvoice)
     if (!printableInvoice) return
 
-    const pdfInfo = downloadSalesDocumentPdf({
+    const pdfInfo = await downloadSalesDocumentPdf({
       documentData: printableInvoice,
       settings,
       documentType: 'invoice',
@@ -1121,11 +1200,32 @@ export default function SalesInvoicePage({ controls, onAction, searchValue = '',
                         <option>Credito</option>
                       </select>
                     </label>
+                    <label>
+                      Tipo de comprobante
+                      <select value={invoice.receiptType} onChange={(event) => updateInvoice('receiptType', event.target.value)}>
+                        <option>Consumidor final</option>
+                        <option>Credito fiscal</option>
+                        <option>Gubernamental</option>
+                        <option>Regimen especial</option>
+                      </select>
+                    </label>
+                    <label>
+                      NCF
+                      <input value={invoice.ncf || ''} onChange={(event) => updateInvoice('ncf', event.target.value)} placeholder={settings.fiscal?.useNcf ? 'NCF automatico' : 'NCF opcional'} />
+                    </label>
+                    <label>
+                      Valido hasta
+                      <input type="date" value={invoice.ncfValidUntil || ''} onChange={(event) => updateInvoice('ncfValidUntil', event.target.value)} />
+                    </label>
                     {invoice.paymentMethod === 'Credito' ? (
                       <>
                         <label>
                           Vencimiento
                           <input type="date" value={invoice.dueDate} onChange={(event) => updateInvoice('dueDate', event.target.value)} />
+                        </label>
+                        <label>
+                          Dias de credito
+                          <input type="number" min="0" value={invoice.creditDays} onChange={(event) => updateInvoice('creditDays', event.target.value)} />
                         </label>
                         <label>
                           Balance pendiente

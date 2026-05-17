@@ -39,6 +39,17 @@ const defaultSettings = {
     showStamp: false,
     footerMessage: 'Documento generado por INVE-FAT SYSTEM.',
   },
+  fiscal: {
+    useNcf: false,
+    defaultReceiptType: 'Consumidor final',
+    ncfPrefix: 'B02',
+    nextNcf: 1,
+    ncfLength: 8,
+    ncfValidUntil: '',
+    showNcf: true,
+    showNcfValidUntil: true,
+    showPaymentCondition: true,
+  },
 }
 
 const pageFormats = {
@@ -57,6 +68,7 @@ function mergeSettings(settings = {}) {
     brand: { ...defaultSettings.brand, ...settings.brand },
     documentOptions: { ...defaultSettings.documentOptions, ...settings.documentOptions },
     billing: { ...defaultSettings.billing, ...settings.billing },
+    fiscal: { ...defaultSettings.fiscal, ...settings.fiscal },
   }
 }
 
@@ -96,6 +108,52 @@ function hexToRgb(hexValue, fallback = '#0f2742') {
 function pdfColor(hexValue) {
   const { r, g, b } = hexToRgb(hexValue)
   return `${(r / 255).toFixed(3)} ${(g / 255).toFixed(3)} ${(b / 255).toFixed(3)}`
+}
+
+function dataUrlToBytes(dataUrl) {
+  const base64 = String(dataUrl || '').split(',')[1] || ''
+  const binary = atob(base64)
+  const bytes = new Uint8Array(binary.length)
+  for (let index = 0; index < binary.length; index += 1) {
+    bytes[index] = binary.charCodeAt(index)
+  }
+  return bytes
+}
+
+function bytesToHex(bytes) {
+  return Array.from(bytes).map((byte) => byte.toString(16).padStart(2, '0')).join('').toUpperCase()
+}
+
+async function prepareLogoImage(logoDataUrl) {
+  if (!logoDataUrl || typeof Image === 'undefined' || typeof document === 'undefined') return null
+
+  return new Promise((resolve) => {
+    const image = new Image()
+    image.onload = () => {
+      try {
+        const canvas = document.createElement('canvas')
+        const maxSize = 240
+        const ratio = Math.min(maxSize / image.width, maxSize / image.height, 1)
+        canvas.width = Math.max(Math.round(image.width * ratio), 1)
+        canvas.height = Math.max(Math.round(image.height * ratio), 1)
+        const context = canvas.getContext('2d')
+        context.fillStyle = '#ffffff'
+        context.fillRect(0, 0, canvas.width, canvas.height)
+        context.drawImage(image, 0, 0, canvas.width, canvas.height)
+
+        const jpegDataUrl = canvas.toDataURL('image/jpeg', 0.88)
+        resolve({
+          width: canvas.width,
+          height: canvas.height,
+          hex: bytesToHex(dataUrlToBytes(jpegDataUrl)),
+        })
+      } catch {
+        resolve(null)
+      }
+    }
+    image.onerror = () => resolve(null)
+    image.src = logoDataUrl
+  })
 }
 
 function formatMoney(value, settings) {
@@ -191,19 +249,29 @@ function textWidthChars(width, fontSize) {
   return Math.max(Math.floor(width / (fontSize * 0.52)), 8)
 }
 
-function buildPdf(objects, pages, pageSize) {
+function buildPdf(objects, pages, pageSize, xObjects = {}) {
   const kids = []
 
   objects.push('<< /Type /Catalog /Pages 2 0 R >>')
   objects.push('')
   objects.push('<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>')
   objects.push('<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica-Bold >>')
+  const xObjectRefs = {}
+
+  Object.entries(xObjects).forEach(([name, object]) => {
+    xObjectRefs[name] = objects.length + 1
+    objects.push(object)
+  })
+
+  const xObjectResource = Object.keys(xObjectRefs).length
+    ? `/XObject << ${Object.entries(xObjectRefs).map(([name, id]) => `/${name} ${id} 0 R`).join(' ')} >>`
+    : ''
 
   pages.forEach((pageContent) => {
     const pageObjectId = objects.length + 1
     const contentObjectId = objects.length + 2
     kids.push(`${pageObjectId} 0 R`)
-    objects.push(`<< /Type /Page /Parent 2 0 R /MediaBox [0 0 ${pageSize.width} ${pageSize.height}] /Resources << /Font << /F1 3 0 R /F2 4 0 R >> >> /Contents ${contentObjectId} 0 R >>`)
+    objects.push(`<< /Type /Page /Parent 2 0 R /MediaBox [0 0 ${pageSize.width} ${pageSize.height}] /Resources << /Font << /F1 3 0 R /F2 4 0 R >> ${xObjectResource} >> /Contents ${contentObjectId} 0 R >>`)
     objects.push(`<< /Length ${pageContent.length} >>\nstream\n${pageContent}\nendstream`)
   })
 
@@ -248,6 +316,10 @@ function createCanvasContext(pageSize, margin, settings) {
     push(`${pdfColor(color)} RG ${width} w ${x1} ${y1} m ${x2} ${y2} l S`)
   }
 
+  const image = (name, x, topY, width, height) => {
+    push(`q ${width} 0 0 ${height} ${x} ${topY - height} cm /${name} Do Q`)
+  }
+
   const text = (value, x, textY, size = 10, options = {}) => {
     const font = options.bold ? 'F2' : 'F1'
     const color = options.color || '#172d43'
@@ -282,6 +354,7 @@ function createCanvasContext(pageSize, margin, settings) {
     commitPage,
     rect,
     line,
+    image,
     text,
     wrappedText,
     pageBreakIfNeeded,
@@ -302,14 +375,13 @@ export function createPdfMetadata(documentData, settings = {}, documentType = 'i
   }
 }
 
-export function createSalesDocumentPdfBlob({ documentData, settings, documentType = 'invoice' }) {
+export async function createSalesDocumentPdfBlob({ documentData, settings, documentType = 'invoice' }) {
   const mergedSettings = mergeSettings(settings)
   const pageSize = getPageSize(mergedSettings)
   const isTicket = String(mergedSettings.billing.printFormat || '').includes('Ticket')
   const margin = isTicket ? 14 : 36
   const baseFont = Math.max(8, Math.min(toNumber(mergedSettings.billing.fontSize) || 11, isTicket ? 10 : 13))
   const title = documentType === 'quote' ? 'COTIZACION' : 'FACTURA'
-  const documentLabel = documentType === 'quote' ? 'Cotizacion' : 'Factura'
   const lines = Array.isArray(documentData?.lines) ? documentData.lines : []
   const totals = calculateTotals(documentData)
   const primary = mergedSettings.brand.primaryColor
@@ -318,51 +390,76 @@ export function createSalesDocumentPdfBlob({ documentData, settings, documentTyp
   const contentWidth = pageSize.width - (margin * 2)
   const objects = []
   const ctx = createCanvasContext(pageSize, margin, mergedSettings)
+  const logoImage = await prepareLogoImage(mergedSettings.brand.logo)
+  const xObjects = logoImage
+    ? {
+        Logo: `<< /Type /XObject /Subtype /Image /Width ${logoImage.width} /Height ${logoImage.height} /ColorSpace /DeviceRGB /BitsPerComponent 8 /Filter [/ASCIIHexDecode /DCTDecode] /Length ${logoImage.hex.length + 1} >>\nstream\n${logoImage.hex}>\nendstream`,
+      }
+    : {}
 
   const drawDocumentHeader = () => {
-    const headerHeight = isTicket ? 92 : 104
+    const headerHeight = isTicket ? 132 : 142
     ctx.rect(margin, ctx.y, contentWidth, headerHeight, '#ffffff', '#dce5ef')
     ctx.rect(margin, ctx.y, contentWidth, 10, primary)
 
     const companyX = margin + 14
-    const companyY = ctx.y - 29
-    if (mergedSettings.documentOptions.showLogo && mergedSettings.brand.logo) {
-      ctx.rect(companyX, ctx.y - 22, 42, 42, secondary, '#dce5ef')
-      ctx.text('LOGO', companyX + 8, ctx.y - 48, 8, { bold: true, color: primary })
-    }
-
-    const companyTextX = mergedSettings.documentOptions.showLogo && mergedSettings.brand.logo ? companyX + 54 : companyX
-    ctx.text(mergedSettings.company.tradeName || mergedSettings.company.legalName, companyTextX, companyY, isTicket ? 12 : 17, { bold: true, color: primary })
-    ctx.text(mergedSettings.company.legalName || '', companyTextX, companyY - 16, baseFont, { color: '#40576f' })
-
-    let infoY = companyY - 31
-    if (mergedSettings.documentOptions.showFiscalId) {
-      ctx.text(`RNC / ID: ${mergedSettings.company.fiscalId || 'N/D'}`, companyTextX, infoY, baseFont - 1, { color: '#60758b' })
-      infoY -= 13
-    }
-    if (mergedSettings.documentOptions.showAddress) {
-      infoY -= ctx.wrappedText(mergedSettings.company.address || 'Direccion principal', companyTextX, infoY, contentWidth * 0.48, baseFont - 1, { color: '#60758b' }) - (baseFont + 2)
-    }
-    if (mergedSettings.documentOptions.showPhone) {
-      ctx.text(`Tel: ${mergedSettings.company.phone || 'N/D'}  WhatsApp: ${mergedSettings.company.whatsapp || 'N/D'}`, companyTextX, infoY, baseFont - 1, { color: '#60758b' })
-    }
-    if (mergedSettings.documentOptions.showEmail) {
-      ctx.text(`Correo: ${mergedSettings.company.email || 'N/D'}`, companyTextX, infoY - 13, baseFont - 1, { color: '#60758b' })
-    }
-
-    const docBoxWidth = isTicket ? contentWidth : 172
+    const logoBoxSize = isTicket ? 42 : 58
+    const logoTop = ctx.y - 24
+    const docBoxWidth = isTicket ? contentWidth - 20 : 178
     const docBoxX = isTicket ? margin + 10 : pageSize.width - margin - docBoxWidth - 14
+    const companyMaxWidth = isTicket ? contentWidth - 28 : docBoxX - companyX - 24
+
+    if (mergedSettings.documentOptions.showLogo) {
+      ctx.rect(companyX, logoTop, logoBoxSize, logoBoxSize, secondary, '#dce5ef')
+      if (logoImage) {
+        const imageRatio = Math.min((logoBoxSize - 8) / logoImage.width, (logoBoxSize - 8) / logoImage.height)
+        const imageWidth = logoImage.width * imageRatio
+        const imageHeight = logoImage.height * imageRatio
+        ctx.image('Logo', companyX + ((logoBoxSize - imageWidth) / 2), logoTop - ((logoBoxSize - imageHeight) / 2), imageWidth, imageHeight)
+      } else {
+        ctx.text('IF', companyX + 15, logoTop - 32, 14, { bold: true, color: primary })
+      }
+    }
+
+    const companyTextX = mergedSettings.documentOptions.showLogo ? companyX + logoBoxSize + 12 : companyX
+    let infoY = ctx.y - 34
+    ctx.wrappedText(mergedSettings.company.tradeName || mergedSettings.company.legalName, companyTextX, infoY, companyMaxWidth, isTicket ? 12 : 17, { bold: true, color: primary })
+    infoY -= isTicket ? 17 : 21
+
+    if (mergedSettings.company.legalName) {
+      ctx.wrappedText(mergedSettings.company.legalName, companyTextX, infoY, companyMaxWidth, baseFont, { color: '#40576f' })
+      infoY -= baseFont + 5
+    }
+
+    const headerLines = []
+    if (mergedSettings.documentOptions.showFiscalId) headerLines.push(`RNC / ID: ${mergedSettings.company.fiscalId || 'N/D'}`)
+    if (mergedSettings.documentOptions.showAddress) headerLines.push(mergedSettings.company.address || 'Direccion principal')
+    if (mergedSettings.documentOptions.showPhone) headerLines.push(`Tel: ${mergedSettings.company.phone || 'N/D'}  WhatsApp: ${mergedSettings.company.whatsapp || 'N/D'}`)
+    if (mergedSettings.documentOptions.showEmail) headerLines.push(`Correo: ${mergedSettings.company.email || 'N/D'}`)
+
+    headerLines.forEach((lineText) => {
+      const usedHeight = ctx.wrappedText(lineText, companyTextX, infoY, companyMaxWidth, baseFont - 1, { color: '#60758b' })
+      infoY -= usedHeight + 2
+    })
+
     const docBoxY = ctx.y - 26
-    ctx.rect(docBoxX, docBoxY + 8, docBoxWidth, 70, primary)
+    const docBoxHeight = isTicket ? 86 : 92
+    ctx.rect(docBoxX, docBoxY + 8, docBoxWidth, docBoxHeight, primary)
     ctx.text(title, docBoxX + 14, docBoxY - 13, isTicket ? 12 : 18, { bold: true, color: '#ffffff' })
     ctx.text(documentData?.number || 'Pendiente', docBoxX + 14, docBoxY - 33, baseFont + 1, { bold: true, color: '#ffffff' })
     ctx.text(`Fecha: ${documentData?.date || ''}`, docBoxX + 14, docBoxY - 50, baseFont - 1, { color: '#e8f0f8' })
+    if (documentType === 'invoice' && mergedSettings.fiscal.showNcf && documentData?.ncf) {
+      ctx.text(`NCF: ${documentData.ncf}`, docBoxX + 14, docBoxY - 66, baseFont - 1, { bold: true, color: '#ffffff' })
+    }
+    if (documentType === 'invoice' && mergedSettings.fiscal.showNcfValidUntil && documentData?.ncfValidUntil) {
+      ctx.text(`Valido hasta: ${documentData.ncfValidUntil}`, docBoxX + 14, docBoxY - 81, baseFont - 1, { color: '#e8f0f8' })
+    }
 
     ctx.y -= headerHeight + 16
   }
 
   const drawCustomerBlock = () => {
-    const blockHeight = isTicket ? 116 : 92
+    const blockHeight = isTicket ? 136 : 108
     ctx.rect(margin, ctx.y, contentWidth, blockHeight, '#ffffff', '#dce5ef')
     ctx.rect(margin, ctx.y, contentWidth, 8, accent)
     ctx.text('Datos del cliente', margin + 14, ctx.y - 27, baseFont + 1, { bold: true, color: primary })
@@ -373,9 +470,23 @@ export function createSalesDocumentPdfBlob({ documentData, settings, documentTyp
     const rightX = isTicket ? margin + 14 : margin + contentWidth * 0.58
     const rightY = isTicket ? ctx.y - 93 : ctx.y - 45
     ctx.text(`Pago: ${documentData?.paymentMethod || documentData?.paymentCondition || 'N/D'}`, rightX, rightY, baseFont - 1, { color: '#40576f' })
-    ctx.text(`Condicion: ${documentData?.paymentCondition || 'N/D'}`, rightX, rightY - 16, baseFont - 1, { color: '#40576f' })
+    const creditLabel = documentData?.paymentCondition === 'Credito' && documentData?.creditDays
+      ? `Credito ${documentData.creditDays} dias`
+      : (documentData?.paymentCondition || 'N/D')
+    if (mergedSettings.fiscal.showPaymentCondition) {
+      ctx.text(`Condicion: ${creditLabel}`, rightX, rightY - 16, baseFont - 1, { color: '#40576f' })
+    }
+    if (documentType === 'invoice' && documentData?.dueDate) {
+      ctx.text(`Vencimiento: ${documentData.dueDate}`, rightX, rightY - 32, baseFont - 1, { color: '#40576f' })
+    }
+    if (documentType === 'invoice' && documentData?.receiptType) {
+      ctx.text(`Comprobante: ${documentData.receiptType}`, rightX, rightY - 48, baseFont - 1, { color: '#40576f' })
+    }
     if (documentType === 'quote') {
       ctx.text(`Validez: ${documentData?.validUntil || 'N/D'}`, rightX, rightY - 32, baseFont - 1, { color: '#40576f' })
+      if (documentData?.terms) {
+        ctx.wrappedText(`Condiciones: ${documentData.terms}`, rightX, rightY - 48, isTicket ? contentWidth - 28 : contentWidth * 0.34, baseFont - 1, { color: '#40576f' })
+      }
     }
 
     ctx.y -= blockHeight + 14
@@ -493,12 +604,12 @@ export function createSalesDocumentPdfBlob({ documentData, settings, documentTyp
   ctx.drawFooter()
   ctx.commitPage()
 
-  const pdf = buildPdf(objects, ctx.pages, pageSize)
+  const pdf = buildPdf(objects, ctx.pages, pageSize, xObjects)
   return new Blob([pdf], { type: 'application/pdf' })
 }
 
-export function downloadSalesDocumentPdf({ documentData, settings, documentType = 'invoice' }) {
-  const blob = createSalesDocumentPdfBlob({ documentData, settings, documentType })
+export async function downloadSalesDocumentPdf({ documentData, settings, documentType = 'invoice' }) {
+  const blob = await createSalesDocumentPdfBlob({ documentData, settings, documentType })
   const metadata = createPdfMetadata(documentData, settings, documentType)
   const url = URL.createObjectURL(blob)
   const link = document.createElement('a')
@@ -511,16 +622,16 @@ export function downloadSalesDocumentPdf({ documentData, settings, documentType 
   return metadata
 }
 
-export function openSalesDocumentPdf({ documentData, settings, documentType = 'invoice' }) {
-  const blob = createSalesDocumentPdfBlob({ documentData, settings, documentType })
+export async function openSalesDocumentPdf({ documentData, settings, documentType = 'invoice' }) {
+  const blob = await createSalesDocumentPdfBlob({ documentData, settings, documentType })
   const url = URL.createObjectURL(blob)
   window.open(url, '_blank', 'noopener,noreferrer')
   window.setTimeout(() => URL.revokeObjectURL(url), 60000)
   return createPdfMetadata(documentData, settings, documentType)
 }
 
-export function printSalesDocumentPdf({ documentData, settings, documentType = 'invoice' }) {
-  const blob = createSalesDocumentPdfBlob({ documentData, settings, documentType })
+export async function printSalesDocumentPdf({ documentData, settings, documentType = 'invoice' }) {
+  const blob = await createSalesDocumentPdfBlob({ documentData, settings, documentType })
   const url = URL.createObjectURL(blob)
   const frame = document.createElement('iframe')
   frame.style.position = 'fixed'

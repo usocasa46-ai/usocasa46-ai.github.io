@@ -1,5 +1,8 @@
 import { Ban, Edit3, Plus, RotateCcw, Save, Upload, X } from 'lucide-react'
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
+import { getSupabaseConfigStatus } from '../../lib/supabaseClient.js'
+import { downloadBackup, importBackupFile } from '../../services/backupService.js'
+import { settingsService } from '../../services/settingsService.js'
 import ModulePageLayout from '../shared/ModulePageLayout.jsx'
 import './SettingsGeneralPage.css'
 
@@ -14,6 +17,7 @@ const tabs = [
   { id: 'warehouses', label: 'Almacenes por sucursal' },
   { id: 'numbering', label: 'Numeracion' },
   { id: 'preferences', label: 'Preferencias generales' },
+  { id: 'backup', label: 'Respaldo' },
 ]
 
 const invoiceModels = [
@@ -111,6 +115,17 @@ const defaultSettings = {
     showQr: false,
     footerMessage: 'Documento generado por INVE-FAT SYSTEM.',
   },
+  fiscal: {
+    useNcf: false,
+    defaultReceiptType: 'Consumidor final',
+    ncfPrefix: 'B02',
+    nextNcf: 1,
+    ncfLength: 8,
+    ncfValidUntil: '',
+    showNcf: true,
+    showNcfValidUntil: true,
+    showPaymentCondition: true,
+  },
   branches: [defaultBranch],
   warehouses: defaultWarehouses,
   numbering: {
@@ -170,6 +185,7 @@ function safeLoadSettings() {
         brand: { ...defaultSettings.brand, ...parsed.brand },
         documentOptions: { ...defaultSettings.documentOptions, ...parsed.documentOptions },
         billing,
+        fiscal: { ...defaultSettings.fiscal, ...parsed.fiscal },
         preferences: { ...defaultSettings.preferences, ...parsed.preferences },
         numbering: { ...defaultSettings.numbering, ...parsed.numbering },
         branches: Array.isArray(parsed.branches) && parsed.branches.length ? parsed.branches : defaultSettings.branches,
@@ -188,6 +204,10 @@ function saveSettings(settings) {
     ...settings,
     updatedAt: new Date().toISOString(),
   }))
+  void settingsService.update('company_settings', {
+    ...settings,
+    updatedAt: new Date().toISOString(),
+  })
 }
 
 function numberingExample(config) {
@@ -201,6 +221,7 @@ export default function SettingsGeneralPage({ controls, onAction, searchValue = 
   const [branchForm, setBranchForm] = useState(emptyBranch)
   const [editingBranchCode, setEditingBranchCode] = useState('')
   const [message, setMessage] = useState('')
+  const supabaseStatus = getSupabaseConfigStatus()
 
   const activeBranchCount = useMemo(() => {
     return settings.branches.filter((branch) => branch.status === 'Activa').length
@@ -210,6 +231,20 @@ export default function SettingsGeneralPage({ controls, onAction, searchValue = 
     setMessage(text)
     onAction?.(text)
   }
+
+  useEffect(() => {
+    let isActive = true
+
+    settingsService.getById().then((storedSettings) => {
+      if (!isActive || !storedSettings || Object.keys(storedSettings).length === 0) return
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(storedSettings))
+      setSettings(safeLoadSettings())
+    })
+
+    return () => {
+      isActive = false
+    }
+  }, [])
 
   const updateSection = (section, field, value) => {
     setSettings((current) => ({
@@ -223,6 +258,10 @@ export default function SettingsGeneralPage({ controls, onAction, searchValue = 
 
   const updateDocumentOption = (field, checked) => {
     updateSection('documentOptions', field, checked)
+  }
+
+  const updateFiscal = (field, value) => {
+    updateSection('fiscal', field, value)
   }
 
   const updateNumbering = (key, field, value) => {
@@ -281,6 +320,26 @@ export default function SettingsGeneralPage({ controls, onAction, searchValue = 
     const reader = new FileReader()
     reader.onload = () => updateSection('brand', 'logo', String(reader.result || ''))
     reader.readAsDataURL(file)
+  }
+
+  const handleExportBackup = () => {
+    downloadBackup()
+    notify('Respaldo JSON exportado correctamente')
+  }
+
+  const handleImportBackup = async (event) => {
+    const file = event.target.files?.[0]
+    if (!file) return
+
+    try {
+      await importBackupFile(file)
+      setSettings(safeLoadSettings())
+      notify('Respaldo JSON importado correctamente')
+    } catch (error) {
+      notify(error.message || 'No se pudo importar el respaldo')
+    } finally {
+      event.target.value = ''
+    }
   }
 
   const saveBranch = () => {
@@ -421,6 +480,22 @@ export default function SettingsGeneralPage({ controls, onAction, searchValue = 
         <label className="settings-span-2">Mensaje al pie de factura<textarea value={settings.billing.footerMessage} onChange={(event) => updateSection('billing', 'footerMessage', event.target.value)} /></label>
       </div>
 
+      <div className="settings-subsection-title">Vista previa de modelos</div>
+      <div className="settings-model-grid">
+        {invoiceModels.map((model) => (
+          <button
+            type="button"
+            key={model}
+            className={settings.billing.invoiceModel === model ? 'is-active' : ''}
+            onClick={() => updateSection('billing', 'invoiceModel', model)}
+          >
+            <strong>{model}</strong>
+            <span>{settings.billing.printFormat}</span>
+            <small style={{ background: settings.brand.primaryColor }} />
+          </button>
+        ))}
+      </div>
+
       <div className="settings-subsection-title">Datos visibles en documentos</div>
       <div className="settings-check-grid settings-compact-checks">
         {[
@@ -464,6 +539,21 @@ export default function SettingsGeneralPage({ controls, onAction, searchValue = 
         <span>{settings.billing.printFormat} - {settings.billing.orientation} - {settings.billing.fontSize}px</span>
         <p>{settings.company.tradeName} / {settings.company.fiscalId || 'RNC pendiente'}</p>
         <p>{settings.billing.footerMessage}</p>
+      </div>
+
+      <div className="settings-subsection-title">Configuracion fiscal</div>
+      <div className="settings-form-grid settings-fiscal-grid">
+        <label>Usar NCF<select value={settings.fiscal.useNcf ? 'Si' : 'No'} onChange={(event) => updateFiscal('useNcf', event.target.value === 'Si')}><option>Si</option><option>No</option></select></label>
+        <label>Tipo de comprobante por defecto<select value={settings.fiscal.defaultReceiptType} onChange={(event) => updateFiscal('defaultReceiptType', event.target.value)}><option>Consumidor final</option><option>Credito fiscal</option><option>Gubernamental</option><option>Regimen especial</option><option>Nota de credito</option></select></label>
+        <label>Serie / prefijo NCF<input value={settings.fiscal.ncfPrefix} onChange={(event) => updateFiscal('ncfPrefix', event.target.value)} /></label>
+        <label>Proximo NCF<input type="number" min="1" value={settings.fiscal.nextNcf} onChange={(event) => updateFiscal('nextNcf', event.target.value)} /></label>
+        <label>Longitud NCF<input type="number" min="6" max="12" value={settings.fiscal.ncfLength} onChange={(event) => updateFiscal('ncfLength', event.target.value)} /></label>
+        <label>Valido hasta<input type="date" value={settings.fiscal.ncfValidUntil} onChange={(event) => updateFiscal('ncfValidUntil', event.target.value)} /></label>
+      </div>
+      <div className="settings-check-grid settings-compact-checks">
+        <label><input type="checkbox" checked={settings.fiscal.showNcf} onChange={(event) => updateFiscal('showNcf', event.target.checked)} />Mostrar NCF en documentos</label>
+        <label><input type="checkbox" checked={settings.fiscal.showNcfValidUntil} onChange={(event) => updateFiscal('showNcfValidUntil', event.target.checked)} />Mostrar fecha valido hasta</label>
+        <label><input type="checkbox" checked={settings.fiscal.showPaymentCondition} onChange={(event) => updateFiscal('showPaymentCondition', event.target.checked)} />Mostrar condicion de pago</label>
       </div>
     </section>
   )
@@ -561,6 +651,34 @@ export default function SettingsGeneralPage({ controls, onAction, searchValue = 
     </section>
   )
 
+  const renderBackupTab = () => (
+    <section className="erp-panel settings-card">
+      <div className="settings-card-heading">
+        <span>Respaldo</span>
+        <h2>Exportar e importar datos</h2>
+        <p>Usa este respaldo temporal mientras configuras Supabase. GitHub guarda el codigo, no los datos operativos.</p>
+      </div>
+
+      <div className="settings-backup-grid">
+        <article>
+          <strong>Persistencia actual</strong>
+          <span>{supabaseStatus.configured ? 'Supabase configurado' : 'localStorage como respaldo'}</span>
+          <p>Variables: VITE_SUPABASE_URL y VITE_SUPABASE_ANON_KEY.</p>
+        </article>
+        <article>
+          <strong>Exportar respaldo JSON</strong>
+          <span>Productos, clientes, facturas, cotizaciones, configuracion, usuarios, roles y permisos.</span>
+          <button type="button" className="settings-primary-button" onClick={handleExportBackup}>Exportar respaldo</button>
+        </article>
+        <article>
+          <strong>Importar respaldo JSON</strong>
+          <span>Reemplaza datos locales con el archivo seleccionado.</span>
+          <label className="settings-file-button"><Upload size={16} /> Importar respaldo<input type="file" accept="application/json,.json" onChange={handleImportBackup} /></label>
+        </article>
+      </div>
+    </section>
+  )
+
   const tabContent = {
     company: renderCompanyTab,
     brand: renderBrandTab,
@@ -570,6 +688,7 @@ export default function SettingsGeneralPage({ controls, onAction, searchValue = 
     warehouses: renderWarehousesTab,
     numbering: renderNumberingTab,
     preferences: renderPreferencesTab,
+    backup: renderBackupTab,
   }
 
   return (
@@ -590,7 +709,7 @@ export default function SettingsGeneralPage({ controls, onAction, searchValue = 
         { label: 'Empresa', value: settings.company.tradeName || 'Sin nombre', detail: settings.company.fiscalId || 'RNC pendiente' },
         { label: 'Sucursales activas', value: String(activeBranchCount), detail: 'operativas' },
         { label: 'Formato', value: settings.billing.printFormat, detail: settings.billing.invoiceModel },
-        { label: 'Guardado', value: 'Local', detail: STORAGE_KEY },
+        { label: 'Guardado', value: supabaseStatus.configured ? 'Supabase' : 'Local', detail: supabaseStatus.configured ? 'Base de datos nube' : STORAGE_KEY },
       ]}
       {...controls}
     >

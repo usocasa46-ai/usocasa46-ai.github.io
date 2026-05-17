@@ -11,7 +11,12 @@ import {
   Trash2,
   X,
 } from 'lucide-react'
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
+import { customersService } from '../../services/customersService.js'
+import { invoicesService } from '../../services/invoicesService.js'
+import { productsService } from '../../services/productsService.js'
+import { quotesService } from '../../services/quotesService.js'
+import { settingsService } from '../../services/settingsService.js'
 import {
   createPdfMetadata,
   downloadSalesDocumentPdf,
@@ -66,6 +71,17 @@ const defaultSettings = {
     footerMessage: 'Documento generado por INVE-FAT SYSTEM.',
     showSignature: true,
     showStamp: false,
+  },
+  fiscal: {
+    useNcf: false,
+    defaultReceiptType: 'Consumidor final',
+    ncfPrefix: 'B02',
+    nextNcf: 1,
+    ncfLength: 8,
+    ncfValidUntil: '',
+    showNcf: true,
+    showNcfValidUntil: true,
+    showPaymentCondition: true,
   },
   branches: [
     { code: 'MAT-01', name: 'Empresa matriz', status: 'Activa', mainWarehouse: 'ALM-01' },
@@ -206,6 +222,7 @@ function loadProducts() {
 
 function saveProducts(products) {
   localStorage.setItem(PRODUCTS_KEY, JSON.stringify(products))
+  void productsService.replaceAll(products)
 }
 
 function loadSettings() {
@@ -219,6 +236,7 @@ function loadSettings() {
     brand: { ...defaultSettings.brand, ...saved.brand },
     documentOptions: { ...defaultSettings.documentOptions, ...saved.documentOptions },
     billing: { ...defaultSettings.billing, ...saved.billing },
+    fiscal: { ...defaultSettings.fiscal, ...saved.fiscal },
     preferences: { ...defaultSettings.preferences, ...saved.preferences },
     numbering: { ...defaultSettings.numbering, ...saved.numbering },
     branches: Array.isArray(saved.branches) && saved.branches.length ? saved.branches : defaultSettings.branches,
@@ -233,6 +251,7 @@ function loadQuotes() {
 
 function saveQuotes(quotes) {
   localStorage.setItem(QUOTES_KEY, JSON.stringify(quotes))
+  void quotesService.replaceAll(quotes)
 }
 
 function loadInvoices() {
@@ -242,6 +261,7 @@ function loadInvoices() {
 
 function saveInvoices(invoices) {
   localStorage.setItem(INVOICES_KEY, JSON.stringify(invoices))
+  void invoicesService.replaceAll(invoices)
 }
 
 function defaultTaxRate(settings) {
@@ -262,6 +282,21 @@ function nextDocumentNumber(settings, documents, key, fallbackPrefix) {
   }, 0)
 
   return `${prefix}${separator}${String(Math.max(configuredNext, maxExisting + 1)).padStart(length, '0')}`
+}
+
+function nextNcf(settings, invoices) {
+  if (!settings.fiscal?.useNcf) return ''
+
+  const prefix = settings.fiscal.ncfPrefix || 'B02'
+  const length = Number(settings.fiscal.ncfLength) || 8
+  const configuredNext = Number(settings.fiscal.nextNcf) || 1
+  const maxExisting = invoices.reduce((max, invoice) => {
+    const numberPart = String(invoice.ncf || '').replace(prefix, '')
+    const parsed = Number.parseInt(numberPart, 10)
+    return Number.isFinite(parsed) ? Math.max(max, parsed) : max
+  }, 0)
+
+  return `${prefix}${String(Math.max(configuredNext, maxExisting + 1)).padStart(length, '0')}`
 }
 
 function defaultBranch(settings) {
@@ -367,6 +402,43 @@ export default function SalesQuotesPage({ controls, onAction, searchValue = '', 
   const [message, setMessage] = useState('')
   const [activeModal, setActiveModal] = useState('')
   const [quoteModalState, setQuoteModalState] = useState('normal')
+
+  useEffect(() => {
+    let isActive = true
+
+    Promise.all([
+      settingsService.getById(),
+      productsService.getAll(),
+      quotesService.getAll(),
+      customersService.getAll(),
+    ]).then(([storedSettings, storedProducts, storedQuotes, storedCustomers]) => {
+      if (!isActive) return
+
+      if (storedSettings && Object.keys(storedSettings).length > 0) {
+        localStorage.setItem(SETTINGS_KEY, JSON.stringify(storedSettings))
+      }
+
+      if (Array.isArray(storedProducts) && storedProducts.length > 0) {
+        const normalizedProducts = storedProducts.map(normalizeProduct)
+        setProducts(normalizedProducts)
+        localStorage.setItem(PRODUCTS_KEY, JSON.stringify(normalizedProducts))
+      }
+
+      if (Array.isArray(storedQuotes) && storedQuotes.length > 0) {
+        setQuotes(storedQuotes)
+        localStorage.setItem(QUOTES_KEY, JSON.stringify(storedQuotes))
+      }
+
+      if (Array.isArray(storedCustomers) && storedCustomers.length > 0) {
+        localStorage.setItem('invefat_customers', JSON.stringify(storedCustomers))
+        setCustomers(loadCustomers(Array.isArray(storedQuotes) ? storedQuotes : loadQuotes()))
+      }
+    })
+
+    return () => {
+      isActive = false
+    }
+  }, [])
 
   const branches = useMemo(() => settings.branches || defaultSettings.branches, [settings.branches])
   const warehouses = useMemo(() => settings.warehouses || defaultSettings.warehouses, [settings.warehouses])
@@ -680,27 +752,27 @@ export default function SalesQuotesPage({ controls, onAction, searchValue = '', 
     saveQuotes(nextQuotes)
   }
 
-  const previewQuotePdf = (targetQuote = selectedQuote || quote) => {
+  const previewQuotePdf = async (targetQuote = selectedQuote || quote) => {
     const printableQuote = ensurePrintableQuote(targetQuote)
     if (!printableQuote) return false
-    const pdfInfo = openSalesDocumentPdf({ documentData: printableQuote, settings, documentType: 'quote' })
+    const pdfInfo = await openSalesDocumentPdf({ documentData: printableQuote, settings, documentType: 'quote' })
     updateQuotePdfReference(printableQuote, pdfInfo)
     notify(`PDF de cotizacion ${printableQuote.number} abierto en vista previa.`)
     return true
   }
 
-  const printQuotePdf = (targetQuote = selectedQuote || quote) => {
+  const printQuotePdf = async (targetQuote = selectedQuote || quote) => {
     const printableQuote = ensurePrintableQuote(targetQuote)
     if (!printableQuote) return
-    const pdfInfo = printSalesDocumentPdf({ documentData: printableQuote, settings, documentType: 'quote' })
+    const pdfInfo = await printSalesDocumentPdf({ documentData: printableQuote, settings, documentType: 'quote' })
     updateQuotePdfReference(printableQuote, pdfInfo)
     notify(`Cotizacion ${printableQuote.number} enviada a impresion.`)
   }
 
-  const downloadQuotePdf = (targetQuote = selectedQuote || quote) => {
+  const downloadQuotePdf = async (targetQuote = selectedQuote || quote) => {
     const printableQuote = ensurePrintableQuote(targetQuote)
     if (!printableQuote) return
-    const pdfInfo = downloadSalesDocumentPdf({ documentData: printableQuote, settings, documentType: 'quote' })
+    const pdfInfo = await downloadSalesDocumentPdf({ documentData: printableQuote, settings, documentType: 'quote' })
     updateQuotePdfReference(printableQuote, pdfInfo)
     notify(`PDF de cotizacion ${printableQuote.number} descargado.`)
   }
@@ -772,9 +844,14 @@ export default function SalesQuotesPage({ controls, onAction, searchValue = '', 
       ...targetQuote,
       id: makeId('invoice'),
       number: invoiceNumber,
+      receiptType: settings.fiscal?.defaultReceiptType || 'Consumidor final',
+      ncf: nextNcf(settings, invoices),
+      ncfValidUntil: settings.fiscal?.ncfValidUntil || '',
       quoteNumber: targetQuote.number,
       createdFromQuote: targetQuote.number,
       paymentMethod,
+      dueDate: targetQuote.paymentCondition === 'Credito' ? targetQuote.validUntil : targetQuote.date,
+      creditDays: targetQuote.paymentCondition === 'Credito' ? 30 : 0,
       paidAmount: 0,
       state: paymentMethod === 'Credito' ? 'Pendiente' : 'Guardada',
       totals: invoiceTotals,
