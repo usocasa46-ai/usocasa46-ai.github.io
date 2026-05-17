@@ -5,6 +5,7 @@ import { DEFAULT_PAGE_ID, erpModules, getModuleByPageId, getPageMeta } from '../
 import DashboardPage from '../pages/dashboard/DashboardPage.jsx'
 import InventoryProductsPage from '../pages/inventory/InventoryProductsPage.jsx'
 import PurchaseOrdersPage from '../pages/purchases/PurchaseOrdersPage.jsx'
+import SalesCustomersPage from '../pages/sales/SalesCustomersPage.jsx'
 import SalesInvoicePage from '../pages/sales/SalesInvoicePage.jsx'
 import SecurityUsersPage from '../pages/security/SecurityUsersPage.jsx'
 import SettingsGeneralPage from '../pages/settings/SettingsGeneralPage.jsx'
@@ -13,6 +14,7 @@ import './AppWorkspace.css'
 
 const pageComponents = {
   'sales-invoice': SalesInvoicePage,
+  'sales-customers': SalesCustomersPage,
   'purchase-orders': PurchaseOrdersPage,
   'inventory-products': InventoryProductsPage,
   'warehouse-receiving': WarehouseReceivingPage,

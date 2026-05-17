@@ -1,110 +1,547 @@
-import { Save } from 'lucide-react'
-import { useState } from 'react'
+import { Ban, Edit3, Plus, RotateCcw, Save, Upload, X } from 'lucide-react'
+import { useMemo, useState } from 'react'
 import ModulePageLayout from '../shared/ModulePageLayout.jsx'
+import './SettingsGeneralPage.css'
+
+const STORAGE_KEY = 'invefat_company_settings'
+
+const tabs = [
+  { id: 'company', label: 'Empresa' },
+  { id: 'brand', label: 'Logo y marca' },
+  { id: 'documents', label: 'Documentos' },
+  { id: 'billing', label: 'Facturacion e impresion' },
+  { id: 'branches', label: 'Sucursales' },
+  { id: 'warehouses', label: 'Almacenes por sucursal' },
+  { id: 'numbering', label: 'Numeracion' },
+  { id: 'preferences', label: 'Preferencias generales' },
+]
+
+const defaultWarehouses = [
+  { code: 'ALM-01', name: 'Almacen Principal' },
+  { code: 'ALM-02', name: 'Almacen Sucursal' },
+]
+
+const defaultBranch = {
+  code: 'MAT-01',
+  name: 'Empresa matriz',
+  address: 'Direccion principal',
+  phone: '',
+  manager: 'Administrador',
+  email: '',
+  status: 'Activa',
+  mainWarehouse: 'ALM-01',
+}
+
+const emptyBranch = {
+  code: '',
+  name: '',
+  address: '',
+  phone: '',
+  manager: '',
+  email: '',
+  status: 'Activa',
+  mainWarehouse: 'ALM-01',
+}
+
+const defaultSettings = {
+  company: {
+    tradeName: 'INVE-FAT SYSTEM',
+    legalName: 'Empresa Principal',
+    fiscalId: '',
+    address: '',
+    city: '',
+    province: '',
+    country: 'Republica Dominicana',
+    phone: '',
+    whatsapp: '',
+    email: '',
+    website: '',
+    businessActivity: '',
+    legalRepresentative: '',
+    currency: 'RD$',
+    defaultTax: 'ITBIS 18%',
+    legalNote: 'Gracias por su compra.',
+  },
+  brand: {
+    logo: '',
+    primaryColor: '#0f2742',
+    secondaryColor: '#eef3f8',
+    accentColor: '#f1872d',
+  },
+  documentOptions: {
+    showLogo: true,
+    showFiscalId: true,
+    showPhone: true,
+    showAddress: true,
+    showEmail: true,
+    showSeller: true,
+    showCreatedBy: true,
+    showBranch: true,
+    showWarehouse: true,
+    showLegalNote: true,
+    showQr: false,
+  },
+  billing: {
+    invoiceModel: 'Moderno',
+    printFormat: 'Carta',
+    orientation: 'Vertical',
+    fontSize: '12',
+    pricesIncludeTax: false,
+    showLineDiscount: true,
+    showTotals: true,
+    showSignature: true,
+    showStamp: false,
+    footerMessage: 'Documento generado por INVE-FAT SYSTEM.',
+  },
+  branches: [defaultBranch],
+  warehouses: defaultWarehouses,
+  numbering: {
+    invoice: { label: 'Factura', prefix: 'FAC', nextNumber: 1, length: 6, separator: '-' },
+    quote: { label: 'Cotizacion', prefix: 'COT', nextNumber: 1, length: 6, separator: '-' },
+    purchaseOrder: { label: 'Orden de compra', prefix: 'OC', nextNumber: 1, length: 6, separator: '-' },
+    receiving: { label: 'Recepcion de mercancia', prefix: 'REC', nextNumber: 1, length: 6, separator: '-' },
+    creditNote: { label: 'Nota de credito', prefix: 'NC', nextNumber: 1, length: 6, separator: '-' },
+    inventoryAdjustment: { label: 'Ajuste de inventario', prefix: 'AJU', nextNumber: 1, length: 6, separator: '-' },
+    transfer: { label: 'Transferencia', prefix: 'TRA', nextNumber: 1, length: 6, separator: '-' },
+  },
+  preferences: {
+    currency: 'RD$',
+    dateFormat: 'DD/MM/YYYY',
+    timeFormat: '12 horas',
+    language: 'Espanol',
+    timezone: 'America/Santo_Domingo',
+    defaultTax: 'ITBIS 18%',
+    quantityDecimals: 2,
+    priceDecimals: 2,
+    costMethod: 'Promedio',
+    allowNegativeStock: false,
+    confirmBeforeDelete: true,
+  },
+  transferSetup: {
+    enabledForFutureUse: true,
+    sourceBranchField: 'originBranch',
+    targetBranchField: 'targetBranch',
+    sourceWarehouseField: 'originWarehouse',
+    targetWarehouseField: 'targetWarehouse',
+  },
+}
+
+function safeLoadSettings() {
+  try {
+    const saved = localStorage.getItem(STORAGE_KEY)
+    const parsed = saved ? JSON.parse(saved) : null
+    if (parsed && typeof parsed === 'object') {
+      return {
+        ...defaultSettings,
+        ...parsed,
+        company: { ...defaultSettings.company, ...parsed.company },
+        brand: { ...defaultSettings.brand, ...parsed.brand },
+        documentOptions: { ...defaultSettings.documentOptions, ...parsed.documentOptions },
+        billing: { ...defaultSettings.billing, ...parsed.billing },
+        preferences: { ...defaultSettings.preferences, ...parsed.preferences },
+        numbering: { ...defaultSettings.numbering, ...parsed.numbering },
+        branches: Array.isArray(parsed.branches) && parsed.branches.length ? parsed.branches : defaultSettings.branches,
+        warehouses: Array.isArray(parsed.warehouses) && parsed.warehouses.length ? parsed.warehouses : defaultSettings.warehouses,
+      }
+    }
+  } catch {
+    // Usar valores base si localStorage no contiene JSON valido.
+  }
+
+  return defaultSettings
+}
+
+function saveSettings(settings) {
+  localStorage.setItem(STORAGE_KEY, JSON.stringify({
+    ...settings,
+    updatedAt: new Date().toISOString(),
+  }))
+}
+
+function numberingExample(config) {
+  const nextNumber = String(Number(config.nextNumber) || 1).padStart(Number(config.length) || 6, '0')
+  return `${config.prefix || 'DOC'}${config.separator || '-'}${nextNumber}`
+}
 
 export default function SettingsGeneralPage({ controls, onAction, searchValue = '', onSearchChange }) {
-  const [currency, setCurrency] = useState('RD$')
+  const [settings, setSettings] = useState(() => safeLoadSettings())
+  const [activeTab, setActiveTab] = useState('company')
+  const [branchForm, setBranchForm] = useState(emptyBranch)
+  const [editingBranchCode, setEditingBranchCode] = useState('')
+  const [message, setMessage] = useState('')
+
+  const activeBranchCount = useMemo(() => {
+    return settings.branches.filter((branch) => branch.status === 'Activa').length
+  }, [settings.branches])
+
+  const notify = (text) => {
+    setMessage(text)
+    onAction?.(text)
+  }
+
+  const updateSection = (section, field, value) => {
+    setSettings((current) => ({
+      ...current,
+      [section]: {
+        ...current[section],
+        [field]: value,
+      },
+    }))
+  }
+
+  const updateDocumentOption = (field, checked) => {
+    updateSection('documentOptions', field, checked)
+  }
+
+  const updateNumbering = (key, field, value) => {
+    setSettings((current) => ({
+      ...current,
+      numbering: {
+        ...current.numbering,
+        [key]: {
+          ...current.numbering[key],
+          [field]: value,
+        },
+      },
+    }))
+  }
+
+  const updateBranchWarehouse = (branchCode, warehouseCode) => {
+    setSettings((current) => ({
+      ...current,
+      branches: current.branches.map((branch) => (
+        branch.code === branchCode ? { ...branch, mainWarehouse: warehouseCode } : branch
+      )),
+    }))
+  }
+
+  const validateSettings = () => {
+    if (!settings.company.tradeName.trim()) return 'El nombre comercial es obligatorio.'
+    if (!settings.branches.some((branch) => branch.status === 'Activa')) return 'Debe existir al menos una sucursal activa.'
+    if (settings.branches.some((branch) => !branch.mainWarehouse)) return 'Cada sucursal debe tener un almacen principal.'
+    if (!settings.company.fiscalId.trim()) return 'RNC recomendado: puedes guardar luego de completarlo.'
+    return ''
+  }
+
+  const handleSave = () => {
+    const validationMessage = validateSettings()
+    if (validationMessage) {
+      notify(validationMessage)
+      if (!validationMessage.startsWith('RNC recomendado')) return
+    }
+
+    saveSettings(settings)
+    notify('Configuracion guardada correctamente')
+  }
+
+  const handleRestore = () => {
+    setSettings(defaultSettings)
+    saveSettings(defaultSettings)
+    setBranchForm(emptyBranch)
+    setEditingBranchCode('')
+    notify('Configuracion restaurada')
+  }
+
+  const handleLogoUpload = (event) => {
+    const file = event.target.files?.[0]
+    if (!file) return
+
+    const reader = new FileReader()
+    reader.onload = () => updateSection('brand', 'logo', String(reader.result || ''))
+    reader.readAsDataURL(file)
+  }
+
+  const saveBranch = () => {
+    if (!branchForm.code.trim() || !branchForm.name.trim() || !branchForm.mainWarehouse) {
+      notify('Completa codigo, nombre y almacen principal de la sucursal')
+      return
+    }
+
+    const duplicate = settings.branches.some((branch) => {
+      return branch.code === branchForm.code && branch.code !== editingBranchCode
+    })
+
+    if (duplicate) {
+      notify('Ya existe una sucursal con ese codigo')
+      return
+    }
+
+    const exists = settings.branches.some((branch) => branch.code === editingBranchCode)
+    const nextBranches = exists
+      ? settings.branches.map((branch) => (branch.code === editingBranchCode ? branchForm : branch))
+      : [branchForm, ...settings.branches]
+
+    setSettings((current) => ({ ...current, branches: nextBranches }))
+    setBranchForm(emptyBranch)
+    setEditingBranchCode('')
+    notify('Sucursal guardada')
+  }
+
+  const editBranch = (branch) => {
+    setBranchForm(branch)
+    setEditingBranchCode(branch.code)
+    setActiveTab('branches')
+  }
+
+  const inactivateBranch = (branchCode) => {
+    setSettings((current) => ({
+      ...current,
+      branches: current.branches.map((branch) => (
+        branch.code === branchCode ? { ...branch, status: 'Inactiva' } : branch
+      )),
+    }))
+    notify('Sucursal inactivada')
+  }
+
+  const renderCompanyTab = () => (
+    <section className="erp-panel settings-card">
+      <h2>Informacion de empresa</h2>
+      <div className="settings-form-grid">
+        <label>Nombre comercial<input value={settings.company.tradeName} onChange={(event) => updateSection('company', 'tradeName', event.target.value)} /></label>
+        <label>Razon social<input value={settings.company.legalName} onChange={(event) => updateSection('company', 'legalName', event.target.value)} /></label>
+        <label>RNC / Identificacion fiscal<input value={settings.company.fiscalId} onChange={(event) => updateSection('company', 'fiscalId', event.target.value)} /></label>
+        <label>Telefono<input value={settings.company.phone} onChange={(event) => updateSection('company', 'phone', event.target.value)} /></label>
+        <label>WhatsApp<input value={settings.company.whatsapp} onChange={(event) => updateSection('company', 'whatsapp', event.target.value)} /></label>
+        <label>Correo electronico<input value={settings.company.email} onChange={(event) => updateSection('company', 'email', event.target.value)} /></label>
+        <label>Pagina web<input value={settings.company.website} onChange={(event) => updateSection('company', 'website', event.target.value)} /></label>
+        <label>Actividad comercial<input value={settings.company.businessActivity} onChange={(event) => updateSection('company', 'businessActivity', event.target.value)} /></label>
+        <label>Representante legal<input value={settings.company.legalRepresentative} onChange={(event) => updateSection('company', 'legalRepresentative', event.target.value)} /></label>
+        <label>Moneda principal<select value={settings.company.currency} onChange={(event) => updateSection('company', 'currency', event.target.value)}><option>RD$</option><option>USD</option><option>EUR</option></select></label>
+        <label>Impuesto por defecto<select value={settings.company.defaultTax} onChange={(event) => updateSection('company', 'defaultTax', event.target.value)}><option>ITBIS 18%</option><option>Exento</option></select></label>
+        <label>Pais<input value={settings.company.country} onChange={(event) => updateSection('company', 'country', event.target.value)} /></label>
+        <label className="settings-span-2">Direccion principal<textarea value={settings.company.address} onChange={(event) => updateSection('company', 'address', event.target.value)} /></label>
+        <label>Ciudad<input value={settings.company.city} onChange={(event) => updateSection('company', 'city', event.target.value)} /></label>
+        <label>Provincia<input value={settings.company.province} onChange={(event) => updateSection('company', 'province', event.target.value)} /></label>
+        <label className="settings-span-2">Nota legal para documentos<textarea value={settings.company.legalNote} onChange={(event) => updateSection('company', 'legalNote', event.target.value)} /></label>
+      </div>
+    </section>
+  )
+
+  const renderBrandTab = () => (
+    <section className="erp-panel settings-card">
+      <h2>Logo y marca</h2>
+      <div className="settings-brand-grid">
+        <div className="settings-logo-box">
+          {settings.brand.logo ? <img src={settings.brand.logo} alt="Logo empresa" /> : <span>Sin logo</span>}
+        </div>
+        <div className="settings-form-grid">
+          <label className="settings-file-button"><Upload size={16} /> Cargar logo<input type="file" accept="image/*" onChange={handleLogoUpload} /></label>
+          <button type="button" className="settings-secondary-button" onClick={() => updateSection('brand', 'logo', '')}>Quitar logo</button>
+          <label>Color principal<input type="color" value={settings.brand.primaryColor} onChange={(event) => updateSection('brand', 'primaryColor', event.target.value)} /></label>
+          <label>Color secundario<input type="color" value={settings.brand.secondaryColor} onChange={(event) => updateSection('brand', 'secondaryColor', event.target.value)} /></label>
+          <label>Color de acento<input type="color" value={settings.brand.accentColor} onChange={(event) => updateSection('brand', 'accentColor', event.target.value)} /></label>
+        </div>
+      </div>
+      <div className="settings-document-preview" style={{ borderColor: settings.brand.primaryColor }}>
+        <div style={{ background: settings.brand.primaryColor }}>
+          {settings.brand.logo ? <img src={settings.brand.logo} alt="Logo preview" /> : <strong>{settings.company.tradeName.slice(0, 2).toUpperCase()}</strong>}
+          <span>{settings.company.tradeName}</span>
+        </div>
+        <p>Vista previa de encabezado para facturas, cotizaciones, ordenes y reportes.</p>
+      </div>
+    </section>
+  )
+
+  const renderDocumentsTab = () => {
+    const options = [
+      ['showLogo', 'Mostrar logo en documentos'],
+      ['showFiscalId', 'Mostrar RNC'],
+      ['showPhone', 'Mostrar telefono'],
+      ['showAddress', 'Mostrar direccion'],
+      ['showEmail', 'Mostrar correo'],
+      ['showSeller', 'Mostrar vendedor'],
+      ['showCreatedBy', 'Mostrar usuario creador'],
+      ['showBranch', 'Mostrar sucursal'],
+      ['showWarehouse', 'Mostrar almacen'],
+      ['showLegalNote', 'Mostrar nota legal'],
+      ['showQr', 'Mostrar codigo QR futuro'],
+    ]
+
+    return (
+      <section className="erp-panel settings-card">
+        <h2>Documentos</h2>
+        <div className="settings-check-grid">
+          {options.map(([field, label]) => (
+            <label key={field}><input type="checkbox" checked={settings.documentOptions[field]} onChange={(event) => updateDocumentOption(field, event.target.checked)} />{label}</label>
+          ))}
+        </div>
+        <div className="settings-note">Aplica a factura, cotizacion, orden de compra, recepcion de mercancia, recibo y reportes.</div>
+      </section>
+    )
+  }
+
+  const renderBillingTab = () => (
+    <section className="erp-panel settings-card">
+      <h2>Facturacion e impresion</h2>
+      <div className="settings-form-grid">
+        <label>Modelo de factura<select value={settings.billing.invoiceModel} onChange={(event) => updateSection('billing', 'invoiceModel', event.target.value)}><option>Clasico</option><option>Moderno</option><option>Compacto</option><option>Detallado</option><option>Ticket / POS</option><option>Carta / A4</option></select></label>
+        <label>Formato de impresion<select value={settings.billing.printFormat} onChange={(event) => updateSection('billing', 'printFormat', event.target.value)}><option>A4</option><option>Carta</option><option>Media carta</option><option>Ticket 80mm</option><option>Ticket 58mm</option></select></label>
+        <label>Orientacion<select value={settings.billing.orientation} onChange={(event) => updateSection('billing', 'orientation', event.target.value)}><option>Vertical</option><option>Horizontal</option></select></label>
+        <label>Tamano de fuente<input type="number" value={settings.billing.fontSize} onChange={(event) => updateSection('billing', 'fontSize', event.target.value)} /></label>
+        <label className="settings-span-2">Mensaje al pie de factura<textarea value={settings.billing.footerMessage} onChange={(event) => updateSection('billing', 'footerMessage', event.target.value)} /></label>
+      </div>
+      <div className="settings-check-grid settings-compact-checks">
+        {[
+          ['pricesIncludeTax', 'Precios con impuestos incluidos'],
+          ['showLineDiscount', 'Mostrar descuento por linea'],
+          ['showTotals', 'Mostrar subtotal, impuesto y total'],
+          ['showSignature', 'Mostrar firma'],
+          ['showStamp', 'Mostrar sello'],
+        ].map(([field, label]) => (
+          <label key={field}><input type="checkbox" checked={settings.billing[field]} onChange={(event) => updateSection('billing', field, event.target.checked)} />{label}</label>
+        ))}
+      </div>
+      <div className="settings-invoice-preview">
+        <strong>{settings.billing.invoiceModel}</strong>
+        <span>{settings.billing.printFormat} - {settings.billing.orientation}</span>
+        <p>{settings.billing.footerMessage}</p>
+      </div>
+    </section>
+  )
+
+  const renderBranchesTab = () => (
+    <section className="erp-panel settings-card">
+      <h2>Sucursales</h2>
+      <div className="settings-form-grid">
+        <label>Codigo de sucursal<input value={branchForm.code} onChange={(event) => setBranchForm((current) => ({ ...current, code: event.target.value }))} /></label>
+        <label>Nombre de sucursal<input value={branchForm.name} onChange={(event) => setBranchForm((current) => ({ ...current, name: event.target.value }))} /></label>
+        <label>Telefono<input value={branchForm.phone} onChange={(event) => setBranchForm((current) => ({ ...current, phone: event.target.value }))} /></label>
+        <label>Encargado<input value={branchForm.manager} onChange={(event) => setBranchForm((current) => ({ ...current, manager: event.target.value }))} /></label>
+        <label>Correo<input value={branchForm.email} onChange={(event) => setBranchForm((current) => ({ ...current, email: event.target.value }))} /></label>
+        <label>Estado<select value={branchForm.status} onChange={(event) => setBranchForm((current) => ({ ...current, status: event.target.value }))}><option>Activa</option><option>Inactiva</option></select></label>
+        <label>Almacen principal asignado<select value={branchForm.mainWarehouse} onChange={(event) => setBranchForm((current) => ({ ...current, mainWarehouse: event.target.value }))}>{settings.warehouses.map((warehouse) => <option key={warehouse.code} value={warehouse.code}>{warehouse.code} {warehouse.name}</option>)}</select></label>
+        <label className="settings-span-2">Direccion<textarea value={branchForm.address} onChange={(event) => setBranchForm((current) => ({ ...current, address: event.target.value }))} /></label>
+      </div>
+      <div className="settings-action-row">
+        <button type="button" className="settings-primary-button" onClick={saveBranch}><Plus size={15} /> Guardar sucursal</button>
+        <button type="button" className="settings-secondary-button" onClick={() => { setBranchForm(emptyBranch); setEditingBranchCode('') }}>Nueva sucursal</button>
+      </div>
+      <div className="erp-table-wrap">
+        <table className="erp-table settings-table">
+          <thead><tr><th>Codigo</th><th>Sucursal</th><th>Encargado</th><th>Almacen</th><th>Estado</th><th>Acciones</th></tr></thead>
+          <tbody>
+            {settings.branches.map((branch) => (
+              <tr key={branch.code}>
+                <td>{branch.code}</td><td>{branch.name}</td><td>{branch.manager}</td><td>{branch.mainWarehouse}</td><td>{branch.status}</td>
+                <td><button type="button" onClick={() => editBranch(branch)}><Edit3 size={14} /></button><button type="button" onClick={() => inactivateBranch(branch.code)}><Ban size={14} /></button></td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    </section>
+  )
+
+  const renderWarehousesTab = () => (
+    <section className="erp-panel settings-card">
+      <h2>Almacenes por sucursal</h2>
+      <div className="settings-note">Estructura preparada para transferencias futuras entre matriz, sucursales y almacenes.</div>
+      <div className="erp-table-wrap">
+        <table className="erp-table settings-table">
+          <thead><tr><th>Sucursal</th><th>Almacen asignado</th><th>Direccion</th><th>Encargado</th><th>Estado</th></tr></thead>
+          <tbody>
+            {settings.branches.map((branch) => (
+              <tr key={branch.code}>
+                <td>{branch.name}</td>
+                <td><select value={branch.mainWarehouse} onChange={(event) => updateBranchWarehouse(branch.code, event.target.value)}>{settings.warehouses.map((warehouse) => <option key={warehouse.code} value={warehouse.code}>{warehouse.code} {warehouse.name}</option>)}</select></td>
+                <td>{branch.address}</td><td>{branch.manager}</td><td>{branch.status}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    </section>
+  )
+
+  const renderNumberingTab = () => (
+    <section className="erp-panel settings-card">
+      <h2>Numeracion automatica</h2>
+      <div className="settings-numbering-grid">
+        {Object.entries(settings.numbering).map(([key, config]) => (
+          <article key={key}>
+            <strong>{config.label}</strong>
+            <label>Prefijo<input value={config.prefix} onChange={(event) => updateNumbering(key, 'prefix', event.target.value)} /></label>
+            <label>Proximo numero<input type="number" value={config.nextNumber} onChange={(event) => updateNumbering(key, 'nextNumber', event.target.value)} /></label>
+            <label>Longitud<input type="number" value={config.length} onChange={(event) => updateNumbering(key, 'length', event.target.value)} /></label>
+            <label>Separador<input value={config.separator} onChange={(event) => updateNumbering(key, 'separator', event.target.value)} /></label>
+            <span>{numberingExample(config)}</span>
+          </article>
+        ))}
+      </div>
+    </section>
+  )
+
+  const renderPreferencesTab = () => (
+    <section className="erp-panel settings-card">
+      <h2>Preferencias generales</h2>
+      <div className="settings-form-grid">
+        <label>Moneda principal<select value={settings.preferences.currency} onChange={(event) => updateSection('preferences', 'currency', event.target.value)}><option>RD$</option><option>USD</option><option>EUR</option></select></label>
+        <label>Formato de fecha<select value={settings.preferences.dateFormat} onChange={(event) => updateSection('preferences', 'dateFormat', event.target.value)}><option>DD/MM/YYYY</option><option>MM/DD/YYYY</option><option>YYYY-MM-DD</option></select></label>
+        <label>Formato de hora<select value={settings.preferences.timeFormat} onChange={(event) => updateSection('preferences', 'timeFormat', event.target.value)}><option>12 horas</option><option>24 horas</option></select></label>
+        <label>Idioma<select value={settings.preferences.language} onChange={(event) => updateSection('preferences', 'language', event.target.value)}><option>Espanol</option><option>English</option></select></label>
+        <label>Zona horaria<input value={settings.preferences.timezone} onChange={(event) => updateSection('preferences', 'timezone', event.target.value)} /></label>
+        <label>Impuesto por defecto<select value={settings.preferences.defaultTax} onChange={(event) => updateSection('preferences', 'defaultTax', event.target.value)}><option>ITBIS 18%</option><option>Exento</option></select></label>
+        <label>Decimales en cantidades<input type="number" value={settings.preferences.quantityDecimals} onChange={(event) => updateSection('preferences', 'quantityDecimals', event.target.value)} /></label>
+        <label>Decimales en precios<input type="number" value={settings.preferences.priceDecimals} onChange={(event) => updateSection('preferences', 'priceDecimals', event.target.value)} /></label>
+        <label>Metodo de costo<select value={settings.preferences.costMethod} onChange={(event) => updateSection('preferences', 'costMethod', event.target.value)}><option>Promedio</option><option>FIFO</option><option>Ultimo costo</option></select></label>
+      </div>
+      <div className="settings-check-grid settings-compact-checks">
+        <label><input type="checkbox" checked={settings.preferences.allowNegativeStock} onChange={(event) => updateSection('preferences', 'allowNegativeStock', event.target.checked)} />Permitir stock negativo</label>
+        <label><input type="checkbox" checked={settings.preferences.confirmBeforeDelete} onChange={(event) => updateSection('preferences', 'confirmBeforeDelete', event.target.checked)} />Solicitar confirmacion antes de eliminar</label>
+      </div>
+    </section>
+  )
+
+  const tabContent = {
+    company: renderCompanyTab,
+    brand: renderBrandTab,
+    documents: renderDocumentsTab,
+    billing: renderBillingTab,
+    branches: renderBranchesTab,
+    warehouses: renderWarehousesTab,
+    numbering: renderNumberingTab,
+    preferences: renderPreferencesTab,
+  }
 
   return (
     <ModulePageLayout
       title="Parametros generales"
       moduleLabel="Configuracion"
-      description="Base de configuracion del sistema: empresa, moneda, impuestos, numeracion, PDF, identidad visual y parametros operativos."
+      description="Configura la informacion principal de la empresa, sucursales, documentos e impresion."
       breadcrumb={['Configuracion', 'Parametros generales']}
       searchValue={searchValue}
       searchPlaceholder="Buscar parametro de configuracion"
       onSearchChange={onSearchChange}
       actions={[
-        { id: 'save', label: 'Guardar configuracion', icon: Save, variant: 'primary', onClick: () => onAction?.('Configuracion guardada') },
+        { id: 'save', label: 'Guardar configuracion', icon: Save, variant: 'primary', onClick: handleSave },
+        { id: 'restore', label: 'Restaurar', icon: RotateCcw, onClick: handleRestore },
+        { id: 'exit', label: 'Salir', icon: X, onClick: controls?.onClose },
       ]}
       statusCards={[
-        { label: 'Empresa', value: 'Activa', detail: 'INVE-FAT SYSTEM' },
-        { label: 'Moneda', value: currency, detail: 'predeterminada' },
-        { label: 'Impuestos', value: 'ITBIS', detail: 'configurable' },
-        { label: 'PDF', value: 'Base', detail: 'formato activo' },
+        { label: 'Empresa', value: settings.company.tradeName || 'Sin nombre', detail: settings.company.fiscalId || 'RNC pendiente' },
+        { label: 'Sucursales activas', value: String(activeBranchCount), detail: 'operativas' },
+        { label: 'Formato', value: settings.billing.printFormat, detail: settings.billing.invoiceModel },
+        { label: 'Guardado', value: 'Local', detail: STORAGE_KEY },
       ]}
-      sidePanel={(
-        <>
-          <section className="erp-panel">
-            <h3>Estructura lista</h3>
-            <ul className="erp-note-list">
-              <li>Datos de empresa, sucursales, moneda e impuestos.</li>
-              <li>Numeracion de documentos y formatos PDF.</li>
-              <li>Logo, colores y parametros generales.</li>
-            </ul>
-          </section>
-          <section className="erp-panel">
-            <h3>Credencial de empresa</h3>
-            <dl className="erp-detail-list">
-              <div className="erp-detail-row"><span>Empresa</span><strong>EMPRESA</strong></div>
-              <div className="erp-detail-row"><span>Auditoria</span><strong>Activa</strong></div>
-              <div className="erp-detail-row"><span>Sesion</span><strong>Validada</strong></div>
-            </dl>
-          </section>
-        </>
-      )}
       {...controls}
     >
-      <div className="erp-data-grid">
-        <section className="erp-panel">
-          <h2>Datos de empresa</h2>
-          <div className="erp-form-grid">
-            <label>
-              Nombre comercial
-              <input defaultValue="INVE-FAT SYSTEM" />
-            </label>
-            <label>
-              Razon social
-              <input defaultValue="Empresa Principal" />
-            </label>
-            <label>
-              Sucursal predeterminada
-              <input defaultValue="Principal" />
-            </label>
-            <label>
-              Moneda
-              <select value={currency} onChange={(event) => setCurrency(event.target.value)}>
-                <option>RD$</option>
-                <option>USD</option>
-                <option>EUR</option>
-              </select>
-            </label>
-            <label>
-              Impuesto principal
-              <input defaultValue="ITBIS 18%" />
-            </label>
-            <label>
-              Numeracion
-              <input defaultValue="Automatica por documento" />
-            </label>
-          </div>
-        </section>
+      <div className="settings-general-page">
+        {message && <div className="settings-message">{message}</div>}
 
-        <section className="erp-panel">
-          <h2>Documento y PDF</h2>
-          <div className="erp-form-grid">
-            <label>
-              Factura
-              <input defaultValue="FAC-{000000}" />
-            </label>
-            <label>
-              Orden de compra
-              <input defaultValue="OC-{000000}" />
-            </label>
-            <label>
-              Recepcion
-              <input defaultValue="REC-{000000}" />
-            </label>
-            <label>
-              Formato PDF
-              <select defaultValue="Empresarial">
-                <option>Empresarial</option>
-                <option>Compacto</option>
-                <option>Detallado</option>
-              </select>
-            </label>
-          </div>
-        </section>
+        <nav className="settings-tabs" aria-label="Secciones de configuracion">
+          {tabs.map((tab) => (
+            <button
+              type="button"
+              key={tab.id}
+              className={activeTab === tab.id ? 'is-active' : ''}
+              onClick={() => setActiveTab(tab.id)}
+            >
+              {tab.label}
+            </button>
+          ))}
+        </nav>
+
+        {tabContent[activeTab]()}
       </div>
     </ModulePageLayout>
   )

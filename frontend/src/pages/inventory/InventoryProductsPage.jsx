@@ -16,6 +16,10 @@ import ModulePageLayout from '../shared/ModulePageLayout.jsx'
 import './InventoryProductsPage.css'
 
 const STORAGE_KEY = 'inveFatInventoryProducts'
+const SALES_INVOICES_KEY = 'invefat_sales_invoices'
+const INVENTORY_MOVEMENT_KEYS = ['invefat_inventory_movements', 'inveFatInventoryMovements', 'inventory_movements']
+const TRANSFER_KEYS = ['invefat_warehouse_transfers', 'invefat_inventory_transfers', 'invefat_stock_transfers']
+const RECEIVING_KEYS = ['invefat_warehouse_receivings', 'invefat_receivings', 'invefat_purchase_receivings']
 
 const defaultProducts = [
   {
@@ -100,12 +104,24 @@ const initialFilters = {
   status: 'Todos',
 }
 
+const initialMovementFilters = {
+  document: '',
+  type: 'Todos',
+  dateFrom: '',
+  dateTo: '',
+}
+
 const bulkImportExample = `codigo,nombre,categoria,unidad,costo,precio,stock,codigoBarra
 PRD-001,Producto A,General,UND,100,150,10,123456
 PRD-002,Producto B,General,UND,200,250,5,789456`
 
 function normalizeNumber(value) {
   const numericValue = Number(value)
+  return Number.isFinite(numericValue) ? numericValue : 0
+}
+
+function parseNumber(value) {
+  const numericValue = Number.parseFloat(String(value ?? '').replace(',', '.').replace(/[^\d.-]/g, ''))
   return Number.isFinite(numericValue) ? numericValue : 0
 }
 
@@ -238,6 +254,213 @@ function productStatusClass(product) {
   return 'erp-badge is-success'
 }
 
+function loadStorageArray(key) {
+  try {
+    const saved = localStorage.getItem(key)
+    const parsed = saved ? JSON.parse(saved) : []
+    if (Array.isArray(parsed)) return parsed
+    if (parsed && typeof parsed === 'object') return Object.values(parsed)
+  } catch {
+    // Ignorar claves corruptas y continuar con las demas fuentes.
+  }
+
+  return []
+}
+
+function loadArraysFromKeys(keys) {
+  return keys.flatMap((key) => loadStorageArray(key).map((item) => ({ ...item, __sourceKey: key })))
+}
+
+function cleanText(value) {
+  return String(value ?? '').trim().toLowerCase()
+}
+
+function itemMatchesProduct(item, product) {
+  if (!item || !product) return false
+
+  const productId = cleanText(product.id)
+  const productCode = cleanText(product.code)
+  const productName = cleanText(product.name)
+  const productBarcode = cleanText(product.barcode)
+  const itemId = cleanText(item.productId || item.productID || item.id || item.itemId)
+  const itemCode = cleanText(item.productCode || item.code || item.codigo || item.sku)
+  const itemName = cleanText(item.productName || item.name || item.item || item.nombre)
+  const itemBarcode = cleanText(item.barcode || item.codigoBarra)
+
+  return Boolean(
+    (productId && itemId && productId === itemId) ||
+    (productCode && itemCode && productCode === itemCode) ||
+    (productBarcode && itemBarcode && productBarcode === itemBarcode) ||
+    (productName && itemName && productName === itemName)
+  )
+}
+
+function movementQuantity(item) {
+  return parseNumber(item.quantity ?? item.qty ?? item.cantidad ?? item.received ?? item.transferred ?? item.units)
+}
+
+function normalizeMovementRow(row) {
+  return {
+    id: row.id || `${row.source}-${row.document}-${row.date}-${row.type}-${row.reference}`,
+    date: row.date || row.createdAt || row.updatedAt || '',
+    type: row.type || 'Movimiento',
+    document: row.document || 'N/D',
+    origin: row.origin || '',
+    destination: row.destination || '',
+    entry: parseNumber(row.entry),
+    exit: parseNumber(row.exit),
+    balance: '',
+    user: row.user || 'Sistema',
+    reference: row.reference || row.source || '',
+    source: row.source || '',
+  }
+}
+
+function normalizeStoredMovement(movement, product) {
+  if (!itemMatchesProduct(movement, product)) return null
+
+  const type = movement.type || movement.tipo || movement.movementType || 'Movimiento de inventario'
+  const quantity = movementQuantity(movement)
+  const rawEntry = movement.entry ?? movement.entrada ?? movement.in ?? movement.quantityIn
+  const rawExit = movement.exit ?? movement.salida ?? movement.out ?? movement.quantityOut
+  const typeText = cleanText(type)
+  const entry = rawEntry !== undefined ? parseNumber(rawEntry) : (
+    /entrada|recepcion|compra|devolucion|ajuste positivo/.test(typeText) ? quantity : 0
+  )
+  const exit = rawExit !== undefined ? parseNumber(rawExit) : (
+    /salida|venta|transferencia|ajuste negativo/.test(typeText) ? quantity : 0
+  )
+
+  return normalizeMovementRow({
+    id: movement.id,
+    date: movement.date || movement.fecha || movement.createdAt || movement.updatedAt,
+    type,
+    document: movement.document || movement.documentNumber || movement.number || movement.numero || movement.reference,
+    origin: movement.origin || movement.originWarehouse || movement.fromWarehouse || movement.sourceWarehouse || movement.branch || movement.vendor,
+    destination: movement.destination || movement.destinationWarehouse || movement.toWarehouse || movement.targetWarehouse || movement.warehouse || movement.customer,
+    entry,
+    exit,
+    user: movement.user || movement.createdBy || movement.updatedBy,
+    reference: movement.reference || movement.description || movement.__sourceKey,
+    source: movement.__sourceKey || 'movements',
+  })
+}
+
+function rowsFromInvoice(invoice, product) {
+  const lines = Array.isArray(invoice.lines) ? invoice.lines : []
+
+  return lines
+    .filter((line) => itemMatchesProduct(line, product))
+    .map((line) => normalizeMovementRow({
+      id: `${invoice.number}-${line.id || line.code}`,
+      date: invoice.date || invoice.createdAt || invoice.updatedAt,
+      type: 'Venta / Factura',
+      document: invoice.number,
+      origin: invoice.warehouse || invoice.branch || 'Almacen',
+      destination: invoice.customer || 'Cliente',
+      entry: 0,
+      exit: parseNumber(line.quantity),
+      user: invoice.seller || invoice.user || 'Administrador',
+      reference: invoice.state || invoice.paymentMethod || 'Factura',
+      source: SALES_INVOICES_KEY,
+    }))
+}
+
+function rowsFromTransfer(transfer, product) {
+  const lines = Array.isArray(transfer.lines)
+    ? transfer.lines
+    : Array.isArray(transfer.items)
+      ? transfer.items
+      : Array.isArray(transfer.products)
+        ? transfer.products
+        : Array.isArray(transfer.details)
+          ? transfer.details
+          : [transfer]
+
+  return lines
+    .filter((line) => itemMatchesProduct(line, product))
+    .map((line) => {
+      const quantity = movementQuantity(line) || movementQuantity(transfer)
+
+      return normalizeMovementRow({
+        id: `${transfer.id || transfer.number || transfer.document}-${line.id || line.code || line.productCode}`,
+        date: transfer.date || transfer.fecha || transfer.createdAt || transfer.updatedAt,
+        type: transfer.type || transfer.tipo || 'Transferencia',
+        document: transfer.number || transfer.document || transfer.code || transfer.numero || 'Transferencia',
+        origin: transfer.originWarehouse || transfer.fromWarehouse || transfer.sourceWarehouse || transfer.origin || transfer.fromLocation,
+        destination: transfer.destinationWarehouse || transfer.toWarehouse || transfer.targetWarehouse || transfer.destination || transfer.toLocation,
+        entry: parseNumber(line.entry ?? line.entrada),
+        exit: parseNumber(line.exit ?? line.salida) || quantity,
+        user: transfer.user || transfer.createdBy || 'Sistema',
+        reference: transfer.reference || transfer.note || transfer.__sourceKey,
+        source: transfer.__sourceKey || 'transfers',
+      })
+    })
+}
+
+function rowsFromReceiving(receiving, product) {
+  const lines = Array.isArray(receiving.lines)
+    ? receiving.lines
+    : Array.isArray(receiving.items)
+      ? receiving.items
+      : Array.isArray(receiving.products)
+        ? receiving.products
+        : Array.isArray(receiving.details)
+          ? receiving.details
+          : [receiving]
+
+  return lines
+    .filter((line) => itemMatchesProduct(line, product))
+    .map((line) => {
+      const quantity = parseNumber(line.received ?? line.quantity ?? line.qty ?? line.cantidad)
+
+      return normalizeMovementRow({
+        id: `${receiving.id || receiving.number || receiving.document}-${line.id || line.code || line.productCode}`,
+        date: receiving.date || receiving.fecha || receiving.createdAt || receiving.updatedAt,
+        type: receiving.type || 'Entrada por compra',
+        document: receiving.number || receiving.document || receiving.receivingNumber || receiving.numero || 'Recepcion',
+        origin: receiving.vendor || receiving.supplier || receiving.provider || 'Proveedor',
+        destination: receiving.warehouse || receiving.destinationWarehouse || receiving.toWarehouse || 'Almacen',
+        entry: quantity,
+        exit: 0,
+        user: receiving.user || receiving.receivedBy || receiving.createdBy || 'Sistema',
+        reference: receiving.order || receiving.reference || receiving.__sourceKey,
+        source: receiving.__sourceKey || 'receivings',
+      })
+    })
+}
+
+function buildProductMovements(product) {
+  if (!product) return []
+
+  const storedMovements = loadArraysFromKeys(INVENTORY_MOVEMENT_KEYS)
+    .map((movement) => normalizeStoredMovement(movement, product))
+    .filter(Boolean)
+  const invoiceMovements = loadStorageArray(SALES_INVOICES_KEY).flatMap((invoice) => rowsFromInvoice(invoice, product))
+  const transferMovements = loadArraysFromKeys(TRANSFER_KEYS).flatMap((transfer) => rowsFromTransfer(transfer, product))
+  const receivingMovements = loadArraysFromKeys(RECEIVING_KEYS).flatMap((receiving) => rowsFromReceiving(receiving, product))
+
+  const seen = new Set()
+  const rows = [...storedMovements, ...invoiceMovements, ...transferMovements, ...receivingMovements]
+    .filter((row) => {
+      const key = [row.date, row.type, row.document, row.entry, row.exit, row.origin, row.destination].join('|')
+      if (seen.has(key)) return false
+      seen.add(key)
+      return true
+    })
+    .sort((a, b) => {
+      const dateA = new Date(a.date || 0).getTime()
+      const dateB = new Date(b.date || 0).getTime()
+      return dateA - dateB
+    })
+
+  let balance = 0
+  return rows.map((row) => {
+    balance += parseNumber(row.entry) - parseNumber(row.exit)
+    return { ...row, balance }
+  })
+}
+
 export default function InventoryProductsPage({ controls, onAction, searchValue = '', onSearchChange }) {
   const [products, setProducts] = useState(() => loadProducts())
   const [filters, setFilters] = useState(initialFilters)
@@ -248,6 +471,8 @@ export default function InventoryProductsPage({ controls, onAction, searchValue 
   const [bulkText, setBulkText] = useState('')
   const [viewMode, setViewMode] = useState('list')
   const [activePanel, setActivePanel] = useState(null)
+  const [modalWindowState, setModalWindowState] = useState('normal')
+  const [movementFilters, setMovementFilters] = useState(initialMovementFilters)
 
   const search = searchValue
   const setSearch = onSearchChange || (() => {})
@@ -299,6 +524,34 @@ export default function InventoryProductsPage({ controls, onAction, searchValue 
     return products.find((product) => product.code === selectedCode) || null
   }, [products, selectedCode])
 
+  const productMovements = useMemo(() => {
+    if (!selectedProduct || activePanel !== 'movements') return []
+    return buildProductMovements(selectedProduct)
+  }, [activePanel, selectedProduct])
+
+  const movementTypes = useMemo(() => {
+    return Array.from(new Set(productMovements.map((movement) => movement.type).filter(Boolean))).sort()
+  }, [productMovements])
+
+  const filteredMovements = useMemo(() => {
+    return productMovements.filter((movement) => {
+      const matchesDocument = !movementFilters.document || [
+        movement.document,
+        movement.reference,
+        movement.origin,
+        movement.destination,
+      ].some((field) => cleanText(field).includes(cleanText(movementFilters.document)))
+      const matchesType = movementFilters.type === 'Todos' || movement.type === movementFilters.type
+      const movementTime = new Date(movement.date || 0).getTime()
+      const fromTime = movementFilters.dateFrom ? new Date(movementFilters.dateFrom).getTime() : null
+      const toTime = movementFilters.dateTo ? new Date(movementFilters.dateTo).getTime() : null
+      const matchesFrom = !fromTime || movementTime >= fromTime
+      const matchesTo = !toTime || movementTime <= toTime
+
+      return matchesDocument && matchesType && matchesFrom && matchesTo
+    })
+  }, [movementFilters, productMovements])
+
   const isFormOpen = viewMode === 'form'
 
   const notify = (text) => {
@@ -320,12 +573,24 @@ export default function InventoryProductsPage({ controls, onAction, searchValue 
     }))
   }
 
+  const updateMovementFilter = (field, value) => {
+    setMovementFilters((current) => ({
+      ...current,
+      [field]: value,
+    }))
+  }
+
+  const resetModalState = () => {
+    setModalWindowState('normal')
+  }
+
   const startNewProduct = () => {
     const emptyProduct = createEmptyProduct(products)
     setSelectedCode('')
     setFormData(emptyProduct)
     setShowBulkImport(false)
     setActivePanel(null)
+    setModalWindowState('normal')
     setViewMode('form')
     notify('Formulario listo para nuevo producto')
   }
@@ -424,12 +689,14 @@ export default function InventoryProductsPage({ controls, onAction, searchValue 
     selectProduct(selectedProduct)
     setShowBulkImport(false)
     setActivePanel(null)
+    setModalWindowState('normal')
     setViewMode('form')
     notify(`Editando producto ${selectedProduct.code}`)
   }
 
   const closeForm = () => {
     setViewMode('list')
+    resetModalState()
     notify('Formulario cerrado')
   }
 
@@ -440,6 +707,7 @@ export default function InventoryProductsPage({ controls, onAction, searchValue 
     }
 
     setShowBulkImport(false)
+    setModalWindowState('normal')
     setActivePanel('stock')
   }
 
@@ -450,6 +718,8 @@ export default function InventoryProductsPage({ controls, onAction, searchValue 
     }
 
     setShowBulkImport(false)
+    setMovementFilters(initialMovementFilters)
+    setModalWindowState('normal')
     setActivePanel('movements')
   }
 
@@ -537,6 +807,11 @@ export default function InventoryProductsPage({ controls, onAction, searchValue 
   }
 
   const closeInternalView = () => {
+    if (modalWindowState === 'maximized') {
+      setModalWindowState('normal')
+      return
+    }
+
     if (isFormOpen) {
       closeForm()
       return
@@ -544,6 +819,7 @@ export default function InventoryProductsPage({ controls, onAction, searchValue 
 
     if (activePanel) {
       setActivePanel(null)
+      resetModalState()
       return
     }
 
@@ -554,6 +830,29 @@ export default function InventoryProductsPage({ controls, onAction, searchValue 
     ...controls,
     onClose: closeInternalView,
   }
+
+  const closeActivePanel = () => {
+    setActivePanel(null)
+    resetModalState()
+  }
+
+  const renderModalControls = (onClose, closeLabel) => (
+    <div className="inventory-modal-controls">
+      <button type="button" onClick={onClose} className="is-exit" title={closeLabel || 'Cerrar'}>
+        <X size={15} />
+      </button>
+      <button type="button" onClick={() => setModalWindowState('minimized')} title="Minimizar">
+        <span>Min</span>
+      </button>
+      <button
+        type="button"
+        onClick={() => setModalWindowState((current) => (current === 'maximized' ? 'normal' : 'maximized'))}
+        title={modalWindowState === 'maximized' ? 'Restaurar' : 'Maximizar'}
+      >
+        <span>{modalWindowState === 'maximized' ? 'Rest' : 'Max'}</span>
+      </button>
+    </div>
+  )
 
   return (
     <ModulePageLayout
@@ -647,17 +946,22 @@ export default function InventoryProductsPage({ controls, onAction, searchValue 
           </datalist>
         </section>
 
-        {isFormOpen && (
+        {isFormOpen && modalWindowState === 'minimized' && (
+          <button type="button" className="inventory-minimized-modal" onClick={() => setModalWindowState('normal')}>
+            <span>Producto minimizado</span>
+            <strong>{formData.code || 'Nuevo producto'}</strong>
+          </button>
+        )}
+
+        {isFormOpen && modalWindowState !== 'minimized' && (
           <div className="inventory-modal-backdrop" role="dialog" aria-modal="true" aria-labelledby="inventory-product-form-title">
-            <section className="inventory-modal inventory-product-modal">
+            <section className={`inventory-modal inventory-product-modal ${modalWindowState === 'maximized' ? 'is-maximized' : ''}`}>
               <header className="inventory-modal-header">
                 <div>
                   <span>{selectedCode ? 'Edicion' : 'Nuevo registro'}</span>
                   <h2 id="inventory-product-form-title">{selectedCode ? 'Editar producto' : 'Nuevo producto'}</h2>
                 </div>
-                <button type="button" className="inventory-modal-close" onClick={closeForm} aria-label="Cerrar formulario">
-                  <X size={18} />
-                </button>
+                {renderModalControls(closeForm, 'Cerrar formulario')}
               </header>
 
               <div className="inventory-modal-body">
@@ -779,17 +1083,22 @@ export default function InventoryProductsPage({ controls, onAction, searchValue 
           </section>
         )}
 
-        {activePanel === 'stock' && selectedProduct && (
+        {activePanel === 'stock' && selectedProduct && modalWindowState === 'minimized' && (
+          <button type="button" className="inventory-minimized-modal" onClick={() => setModalWindowState('normal')}>
+            <span>Stock minimizado</span>
+            <strong>{selectedProduct.code}</strong>
+          </button>
+        )}
+
+        {activePanel === 'stock' && selectedProduct && modalWindowState !== 'minimized' && (
           <div className="inventory-modal-backdrop" role="dialog" aria-modal="true" aria-labelledby="inventory-stock-title">
-            <section className="inventory-modal inventory-info-modal">
+            <section className={`inventory-modal inventory-info-modal ${modalWindowState === 'maximized' ? 'is-maximized' : ''}`}>
               <header className="inventory-modal-header">
                 <div>
                   <span>Consulta</span>
                   <h2 id="inventory-stock-title">Stock del producto</h2>
                 </div>
-                <button type="button" className="inventory-modal-close" onClick={() => setActivePanel(null)} aria-label="Cerrar stock">
-                  <X size={18} />
-                </button>
+                {renderModalControls(closeActivePanel, 'Cerrar stock')}
               </header>
 
               <div className="inventory-modal-body">
@@ -828,7 +1137,7 @@ export default function InventoryProductsPage({ controls, onAction, searchValue 
               </div>
 
               <footer className="inventory-modal-footer">
-                <button type="button" onClick={() => setActivePanel(null)}>
+                <button type="button" onClick={closeActivePanel}>
                   Cerrar
                 </button>
               </footer>
@@ -836,23 +1145,56 @@ export default function InventoryProductsPage({ controls, onAction, searchValue 
           </div>
         )}
 
-        {activePanel === 'movements' && selectedProduct && (
+        {activePanel === 'movements' && selectedProduct && modalWindowState === 'minimized' && (
+          <button type="button" className="inventory-minimized-modal" onClick={() => setModalWindowState('normal')}>
+            <span>Movimientos minimizados</span>
+            <strong>{selectedProduct.code}</strong>
+          </button>
+        )}
+
+        {activePanel === 'movements' && selectedProduct && modalWindowState !== 'minimized' && (
           <div className="inventory-modal-backdrop" role="dialog" aria-modal="true" aria-labelledby="inventory-movements-title">
-            <section className="inventory-modal inventory-info-modal">
+            <section className={`inventory-modal inventory-info-modal inventory-movements-modal ${modalWindowState === 'maximized' ? 'is-maximized' : ''}`}>
               <header className="inventory-modal-header">
                 <div>
                   <span>Kardex</span>
                   <h2 id="inventory-movements-title">Movimientos del producto</h2>
                 </div>
-                <button type="button" className="inventory-modal-close" onClick={() => setActivePanel(null)} aria-label="Cerrar movimientos">
-                  <X size={18} />
-                </button>
+                {renderModalControls(closeActivePanel, 'Cerrar movimientos')}
               </header>
 
               <div className="inventory-modal-body">
                 <div className="inventory-selected-title">
                   <strong>{selectedProduct.code}</strong>
                   <span>{selectedProduct.name}</span>
+                </div>
+                <div className="inventory-movement-filters">
+                  <label>
+                    Documento
+                    <input
+                      value={movementFilters.document}
+                      onChange={(event) => updateMovementFilter('document', event.target.value)}
+                      placeholder="FAC-000001, REC-000001"
+                    />
+                  </label>
+                  <label>
+                    Tipo
+                    <select value={movementFilters.type} onChange={(event) => updateMovementFilter('type', event.target.value)}>
+                      <option>Todos</option>
+                      {movementTypes.map((type) => <option key={type}>{type}</option>)}
+                    </select>
+                  </label>
+                  <label>
+                    Desde
+                    <input type="date" value={movementFilters.dateFrom} onChange={(event) => updateMovementFilter('dateFrom', event.target.value)} />
+                  </label>
+                  <label>
+                    Hasta
+                    <input type="date" value={movementFilters.dateTo} onChange={(event) => updateMovementFilter('dateTo', event.target.value)} />
+                  </label>
+                  <button type="button" onClick={() => setMovementFilters(initialMovementFilters)}>
+                    Limpiar
+                  </button>
                 </div>
                 <div className="erp-table-wrap">
                   <table className="erp-table inventory-movements-table">
@@ -861,29 +1203,44 @@ export default function InventoryProductsPage({ controls, onAction, searchValue 
                         <th>Fecha</th>
                         <th>Tipo</th>
                         <th>Documento</th>
+                        <th>Origen</th>
+                        <th>Destino</th>
                         <th>Entrada</th>
                         <th>Salida</th>
                         <th>Balance</th>
                         <th>Usuario</th>
+                        <th>Referencia</th>
                       </tr>
                     </thead>
                     <tbody>
-                      <tr>
-                        <td>2026-05-17</td>
-                        <td>Inventario inicial</td>
-                        <td>INI-0001</td>
-                        <td>{selectedProduct.stock}</td>
-                        <td>0</td>
-                        <td>{selectedProduct.stock}</td>
-                        <td>Administrador</td>
-                      </tr>
+                      {filteredMovements.length === 0 && (
+                        <tr>
+                          <td colSpan="10" className="inventory-empty-table">
+                            Este producto todavia no tiene movimientos registrados.
+                          </td>
+                        </tr>
+                      )}
+                      {filteredMovements.map((movement) => (
+                        <tr key={movement.id}>
+                          <td>{movement.date || 'N/D'}</td>
+                          <td>{movement.type}</td>
+                          <td>{movement.document}</td>
+                          <td>{movement.origin || 'N/D'}</td>
+                          <td>{movement.destination || 'N/D'}</td>
+                          <td>{movement.entry ? normalizeNumber(movement.entry) : 0}</td>
+                          <td>{movement.exit ? normalizeNumber(movement.exit) : 0}</td>
+                          <td>{movement.balance === '' ? '' : normalizeNumber(movement.balance)}</td>
+                          <td>{movement.user || 'Sistema'}</td>
+                          <td>{movement.reference || 'N/D'}</td>
+                        </tr>
+                      ))}
                     </tbody>
                   </table>
                 </div>
               </div>
 
               <footer className="inventory-modal-footer">
-                <button type="button" onClick={() => setActivePanel(null)}>
+                <button type="button" onClick={closeActivePanel}>
                   Cerrar
                 </button>
               </footer>
