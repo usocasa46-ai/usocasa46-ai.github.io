@@ -1,3 +1,4 @@
+import { useEffect } from 'react'
 import {
   AlertTriangle,
   BarChart3,
@@ -10,19 +11,202 @@ import {
   ShoppingBag,
   ShoppingCart,
   Truck,
+  UserPlus,
   Users,
   Warehouse,
 } from 'lucide-react'
 import './ErpCockpitDashboard.css'
 
+function normalizeText(value) {
+  return String(value || '')
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .toLowerCase()
+    .trim()
+}
+
+function getVisibleClickableElements(root) {
+  return Array.from(root.querySelectorAll('button, a, [role="button"], [tabindex]'))
+    .filter((element) => {
+      const rect = element.getBoundingClientRect()
+      return rect.width > 0 && rect.height > 0
+    })
+}
+
+function clickElementByText(searchTexts, selectors = ['body']) {
+  const targets = Array.isArray(searchTexts) ? searchTexts : [searchTexts]
+  const normalizedTargets = targets.map((text) => normalizeText(text))
+
+  const roots = selectors
+    .map((selector) => document.querySelector(selector))
+    .filter(Boolean)
+
+  if (roots.length === 0) {
+    roots.push(document.body)
+  }
+
+  for (const root of roots) {
+    const elements = getVisibleClickableElements(root)
+
+    const exactMatch = elements.find((element) => {
+      const text = normalizeText(element.textContent)
+      return normalizedTargets.some((target) => text === target)
+    })
+
+    if (exactMatch) {
+      exactMatch.click()
+      return true
+    }
+
+    const partialMatch = elements.find((element) => {
+      const text = normalizeText(element.textContent)
+      return normalizedTargets.some((target) => text.includes(target))
+    })
+
+    if (partialMatch) {
+      partialMatch.click()
+      return true
+    }
+  }
+
+  return false
+}
+
+function clickStepRepeated(searchTexts, selectors, delay = 350, attempts = 8) {
+  let count = 0
+
+  const tryClick = () => {
+    count += 1
+
+    const clicked = clickElementByText(searchTexts, selectors)
+
+    if (!clicked && count < attempts) {
+      window.setTimeout(tryClick, delay)
+    }
+  }
+
+  window.setTimeout(tryClick, delay)
+}
+
+function openSystemArea(shortcut) {
+  document.body.classList.add('module-work-mode')
+  document.body.classList.add('sidebar-collapsed-mode')
+  const openedMainModule = clickElementByText(shortcut.moduleText, [
+    '.sidebar',
+    'aside',
+    'body',
+  ])
+
+  if (!openedMainModule) {
+    console.warn(`No se encontro el modulo principal: ${shortcut.title}`)
+    return
+  }
+
+  if (!shortcut.actionFlow || shortcut.actionFlow.length === 0) {
+    return
+  }
+
+  shortcut.actionFlow.forEach((step, index) => {
+    clickStepRepeated(
+      step,
+      [
+        '.main-panel',
+        '.app-main',
+        '.main-content',
+        '.content',
+        'main',
+      ],
+      420 + index * 380,
+      8
+    )
+  })
+}
 export default function ErpCockpitDashboard() {
+  useEffect(() => {
+    document.body.classList.remove('module-work-mode')
+
+    const handleSidebarClick = (event) => {
+      const clickedModule = event.target.closest('.sidebar button, .sidebar a, aside button, aside a')
+
+      if (!clickedModule) return
+
+      const text = normalizeText(clickedModule.textContent)
+
+      if (text.includes('dashboard')) {
+        document.body.classList.remove('module-work-mode')
+        document.body.classList.remove('sidebar-collapsed-mode')
+        return
+      }
+
+      document.body.classList.add('module-work-mode')
+  document.body.classList.add('sidebar-collapsed-mode')
+    }
+
+    document.addEventListener('click', handleSidebarClick, true)
+
+    return () => {
+      document.removeEventListener('click', handleSidebarClick, true)
+    }
+  }, [])
+
   const shortcuts = [
-    { title: 'Nueva venta', subtitle: 'Factura o venta rapida', icon: ShoppingCart, color: 'green' },
-    { title: 'Nueva compra', subtitle: 'Registrar compra', icon: ShoppingBag, color: 'blue' },
-    { title: 'Recibir mercancia', subtitle: 'Entrada a almacen', icon: Truck, color: 'orange' },
-    { title: 'Inventario', subtitle: 'Stock y movimientos', icon: Warehouse, color: 'cyan' },
-    { title: 'Cotizacion', subtitle: 'Crear cotizacion', icon: FileText, color: 'blue' },
-    { title: 'Reportes', subtitle: 'Ver indicadores', icon: BarChart3, color: 'green' },
+    {
+      title: 'Nueva venta',
+      subtitle: 'Crear factura',
+      icon: ShoppingCart,
+      color: 'green',
+      moduleText: ['Ventas'],
+      actionFlow: [
+        ['Factura'],
+      ],
+    },
+    {
+      title: 'Nueva compra',
+      subtitle: 'Crear compra',
+      icon: ShoppingBag,
+      color: 'blue',
+      moduleText: ['Compras'],
+      actionFlow: [
+        ['Ordenes de compra', 'ÃƒÆ’Ã¢â‚¬Å“rdenes de compra', 'Compra', 'Compras'],
+        ['Nueva orden', 'Crear orden', 'Nueva compra', 'Crear compra', 'Agregar compra'],
+      ],
+    },
+    {
+      title: 'Recibir mercancia',
+      subtitle: 'Crear recepcion',
+      icon: Truck,
+      color: 'orange',
+      moduleText: ['Inventario', 'Inventario y Almacen', 'Inventario y AlmacÃƒÆ’Ã‚Â©n', 'Compras'],
+      actionFlow: [
+        ['Recepcion', 'RecepciÃƒÆ’Ã‚Â³n', 'Recibir mercancia', 'Recibir mercancÃƒÆ’Ã‚Â­a'],
+        ['Nueva recepcion', 'Nueva recepciÃƒÆ’Ã‚Â³n', 'Crear recepcion', 'Crear recepciÃƒÆ’Ã‚Â³n', 'Registrar entrada', 'Recibir'],
+      ],
+    },
+    {
+      title: 'Inventario',
+      subtitle: 'Stock y movimientos',
+      icon: Warehouse,
+      color: 'cyan',
+      moduleText: ['Inventario', 'Inventario y Almacen', 'Inventario y AlmacÃƒÆ’Ã‚Â©n'],
+    },
+    {
+      title: 'Cotizacion',
+      subtitle: 'Crear cotizacion',
+      icon: FileText,
+      color: 'blue',
+      moduleText: ['Ventas'],
+      actionFlow: [
+        ['Cotizaciones', 'Cotizacion', 'CotizaciÃƒÆ’Ã‚Â³n'],
+        ['Nueva cotizacion', 'Nueva cotizaciÃƒÆ’Ã‚Â³n', 'Crear cotizacion', 'Crear cotizaciÃƒÆ’Ã‚Â³n', 'Agregar cotizacion'],
+      ],
+    },
+    {
+      title: 'Reportes',
+      subtitle: 'Ver indicadores',
+      icon: BarChart3,
+      color: 'green',
+      moduleText: ['Reportes', 'Reporte'],
+    },
   ]
 
   const previews = [
@@ -139,7 +323,13 @@ export default function ErpCockpitDashboard() {
             const Icon = item.icon
 
             return (
-              <button key={item.title} type="button" className={`simple-shortcut ${item.color}`}>
+              <button
+                key={item.title}
+                type="button"
+                className={`simple-shortcut ${item.color}`}
+                onClick={() => openSystemArea(item)}
+                title={`Abrir ${item.title}`}
+              >
                 <span>
                   <Icon size={28} strokeWidth={2.5} />
                 </span>
@@ -219,7 +409,7 @@ export default function ErpCockpitDashboard() {
         <span>INVE-FAT SYSTEM</span>
         <span>Sucursal Principal</span>
         <span>Usuario: Administrador</span>
-        <span>Â© 2025</span>
+        <span>ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â© 2025</span>
       </footer>
     </section>
   )

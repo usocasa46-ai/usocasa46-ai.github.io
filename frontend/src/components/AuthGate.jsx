@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import App from '../App.jsx'
 import LoginScreen from './LoginScreen.jsx'
+import ModuleWorkModeController from './ModuleWorkModeController.jsx'
 import './AuthGate.css'
 
 const AUTH_VERSION = 2
@@ -278,6 +279,7 @@ export default function AuthGate() {
 
   return (
     <>
+      <ModuleWorkModeController />
       <App />
 
       {showFileMenu && (

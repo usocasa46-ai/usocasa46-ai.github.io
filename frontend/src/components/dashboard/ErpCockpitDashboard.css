@@ -516,7 +516,7 @@
   padding: 10px 14px 8px !important;
 }
 
-/* Encabezado más compacto */
+/* Encabezado mÃƒÆ’Ã‚Â¡s compacto */
 .simple-dashboard-header {
   min-height: 46px !important;
 }
@@ -530,7 +530,7 @@
   font-size: 12px !important;
 }
 
-/* Accesos rápidos se mantienen visibles pero un poco más bajos */
+/* Accesos rÃƒÆ’Ã‚Â¡pidos se mantienen visibles pero un poco mÃƒÆ’Ã‚Â¡s bajos */
 .simple-quick-section {
   gap: 8px !important;
 }
@@ -548,7 +548,7 @@
   font-size: 11.5px !important;
 }
 
-/* Accesos rápidos: mantener una sola fila, más compactos */
+/* Accesos rÃƒÆ’Ã‚Â¡pidos: mantener una sola fila, mÃƒÆ’Ã‚Â¡s compactos */
 .simple-shortcuts-grid {
   gap: 9px !important;
 }
@@ -578,7 +578,7 @@
   font-size: 9.3px !important;
 }
 
-/* Vista previa operativa más contraída */
+/* Vista previa operativa mÃƒÆ’Ã‚Â¡s contraÃƒÆ’Ã‚Â­da */
 .simple-preview-section {
   gap: 7px !important;
 }
@@ -612,7 +612,7 @@
   position: relative !important;
 }
 
-/* El hover expande encima, sin empujar los demás cubos */
+/* El hover expande encima, sin empujar los demÃƒÆ’Ã‚Â¡s cubos */
 .simple-preview-card:hover {
   height: 190px !important;
   min-height: 190px !important;
@@ -652,7 +652,7 @@
   line-height: 1.1 !important;
 }
 
-/* Detalles del hover más pequeños */
+/* Detalles del hover mÃƒÆ’Ã‚Â¡s pequeÃƒÆ’Ã‚Â±os */
 .simple-preview-card:hover .simple-preview-expand {
   max-height: 90px !important;
   margin-top: 9px !important;
@@ -669,7 +669,7 @@
   line-height: 1.15 !important;
 }
 
-/* 3 cubos inferiores más compactos */
+/* 3 cubos inferiores mÃƒÆ’Ã‚Â¡s compactos */
 .simple-work-grid {
   grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
   gap: 9px !important;
@@ -717,7 +717,7 @@
   line-height: 1.15 !important;
 }
 
-/* Footer más pequeño */
+/* Footer mÃƒÆ’Ã‚Â¡s pequeÃƒÆ’Ã‚Â±o */
 .simple-dashboard-footer {
   padding-top: 6px !important;
   font-size: 9.5px !important;
@@ -742,4 +742,127 @@
   .simple-work-grid {
     grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
   }
+}
+
+
+/* =========================================================
+   MODO TRABAJO - OCULTAR DASHBOARD AL ABRIR MODULOS
+   ========================================================= */
+
+body.module-work-mode .simple-dashboard {
+  display: none !important;
+}
+
+body.module-work-mode .main-content:has(.simple-dashboard),
+body.module-work-mode .content:has(.simple-dashboard),
+body.module-work-mode .page-content:has(.simple-dashboard),
+body.module-work-mode .main-panel:has(.simple-dashboard),
+body.module-work-mode .app-main:has(.simple-dashboard) {
+  padding: 0 !important;
+  overflow: hidden !important;
+}
+
+/* Evita que vistas previas o cubos queden encima de formularios */
+body.module-work-mode .simple-preview-card,
+body.module-work-mode .simple-work-card,
+body.module-work-mode .simple-shortcut {
+  pointer-events: none !important;
+}
+
+
+/* =========================================================
+   MODO TRABAJO - ESCONDER SIDEBAR Y EXPANDIR MODULO
+   ========================================================= */
+
+/* Cuando un modulo esta abierto, esconder completamente el sidebar */
+body.module-work-mode .sidebar {
+  width: 0 !important;
+  min-width: 0 !important;
+  max-width: 0 !important;
+  padding-left: 0 !important;
+  padding-right: 0 !important;
+  overflow: hidden !important;
+  border-right: none !important;
+  transform: translateX(-100%) !important;
+  box-shadow: none !important;
+}
+
+/* El area principal ocupa todo el ancho */
+body.module-work-mode .app-shell {
+  grid-template-columns: 1fr !important;
+}
+
+body.module-work-mode .main-panel,
+body.module-work-mode .main-area,
+body.module-work-mode .app-main,
+body.module-work-mode .content-area,
+body.module-work-mode .content-wrapper,
+body.module-work-mode .main-content {
+  width: 100% !important;
+  max-width: 100% !important;
+  margin-left: 0 !important;
+}
+
+/* Mantener la barra superior visible */
+body.module-work-mode .topbar {
+  width: 100% !important;
+}
+
+/* El boton de 3 rayitas queda disponible para volver a mostrar menu */
+body.module-work-mode .menu-button {
+  background: #0f3d4a !important;
+  color: #ffffff !important;
+}
+
+
+/* =========================================================
+   FIX MODO TRABAJO - PERMITIR VOLVER A MOSTRAR SIDEBAR
+   ========================================================= */
+
+/* Si estamos en modo trabajo PERO el sidebar NO esta colapsado,
+   entonces el sidebar debe volver a verse al pulsar las 3 rayitas */
+body.module-work-mode:not(.sidebar-collapsed-mode) .sidebar {
+  width: 300px !important;
+  min-width: 300px !important;
+  max-width: 300px !important;
+  padding-left: initial !important;
+  padding-right: initial !important;
+  overflow: visible !important;
+  border-right: 1px solid rgba(255, 255, 255, 0.08) !important;
+  transform: translateX(0) !important;
+  box-shadow: 12px 0 34px rgba(15, 23, 42, 0.12) !important;
+}
+
+/* Cuando el sidebar esta visible en modo trabajo, el layout vuelve a tener columna de menu */
+body.module-work-mode:not(.sidebar-collapsed-mode) .app-shell {
+  grid-template-columns: 300px 1fr !important;
+}
+
+/* Si esta colapsado, entonces si debe ocultarse */
+body.module-work-mode.sidebar-collapsed-mode .sidebar {
+  width: 0 !important;
+  min-width: 0 !important;
+  max-width: 0 !important;
+  padding-left: 0 !important;
+  padding-right: 0 !important;
+  overflow: hidden !important;
+  border-right: none !important;
+  transform: translateX(-100%) !important;
+  box-shadow: none !important;
+}
+
+body.module-work-mode.sidebar-collapsed-mode .app-shell {
+  grid-template-columns: 1fr !important;
+}
+
+/* El boton de 3 rayitas siempre debe quedar visible para recuperar el menu */
+body.module-work-mode .menu-button {
+  position: relative !important;
+  z-index: 10050 !important;
+}
+
+/* Cuando el menu vuelve a abrir, el boton recupera el estilo normal */
+body.module-work-mode:not(.sidebar-collapsed-mode) .menu-button {
+  background: #eaf3f5 !important;
+  color: #0f3d4a !important;
 }
