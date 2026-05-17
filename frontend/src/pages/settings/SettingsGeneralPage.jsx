@@ -16,6 +16,23 @@ const tabs = [
   { id: 'preferences', label: 'Preferencias generales' },
 ]
 
+const invoiceModels = [
+  'Moderno profesional',
+  'Clasico empresarial',
+  'Compacto',
+  'Detallado',
+  'Ticket / POS 80mm',
+  'Ticket / POS 58mm',
+]
+
+const printFormats = [
+  'A4',
+  'Carta',
+  'Media carta',
+  'Ticket 80mm',
+  'Ticket 58mm',
+]
+
 const defaultWarehouses = [
   { code: 'ALM-01', name: 'Almacen Principal' },
   { code: 'ALM-02', name: 'Almacen Sucursal' },
@@ -82,7 +99,7 @@ const defaultSettings = {
     showQr: false,
   },
   billing: {
-    invoiceModel: 'Moderno',
+    invoiceModel: 'Moderno profesional',
     printFormat: 'Carta',
     orientation: 'Vertical',
     fontSize: '12',
@@ -91,6 +108,7 @@ const defaultSettings = {
     showTotals: true,
     showSignature: true,
     showStamp: false,
+    showQr: false,
     footerMessage: 'Documento generado por INVE-FAT SYSTEM.',
   },
   branches: [defaultBranch],
@@ -131,13 +149,27 @@ function safeLoadSettings() {
     const saved = localStorage.getItem(STORAGE_KEY)
     const parsed = saved ? JSON.parse(saved) : null
     if (parsed && typeof parsed === 'object') {
+      const billing = { ...defaultSettings.billing, ...parsed.billing }
+      const legacyModelMap = {
+        Moderno: 'Moderno profesional',
+        Clasico: 'Clasico empresarial',
+        'Ticket / POS': 'Ticket / POS 80mm',
+        'Carta / A4': 'Moderno profesional',
+      }
+      billing.invoiceModel = invoiceModels.includes(billing.invoiceModel)
+        ? billing.invoiceModel
+        : legacyModelMap[billing.invoiceModel] || defaultSettings.billing.invoiceModel
+      billing.printFormat = printFormats.includes(billing.printFormat)
+        ? billing.printFormat
+        : defaultSettings.billing.printFormat
+
       return {
         ...defaultSettings,
         ...parsed,
         company: { ...defaultSettings.company, ...parsed.company },
         brand: { ...defaultSettings.brand, ...parsed.brand },
         documentOptions: { ...defaultSettings.documentOptions, ...parsed.documentOptions },
-        billing: { ...defaultSettings.billing, ...parsed.billing },
+        billing,
         preferences: { ...defaultSettings.preferences, ...parsed.preferences },
         numbering: { ...defaultSettings.numbering, ...parsed.numbering },
         branches: Array.isArray(parsed.branches) && parsed.branches.length ? parsed.branches : defaultSettings.branches,
@@ -372,28 +404,65 @@ export default function SettingsGeneralPage({ controls, onAction, searchValue = 
 
   const renderBillingTab = () => (
     <section className="erp-panel settings-card">
-      <h2>Facturacion e impresion</h2>
+      <div className="settings-card-heading">
+        <span>Modelos de factura</span>
+        <h2>Facturacion e impresion</h2>
+        <p>Define el modelo visual, formato de papel, colores y datos que saldran en factura y cotizacion.</p>
+      </div>
+
       <div className="settings-form-grid">
-        <label>Modelo de factura<select value={settings.billing.invoiceModel} onChange={(event) => updateSection('billing', 'invoiceModel', event.target.value)}><option>Clasico</option><option>Moderno</option><option>Compacto</option><option>Detallado</option><option>Ticket / POS</option><option>Carta / A4</option></select></label>
-        <label>Formato de impresion<select value={settings.billing.printFormat} onChange={(event) => updateSection('billing', 'printFormat', event.target.value)}><option>A4</option><option>Carta</option><option>Media carta</option><option>Ticket 80mm</option><option>Ticket 58mm</option></select></label>
+        <label>Modelo de factura<select value={settings.billing.invoiceModel} onChange={(event) => updateSection('billing', 'invoiceModel', event.target.value)}>{invoiceModels.map((model) => <option key={model}>{model}</option>)}</select></label>
+        <label>Formato de impresion<select value={settings.billing.printFormat} onChange={(event) => updateSection('billing', 'printFormat', event.target.value)}>{printFormats.map((format) => <option key={format}>{format}</option>)}</select></label>
         <label>Orientacion<select value={settings.billing.orientation} onChange={(event) => updateSection('billing', 'orientation', event.target.value)}><option>Vertical</option><option>Horizontal</option></select></label>
-        <label>Tamano de fuente<input type="number" value={settings.billing.fontSize} onChange={(event) => updateSection('billing', 'fontSize', event.target.value)} /></label>
+        <label>Tamano de fuente<input type="number" min="9" max="16" value={settings.billing.fontSize} onChange={(event) => updateSection('billing', 'fontSize', event.target.value)} /></label>
+        <label>Color principal<input type="color" value={settings.brand.primaryColor} onChange={(event) => updateSection('brand', 'primaryColor', event.target.value)} /></label>
+        <label>Color secundario<input type="color" value={settings.brand.secondaryColor} onChange={(event) => updateSection('brand', 'secondaryColor', event.target.value)} /></label>
+        <label>Color de acento<input type="color" value={settings.brand.accentColor} onChange={(event) => updateSection('brand', 'accentColor', event.target.value)} /></label>
         <label className="settings-span-2">Mensaje al pie de factura<textarea value={settings.billing.footerMessage} onChange={(event) => updateSection('billing', 'footerMessage', event.target.value)} /></label>
       </div>
+
+      <div className="settings-subsection-title">Datos visibles en documentos</div>
       <div className="settings-check-grid settings-compact-checks">
         {[
-          ['pricesIncludeTax', 'Precios con impuestos incluidos'],
+          ['documentOptions', 'showLogo', 'Mostrar logo'],
+          ['documentOptions', 'showFiscalId', 'Mostrar RNC'],
+          ['documentOptions', 'showAddress', 'Mostrar direccion'],
+          ['documentOptions', 'showPhone', 'Mostrar telefono'],
+          ['documentOptions', 'showEmail', 'Mostrar correo'],
+          ['documentOptions', 'showSeller', 'Mostrar vendedor'],
+          ['documentOptions', 'showBranch', 'Mostrar sucursal'],
+          ['documentOptions', 'showWarehouse', 'Mostrar almacen'],
+          ['documentOptions', 'showLegalNote', 'Mostrar nota legal'],
+          ['billing', 'showSignature', 'Mostrar firma'],
+          ['billing', 'showStamp', 'Mostrar sello'],
+          ['documentOptions', 'showQr', 'Mostrar codigo QR futuro'],
+        ].map(([section, field, label]) => (
+          <label key={`${section}-${field}`}>
+            <input
+              type="checkbox"
+              checked={Boolean(settings[section][field])}
+              onChange={(event) => updateSection(section, field, event.target.checked)}
+            />
+            {label}
+          </label>
+        ))}
+      </div>
+
+      <div className="settings-subsection-title">Calculo e impresion</div>
+      <div className="settings-check-grid settings-compact-checks">
+        {[
+          ['pricesIncludeTax', 'Mostrar precios con impuestos incluidos'],
           ['showLineDiscount', 'Mostrar descuento por linea'],
           ['showTotals', 'Mostrar subtotal, impuesto y total'],
-          ['showSignature', 'Mostrar firma'],
-          ['showStamp', 'Mostrar sello'],
         ].map(([field, label]) => (
           <label key={field}><input type="checkbox" checked={settings.billing[field]} onChange={(event) => updateSection('billing', field, event.target.checked)} />{label}</label>
         ))}
       </div>
-      <div className="settings-invoice-preview">
+
+      <div className="settings-invoice-preview" style={{ borderLeftColor: settings.brand.accentColor }}>
         <strong>{settings.billing.invoiceModel}</strong>
-        <span>{settings.billing.printFormat} - {settings.billing.orientation}</span>
+        <span>{settings.billing.printFormat} - {settings.billing.orientation} - {settings.billing.fontSize}px</span>
+        <p>{settings.company.tradeName} / {settings.company.fiscalId || 'RNC pendiente'}</p>
         <p>{settings.billing.footerMessage}</p>
       </div>
     </section>

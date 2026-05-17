@@ -1,0 +1,53 @@
+.sales-quotes-page .sales-quote-search {
+  flex-wrap: wrap;
+}
+
+.sales-quotes-page .sales-quote-search select {
+  min-height: 34px;
+  border: 1px solid #d7e1ec;
+  border-radius: 8px;
+  background: #fbfdff;
+  color: #172d43;
+  padding: 6px 9px;
+  font: inherit;
+  outline: 0;
+}
+
+.sales-quotes-page .sales-form-grid textarea {
+  width: 100%;
+  min-height: 74px;
+  border: 1px solid #d7e1ec;
+  border-radius: 8px;
+  background: #fbfdff;
+  color: #172d43;
+  padding: 7px 9px;
+  font: inherit;
+  outline: 0;
+  resize: vertical;
+}
+
+.sales-quotes-page .sales-form-grid textarea:focus {
+  border-color: #4e87bc;
+  box-shadow: 0 0 0 3px rgba(78, 135, 188, 0.12);
+}
+
+.sales-quotes-page .sales-state-badge.convertida-a-factura {
+  background: #eaf3ff;
+  color: #1d5f9b;
+}
+
+.sales-quotes-page .sales-state-badge.emitida,
+.sales-quotes-page .sales-state-badge.aprobada {
+  background: #e7f6ec;
+  color: #1c7d3b;
+}
+
+.sales-quotes-page .sales-state-badge.rechazada,
+.sales-quotes-page .sales-state-badge.vencida {
+  background: #fff0ef;
+  color: #a3332e;
+}
+
+.sales-quotes-table {
+  min-width: 1060px;
+}

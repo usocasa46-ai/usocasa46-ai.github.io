@@ -1,5 +1,6 @@
 import {
   Ban,
+  Download,
   Edit3,
   Eye,
   FilePlus2,
@@ -13,6 +14,12 @@ import {
 } from 'lucide-react'
 import { useMemo, useState } from 'react'
 import ModulePageLayout from '../shared/ModulePageLayout.jsx'
+import {
+  createPdfMetadata,
+  downloadSalesDocumentPdf,
+  openSalesDocumentPdf,
+  printSalesDocumentPdf,
+} from '../../utils/pdf/salesDocumentPdf.js'
 import './SalesInvoicePage.css'
 
 const INVOICES_KEY = 'invefat_sales_invoices'
@@ -52,9 +59,12 @@ const defaultSettings = {
     showLegalNote: true,
   },
   billing: {
-    invoiceModel: 'Moderno',
+    invoiceModel: 'Moderno profesional',
     printFormat: 'Carta',
     orientation: 'Vertical',
+    fontSize: '11',
+    showSignature: true,
+    showStamp: false,
     footerMessage: 'Documento generado por INVE-FAT SYSTEM.',
   },
   branches: [
@@ -706,6 +716,44 @@ export default function SalesInvoicePage({ controls, onAction, searchValue = '',
     localStorage.setItem(REPORTS_KEY, JSON.stringify(nextReports))
   }
 
+  const updateInvoicePdfReference = (targetInvoice, pdfInfo) => {
+    if (!targetInvoice?.number) return
+
+    const nextInvoices = loadInvoices().map((item) => (
+      item.number === targetInvoice.number
+        ? {
+            ...item,
+            pdf: pdfInfo,
+            updatedAt: new Date().toISOString(),
+          }
+        : item
+    ))
+
+    if (!nextInvoices.some((item) => item.number === targetInvoice.number)) return
+
+    setInvoices(nextInvoices)
+    saveInvoices(nextInvoices)
+
+    if (invoice.number === targetInvoice.number) {
+      setInvoice((current) => ({
+        ...current,
+        pdf: pdfInfo,
+      }))
+    }
+  }
+
+  const ensurePrintableInvoice = (targetInvoice = selectedInvoice || invoice) => {
+    if (!targetInvoice || !Array.isArray(targetInvoice.lines) || !targetInvoice.lines.length) {
+      notify('Agregue productos antes de generar el PDF.')
+      return null
+    }
+
+    return {
+      ...targetInvoice,
+      totals: targetInvoice.totals || calculateTotals(targetInvoice),
+    }
+  }
+
   const saveInvoice = () => {
     const error = validateInvoice()
     if (error) {
@@ -716,11 +764,13 @@ export default function SalesInvoicePage({ controls, onAction, searchValue = '',
     const nextTotals = calculateTotals(invoice)
     const existing = invoices.find((item) => item.number === invoice.number)
     const shouldApplyInventory = !existing?.inventoryApplied && !invoice.inventoryApplied && invoice.state !== 'Anulada'
+    const pdfInfo = createPdfMetadata(invoice, settings, 'invoice')
     const savedInvoice = {
       ...invoice,
       state: finalState(invoice, nextTotals),
       totals: nextTotals,
       inventoryApplied: Boolean(existing?.inventoryApplied || invoice.inventoryApplied || shouldApplyInventory),
+      pdf: pdfInfo,
       updatedAt: new Date().toISOString(),
     }
 
@@ -784,24 +834,44 @@ export default function SalesInvoicePage({ controls, onAction, searchValue = '',
     notify(`Factura ${targetInvoice.number} anulada.`)
   }
 
-  const showPreview = (targetInvoice = invoice) => {
-    if (!targetInvoice || !Array.isArray(targetInvoice.lines) || !targetInvoice.lines.length) {
-      notify('Agregue productos antes de ver la factura.')
-      return false
-    }
+  const showPreview = (targetInvoice = selectedInvoice || invoice) => {
+    const printableInvoice = ensurePrintableInvoice(targetInvoice)
+    if (!printableInvoice) return false
 
-    setInvoice({
-      ...targetInvoice,
-      lines: Array.isArray(targetInvoice.lines) ? targetInvoice.lines : [],
+    const pdfInfo = openSalesDocumentPdf({
+      documentData: printableInvoice,
+      settings,
+      documentType: 'invoice',
     })
-    setActiveModal('preview')
+    updateInvoicePdfReference(printableInvoice, pdfInfo)
+    notify(`PDF de factura ${printableInvoice.number} abierto en vista previa.`)
     return true
   }
 
   const printInvoice = (targetInvoice = selectedInvoice || invoice) => {
-    if (showPreview(targetInvoice)) {
-      window.setTimeout(() => window.print(), 180)
-    }
+    const printableInvoice = ensurePrintableInvoice(targetInvoice)
+    if (!printableInvoice) return
+
+    const pdfInfo = printSalesDocumentPdf({
+      documentData: printableInvoice,
+      settings,
+      documentType: 'invoice',
+    })
+    updateInvoicePdfReference(printableInvoice, pdfInfo)
+    notify(`Factura ${printableInvoice.number} enviada a impresion.`)
+  }
+
+  const downloadInvoicePdf = (targetInvoice = selectedInvoice || invoice) => {
+    const printableInvoice = ensurePrintableInvoice(targetInvoice)
+    if (!printableInvoice) return
+
+    const pdfInfo = downloadSalesDocumentPdf({
+      documentData: printableInvoice,
+      settings,
+      documentType: 'invoice',
+    })
+    updateInvoicePdfReference(printableInvoice, pdfInfo)
+    notify(`PDF de factura ${printableInvoice.number} descargado.`)
   }
 
   const sendInvoice = () => {
@@ -819,6 +889,7 @@ export default function SalesInvoicePage({ controls, onAction, searchValue = '',
     { id: 'new', label: 'Nueva factura', icon: FilePlus2, variant: 'primary', onClick: startNewInvoice },
     { id: 'view', label: 'Ver', icon: Eye, disabled: !selectedInvoice, onClick: () => showPreview(selectedInvoice) },
     { id: 'print', label: 'Reimprimir', icon: Printer, disabled: !selectedInvoice, onClick: () => printInvoice(selectedInvoice) },
+    { id: 'download', label: 'Descargar PDF', icon: Download, disabled: !selectedInvoice, onClick: () => downloadInvoicePdf(selectedInvoice) },
     { id: 'send', label: 'Enviar', icon: Send, disabled: !selectedInvoice, onClick: sendInvoice },
     { id: 'edit', label: 'Editar', icon: Edit3, disabled: !selectedInvoice, onClick: editSelectedInvoice },
     { id: 'cancel', label: 'Anular', icon: Ban, variant: 'danger', disabled: !selectedInvoice || selectedInvoice.state === 'Anulada', onClick: cancelSelectedInvoice },
@@ -906,6 +977,7 @@ export default function SalesInvoicePage({ controls, onAction, searchValue = '',
                       <div className="sales-row-actions">
                         <button type="button" onClick={(event) => { event.stopPropagation(); setSelectedInvoiceNumber(item.number); showPreview(item) }}>Ver</button>
                         <button type="button" onClick={(event) => { event.stopPropagation(); setSelectedInvoiceNumber(item.number); printInvoice(item) }}>Reimprimir</button>
+                        <button type="button" onClick={(event) => { event.stopPropagation(); setSelectedInvoiceNumber(item.number); downloadInvoicePdf(item) }}>Descargar PDF</button>
                         <button type="button" onClick={(event) => { event.stopPropagation(); openInvoiceEditor(item) }}>Editar</button>
                         <button type="button" className="is-danger" disabled={item.state === 'Anulada'} onClick={(event) => { event.stopPropagation(); setSelectedInvoiceNumber(item.number); cancelSelectedInvoice(item) }}>Anular</button>
                       </div>
@@ -1189,6 +1261,10 @@ export default function SalesInvoicePage({ controls, onAction, searchValue = '',
               <footer>
                 <button type="button" onClick={() => setActiveModal('')}>Cancelar</button>
                 <button type="button" onClick={() => showPreview()}>Vista previa</button>
+                <button type="button" onClick={() => downloadInvoicePdf()}>
+                  <Download size={16} />
+                  Descargar PDF
+                </button>
                 <button type="button" className="sales-primary-button" onClick={saveInvoice}>
                   <Save size={16} />
                   Guardar factura

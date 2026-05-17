@@ -7,6 +7,7 @@ import InventoryProductsPage from '../pages/inventory/InventoryProductsPage.jsx'
 import PurchaseOrdersPage from '../pages/purchases/PurchaseOrdersPage.jsx'
 import SalesCustomersPage from '../pages/sales/SalesCustomersPage.jsx'
 import SalesInvoicePage from '../pages/sales/SalesInvoicePage.jsx'
+import SalesQuotesPage from '../pages/sales/SalesQuotesPage.jsx'
 import SecurityAuditPage from '../pages/security/SecurityAuditPage.jsx'
 import SecurityChangePasswordPage from '../pages/security/SecurityChangePasswordPage.jsx'
 import SecurityCompanyCredentialPage from '../pages/security/SecurityCompanyCredentialPage.jsx'
@@ -21,6 +22,7 @@ import './AppWorkspace.css'
 
 const pageComponents = {
   'sales-invoice': SalesInvoicePage,
+  'sales-quotes': SalesQuotesPage,
   'sales-customers': SalesCustomersPage,
   'purchase-orders': PurchaseOrdersPage,
   'inventory-products': InventoryProductsPage,
