@@ -201,6 +201,7 @@ export default function AuthGate() {
       onCreateUser={createUser}
       onToggleUserStatus={toggleUserStatus}
       onDeleteUser={deleteUser}
+      onReplaceUsers={persistUsers}
     />
   )
 }

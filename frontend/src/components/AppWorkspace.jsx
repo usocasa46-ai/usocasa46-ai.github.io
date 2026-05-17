@@ -7,9 +7,16 @@ import InventoryProductsPage from '../pages/inventory/InventoryProductsPage.jsx'
 import PurchaseOrdersPage from '../pages/purchases/PurchaseOrdersPage.jsx'
 import SalesCustomersPage from '../pages/sales/SalesCustomersPage.jsx'
 import SalesInvoicePage from '../pages/sales/SalesInvoicePage.jsx'
+import SecurityAuditPage from '../pages/security/SecurityAuditPage.jsx'
+import SecurityChangePasswordPage from '../pages/security/SecurityChangePasswordPage.jsx'
+import SecurityCompanyCredentialPage from '../pages/security/SecurityCompanyCredentialPage.jsx'
+import SecurityPermissionsPage from '../pages/security/SecurityPermissionsPage.jsx'
+import SecurityRolesPage from '../pages/security/SecurityRolesPage.jsx'
+import SecuritySessionsPage from '../pages/security/SecuritySessionsPage.jsx'
 import SecurityUsersPage from '../pages/security/SecurityUsersPage.jsx'
 import SettingsGeneralPage from '../pages/settings/SettingsGeneralPage.jsx'
 import WarehouseReceivingPage from '../pages/warehouse/WarehouseReceivingPage.jsx'
+import { getVisibleModules } from '../security/permissions.js'
 import './AppWorkspace.css'
 
 const pageComponents = {
@@ -19,6 +26,12 @@ const pageComponents = {
   'inventory-products': InventoryProductsPage,
   'warehouse-receiving': WarehouseReceivingPage,
   'security-users': SecurityUsersPage,
+  'security-roles': SecurityRolesPage,
+  'security-permissions': SecurityPermissionsPage,
+  'security-audit': SecurityAuditPage,
+  'security-sessions': SecuritySessionsPage,
+  'security-change-password': SecurityChangePasswordPage,
+  'security-company-credential': SecurityCompanyCredentialPage,
   'settings-general': SettingsGeneralPage,
 }
 
@@ -29,6 +42,7 @@ export default function AppWorkspace({
   onCreateUser,
   onToggleUserStatus,
   onDeleteUser,
+  onReplaceUsers,
 }) {
   const [currentPageId, setCurrentPageId] = useState(DEFAULT_PAGE_ID)
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false)
@@ -40,6 +54,7 @@ export default function AppWorkspace({
 
   const currentPage = useMemo(() => getPageMeta(currentPageId), [currentPageId])
   const currentModule = useMemo(() => getModuleByPageId(currentPageId), [currentPageId])
+  const visibleModules = useMemo(() => getVisibleModules(erpModules, session), [session])
 
   const selectPage = (pageId) => {
     const meta = getPageMeta(pageId)
@@ -146,6 +161,7 @@ export default function AppWorkspace({
           onCreateUser={onCreateUser}
           onToggleUserStatus={onToggleUserStatus}
           onDeleteUser={onDeleteUser}
+          onReplaceUsers={onReplaceUsers}
         />
       )
     }
@@ -180,7 +196,7 @@ export default function AppWorkspace({
   return (
     <div className="erp-workspace-shell">
       <AdvancedSidebar
-        modules={erpModules}
+        modules={visibleModules}
         currentPageId={currentPageId}
         expandedModules={expandedModules}
         sidebarCollapsed={sidebarCollapsed}
