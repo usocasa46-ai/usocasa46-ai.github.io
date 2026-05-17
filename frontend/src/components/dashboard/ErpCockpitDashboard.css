@@ -1,0 +1,745 @@
+.simple-dashboard {
+  min-height: calc(100vh - 108px);
+  display: grid;
+  grid-template-rows: auto auto auto auto auto;
+  gap: 14px;
+  padding: 16px;
+  background: #f6f8fb;
+}
+
+/* HEADER */
+.simple-dashboard-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 18px;
+}
+
+.simple-dashboard-header span,
+.simple-section-title span {
+  display: block;
+  color: #f97316;
+  font-size: 12px;
+  font-weight: 950;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+
+.simple-dashboard-header h1 {
+  margin: 5px 0 4px;
+  color: #0f172a;
+  font-size: 30px;
+  line-height: 1;
+  font-weight: 950;
+  letter-spacing: -0.045em;
+}
+
+.simple-dashboard-header p,
+.simple-section-title p {
+  margin: 0;
+  color: #64748b;
+  font-size: 13px;
+  font-weight: 750;
+}
+
+.simple-dashboard-date {
+  min-width: 160px;
+  border-radius: 18px;
+  padding: 13px 15px;
+  background: #ffffff;
+  border: 1px solid rgba(15, 61, 74, 0.08);
+  box-shadow: 0 12px 26px rgba(15, 23, 42, 0.055);
+}
+
+.simple-dashboard-date strong,
+.simple-dashboard-date span {
+  display: block;
+}
+
+.simple-dashboard-date strong {
+  color: #0f172a;
+  font-size: 15px;
+  font-weight: 950;
+}
+
+.simple-dashboard-date span {
+  margin-top: 4px;
+  color: #64748b;
+  font-size: 12px;
+  font-weight: 850;
+}
+
+/* TITULOS DE SECCION */
+.simple-quick-section,
+.simple-preview-section {
+  display: grid;
+  gap: 12px;
+}
+
+.simple-section-title {
+  display: flex;
+  align-items: end;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.simple-section-title h2 {
+  margin: 4px 0 0;
+  color: #0f172a;
+  font-size: 20px;
+  line-height: 1;
+  font-weight: 950;
+  letter-spacing: -0.035em;
+}
+
+.simple-section-title.compact h2 {
+  font-size: 18px;
+}
+
+/* ACCESOS RAPIDOS SIEMPRE VISIBLES */
+.simple-shortcuts-grid {
+  display: grid;
+  grid-template-columns: repeat(8, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.simple-shortcut {
+  min-height: 132px;
+  display: grid;
+  align-content: center;
+  justify-items: center;
+  gap: 7px;
+  border-radius: 22px;
+  padding: 14px;
+  background: #ffffff;
+  border: 1px solid rgba(15, 61, 74, 0.08);
+  box-shadow: 0 14px 30px rgba(15, 23, 42, 0.065);
+  color: #0f172a;
+  transition: transform 0.18s ease, box-shadow 0.18s ease, border-color 0.18s ease;
+}
+
+.simple-shortcut:hover {
+  transform: translateY(-4px);
+  border-color: rgba(249, 115, 22, 0.28);
+  box-shadow: 0 20px 42px rgba(15, 23, 42, 0.10);
+}
+
+.simple-shortcut span {
+  width: 56px;
+  height: 56px;
+  display: grid;
+  place-items: center;
+  border-radius: 18px;
+}
+
+.simple-shortcut.green span {
+  background: #dcfce7;
+  color: #16a34a;
+}
+
+.simple-shortcut.blue span {
+  background: #dbeafe;
+  color: #2563eb;
+}
+
+.simple-shortcut.orange span {
+  background: #ffedd5;
+  color: #f97316;
+}
+
+.simple-shortcut.teal span {
+  background: #ccfbf1;
+  color: #0d9488;
+}
+
+.simple-shortcut.purple span {
+  background: #f3e8ff;
+  color: #7c3aed;
+}
+
+.simple-shortcut.cyan span {
+  background: #cffafe;
+  color: #0891b2;
+}
+
+.simple-shortcut strong {
+  color: #0f172a;
+  font-size: 13px;
+  font-weight: 950;
+  text-align: center;
+}
+
+.simple-shortcut small {
+  color: #64748b;
+  font-size: 11px;
+  font-weight: 800;
+  text-align: center;
+}
+
+/* VISTAS PREVIAS */
+.simple-preview-grid {
+  display: grid;
+  grid-template-columns: repeat(6, minmax(0, 1fr));
+  gap: 12px;
+  align-items: start;
+}
+
+.simple-preview-card {
+  position: relative;
+  min-height: 118px;
+  border-radius: 20px;
+  padding: 14px;
+  background: #ffffff;
+  border: 1px solid rgba(15, 61, 74, 0.08);
+  box-shadow: 0 12px 26px rgba(15, 23, 42, 0.055);
+  overflow: hidden;
+  z-index: 1;
+  transition: transform 0.18s ease, box-shadow 0.18s ease, min-height 0.18s ease, z-index 0.18s ease;
+}
+
+.simple-preview-card:hover {
+  min-height: 220px;
+  transform: translateY(-5px) scale(1.02);
+  z-index: 20;
+  box-shadow: 0 26px 60px rgba(15, 23, 42, 0.18);
+}
+
+.simple-preview-main {
+  display: grid;
+  grid-template-columns: 46px minmax(0, 1fr);
+  align-items: center;
+  gap: 10px;
+}
+
+.simple-preview-icon {
+  width: 44px;
+  height: 44px;
+  display: grid;
+  place-items: center;
+  border-radius: 15px;
+}
+
+.simple-preview-card.green .simple-preview-icon {
+  background: #dcfce7;
+  color: #16a34a;
+}
+
+.simple-preview-card.blue .simple-preview-icon {
+  background: #dbeafe;
+  color: #2563eb;
+}
+
+.simple-preview-card.orange .simple-preview-icon {
+  background: #ffedd5;
+  color: #f97316;
+}
+
+.simple-preview-card.purple .simple-preview-icon {
+  background: #f3e8ff;
+  color: #7c3aed;
+}
+
+.simple-preview-card.red .simple-preview-icon {
+  background: #fee2e2;
+  color: #ef4444;
+}
+
+.simple-preview-main small {
+  display: block;
+  color: #64748b;
+  font-size: 11px;
+  font-weight: 900;
+}
+
+.simple-preview-main strong {
+  display: block;
+  margin: 5px 0;
+  color: #0f172a;
+  font-size: 17px;
+  line-height: 1.05;
+  font-weight: 950;
+}
+
+.simple-preview-main p {
+  margin: 0;
+  color: #16a34a;
+  font-size: 10.5px;
+  font-weight: 950;
+}
+
+.simple-preview-card.blue p {
+  color: #2563eb;
+}
+
+.simple-preview-card.orange p {
+  color: #f97316;
+}
+
+.simple-preview-card.purple p {
+  color: #7c3aed;
+}
+
+.simple-preview-card.red p {
+  color: #ef4444;
+}
+
+.simple-preview-expand {
+  max-height: 0;
+  display: grid;
+  gap: 8px;
+  margin-top: 0;
+  overflow: hidden;
+  opacity: 0;
+  transition: all 0.18s ease;
+}
+
+.simple-preview-card:hover .simple-preview-expand {
+  max-height: 120px;
+  margin-top: 14px;
+  opacity: 1;
+}
+
+.simple-preview-expand span {
+  border-radius: 12px;
+  padding: 8px 10px;
+  background: #f8fafc;
+  color: #475569;
+  font-size: 11px;
+  font-weight: 850;
+}
+
+/* TARJETAS DE TRABAJO ABAJO */
+.simple-work-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.simple-work-card {
+  min-height: 145px;
+  border-radius: 22px;
+  padding: 16px;
+  background: #ffffff;
+  border: 1px solid rgba(15, 61, 74, 0.08);
+  box-shadow: 0 14px 30px rgba(15, 23, 42, 0.065);
+  overflow: hidden;
+  transition: transform 0.18s ease, box-shadow 0.18s ease;
+}
+
+.simple-work-card:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 24px 52px rgba(15, 23, 42, 0.14);
+}
+
+.simple-work-head {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 12px;
+}
+
+.simple-work-head span {
+  width: 42px;
+  height: 42px;
+  display: grid;
+  place-items: center;
+  border-radius: 14px;
+}
+
+.simple-work-card.orange .simple-work-head span {
+  background: #ffedd5;
+  color: #f97316;
+}
+
+.simple-work-card.blue .simple-work-head span {
+  background: #dbeafe;
+  color: #2563eb;
+}
+
+.simple-work-card.green .simple-work-head span {
+  background: #dcfce7;
+  color: #16a34a;
+}
+
+.simple-work-head h3 {
+  margin: 0;
+  color: #0f172a;
+  font-size: 16px;
+  font-weight: 950;
+}
+
+.simple-work-preview {
+  display: grid;
+  gap: 8px;
+}
+
+.simple-work-preview p {
+  margin: 0;
+  border-radius: 12px;
+  padding: 9px 10px;
+  background: #f8fafc;
+  color: #475569;
+  font-size: 12px;
+  font-weight: 850;
+}
+
+/* FOOTER */
+.simple-dashboard-footer {
+  display: grid;
+  grid-template-columns: auto auto auto 1fr;
+  gap: 14px;
+  border-top: 1px solid rgba(15, 61, 74, 0.08);
+  padding-top: 10px;
+  color: #64748b;
+  font-size: 11px;
+  font-weight: 850;
+}
+
+.simple-dashboard-footer span:last-child {
+  text-align: right;
+}
+
+/* DARK */
+.app-shell.dark-theme .simple-dashboard {
+  background: #061a22;
+}
+
+.app-shell.dark-theme .simple-shortcut,
+.app-shell.dark-theme .simple-preview-card,
+.app-shell.dark-theme .simple-work-card,
+.app-shell.dark-theme .simple-dashboard-date {
+  background: rgba(255, 255, 255, 0.06);
+  border-color: rgba(255, 255, 255, 0.10);
+}
+
+.app-shell.dark-theme .simple-dashboard-header h1,
+.app-shell.dark-theme .simple-section-title h2,
+.app-shell.dark-theme .simple-shortcut strong,
+.app-shell.dark-theme .simple-preview-main strong,
+.app-shell.dark-theme .simple-work-head h3 {
+  color: #f8fafc;
+}
+
+.app-shell.dark-theme .simple-dashboard-header p,
+.app-shell.dark-theme .simple-section-title p,
+.app-shell.dark-theme .simple-shortcut small,
+.app-shell.dark-theme .simple-dashboard-footer {
+  color: #cbd5e1;
+}
+
+/* RESPONSIVE */
+@media (max-width: 1500px) {
+  .simple-shortcuts-grid {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+
+  .simple-preview-grid {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 900px) {
+  .simple-dashboard-header,
+  .simple-section-title {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .simple-shortcuts-grid,
+  .simple-preview-grid,
+  .simple-work-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .simple-dashboard-footer {
+    grid-template-columns: 1fr;
+  }
+
+  .simple-dashboard-footer span:last-child {
+    text-align: left;
+  }
+}
+
+/* AJUSTE ACCESOS RAPIDOS - 6 MODULOS EN UNA SOLA FILA */
+.simple-shortcuts-grid {
+  grid-template-columns: repeat(6, minmax(0, 1fr)) !important;
+  gap: 10px !important;
+}
+
+.simple-shortcut {
+  min-height: 108px !important;
+  padding: 11px !important;
+  border-radius: 18px !important;
+}
+
+.simple-shortcut span {
+  width: 46px !important;
+  height: 46px !important;
+  border-radius: 15px !important;
+}
+
+.simple-shortcut span svg {
+  width: 24px !important;
+  height: 24px !important;
+}
+
+.simple-shortcut strong {
+  font-size: 12px !important;
+  line-height: 1.1 !important;
+}
+
+.simple-shortcut small {
+  font-size: 10px !important;
+  line-height: 1.15 !important;
+}
+
+@media (max-width: 1500px) {
+  .simple-shortcuts-grid {
+    grid-template-columns: repeat(6, minmax(0, 1fr)) !important;
+  }
+}
+
+@media (max-width: 1000px) {
+  .simple-shortcuts-grid {
+    grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
+  }
+}
+
+
+/* =========================================================
+   AJUSTE VISTA PREVIA + 9 CUBOS COMPACTOS EN PANTALLA
+   ========================================================= */
+
+/* Reducir espacios generales del dashboard */
+.simple-dashboard {
+  gap: 9px !important;
+  padding: 10px 14px 8px !important;
+}
+
+/* Encabezado más compacto */
+.simple-dashboard-header {
+  min-height: 46px !important;
+}
+
+.simple-dashboard-header h1 {
+  font-size: 25px !important;
+  margin: 3px 0 2px !important;
+}
+
+.simple-dashboard-header p {
+  font-size: 12px !important;
+}
+
+/* Accesos rápidos se mantienen visibles pero un poco más bajos */
+.simple-quick-section {
+  gap: 8px !important;
+}
+
+.simple-section-title {
+  margin-bottom: 0 !important;
+}
+
+.simple-section-title h2 {
+  font-size: 17px !important;
+  margin-top: 2px !important;
+}
+
+.simple-section-title p {
+  font-size: 11.5px !important;
+}
+
+/* Accesos rápidos: mantener una sola fila, más compactos */
+.simple-shortcuts-grid {
+  gap: 9px !important;
+}
+
+.simple-shortcut {
+  min-height: 92px !important;
+  padding: 9px !important;
+  border-radius: 17px !important;
+}
+
+.simple-shortcut span {
+  width: 40px !important;
+  height: 40px !important;
+  border-radius: 13px !important;
+}
+
+.simple-shortcut span svg {
+  width: 22px !important;
+  height: 22px !important;
+}
+
+.simple-shortcut strong {
+  font-size: 11px !important;
+}
+
+.simple-shortcut small {
+  font-size: 9.3px !important;
+}
+
+/* Vista previa operativa más contraída */
+.simple-preview-section {
+  gap: 7px !important;
+}
+
+.simple-section-title.compact {
+  min-height: 34px !important;
+  align-items: center !important;
+}
+
+.simple-section-title.compact h2 {
+  font-size: 16px !important;
+}
+
+.simple-section-title.compact p {
+  font-size: 11px !important;
+}
+
+/* 6 cubos de vista previa compactos */
+.simple-preview-grid {
+  grid-template-columns: repeat(6, minmax(0, 1fr)) !important;
+  gap: 9px !important;
+  align-items: stretch !important;
+}
+
+.simple-preview-card {
+  min-height: 92px !important;
+  height: 92px !important;
+  border-radius: 17px !important;
+  padding: 10px !important;
+  overflow: visible !important;
+  position: relative !important;
+}
+
+/* El hover expande encima, sin empujar los demás cubos */
+.simple-preview-card:hover {
+  height: 190px !important;
+  min-height: 190px !important;
+  transform: translateY(-5px) scale(1.025) !important;
+  z-index: 50 !important;
+}
+
+.simple-preview-main {
+  grid-template-columns: 38px minmax(0, 1fr) !important;
+  gap: 8px !important;
+}
+
+.simple-preview-icon {
+  width: 36px !important;
+  height: 36px !important;
+  border-radius: 12px !important;
+}
+
+.simple-preview-icon svg {
+  width: 21px !important;
+  height: 21px !important;
+}
+
+.simple-preview-main small {
+  font-size: 9.5px !important;
+  line-height: 1.1 !important;
+}
+
+.simple-preview-main strong {
+  font-size: 13.5px !important;
+  margin: 3px 0 !important;
+  line-height: 1.05 !important;
+}
+
+.simple-preview-main p {
+  font-size: 9px !important;
+  line-height: 1.1 !important;
+}
+
+/* Detalles del hover más pequeños */
+.simple-preview-card:hover .simple-preview-expand {
+  max-height: 90px !important;
+  margin-top: 9px !important;
+}
+
+.simple-preview-expand {
+  gap: 5px !important;
+}
+
+.simple-preview-expand span {
+  padding: 6px 8px !important;
+  border-radius: 10px !important;
+  font-size: 9.5px !important;
+  line-height: 1.15 !important;
+}
+
+/* 3 cubos inferiores más compactos */
+.simple-work-grid {
+  grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
+  gap: 9px !important;
+}
+
+.simple-work-card {
+  min-height: 112px !important;
+  border-radius: 18px !important;
+  padding: 11px !important;
+}
+
+.simple-work-card:hover {
+  transform: translateY(-4px) scale(1.015) !important;
+  z-index: 30 !important;
+}
+
+.simple-work-head {
+  gap: 8px !important;
+  margin-bottom: 8px !important;
+}
+
+.simple-work-head span {
+  width: 34px !important;
+  height: 34px !important;
+  border-radius: 12px !important;
+}
+
+.simple-work-head span svg {
+  width: 20px !important;
+  height: 20px !important;
+}
+
+.simple-work-head h3 {
+  font-size: 13.5px !important;
+}
+
+.simple-work-preview {
+  gap: 5px !important;
+}
+
+.simple-work-preview p {
+  padding: 6px 8px !important;
+  border-radius: 10px !important;
+  font-size: 10px !important;
+  line-height: 1.15 !important;
+}
+
+/* Footer más pequeño */
+.simple-dashboard-footer {
+  padding-top: 6px !important;
+  font-size: 9.5px !important;
+}
+
+/* Mantener 9 cubos en escritorio, no convertir en lista */
+@media (max-width: 1500px) {
+  .simple-preview-grid {
+    grid-template-columns: repeat(6, minmax(0, 1fr)) !important;
+  }
+
+  .simple-work-grid {
+    grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
+  }
+}
+
+@media (max-width: 1100px) {
+  .simple-preview-grid {
+    grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
+  }
+
+  .simple-work-grid {
+    grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
+  }
+}

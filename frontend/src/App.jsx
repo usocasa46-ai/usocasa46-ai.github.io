@@ -56,7 +56,8 @@ import {
 
 import * as XLSX from 'xlsx'
 
-import './styles/index.css'
+import './styles/index.css'
+import ErpCockpitDashboard from './components/dashboard/ErpCockpitDashboard.jsx'
 
 const defaultBusinessSettings = {
   businessName: 'INVE-FAT SYSTEM, SRL',
@@ -777,7 +778,10 @@ function ProductIcon() {
   )
 }
 
-function Dashboard({ setActiveModule }) {
+function Dashboard() {
+  return <ErpCockpitDashboard />
+}
+function LegacyDashboard({ setActiveModule }) {
   return (
     <main className="main-content">
       <section className="welcome">

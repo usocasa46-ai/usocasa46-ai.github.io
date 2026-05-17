@@ -10882,7 +10882,7 @@ body.sidebar-collapsed-mode .topbar {
   transform: translateX(3px) !important;
 }
 
-/* Iconos y nÃºmeros del sidebar */
+/* Iconos y nÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã¢â‚¬Â ÃƒÂ¢Ã¢â€šÂ¬Ã¢â€žÂ¢ÃƒÆ’Ã†â€™ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Âºmeros del sidebar */
 .sidebar svg {
   color: inherit !important;
 }
@@ -10895,7 +10895,7 @@ body.sidebar-collapsed-mode .topbar {
   border-radius: 12px !important;
 }
 
-/* Configurar mÃ³dulos abajo */
+/* Configurar mÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã¢â‚¬Â ÃƒÂ¢Ã¢â€šÂ¬Ã¢â€žÂ¢ÃƒÆ’Ã†â€™ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â³dulos abajo */
 .sidebar-footer,
 .sidebar .sidebar-footer,
 .sidebar .settings-button,
@@ -10906,7 +10906,7 @@ body.sidebar-collapsed-mode .topbar {
   box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.06) !important;
 }
 
-/* BotÃ³n de 3 rayitas */
+/* BotÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã¢â‚¬Â ÃƒÂ¢Ã¢â€šÂ¬Ã¢â€žÂ¢ÃƒÆ’Ã†â€™ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â³n de 3 rayitas */
 .menu-button {
   width: 48px !important;
   height: 48px !important;
@@ -10928,7 +10928,7 @@ body.sidebar-collapsed-mode .topbar {
   box-shadow: 0 14px 26px rgba(249, 115, 22, 0.22) !important;
 }
 
-/* Cuando se presiona las 3 rayitas, se esconde el menÃº */
+/* Cuando se presiona las 3 rayitas, se esconde el menÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã¢â‚¬Â ÃƒÂ¢Ã¢â€šÂ¬Ã¢â€žÂ¢ÃƒÆ’Ã†â€™ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Âº */
 body.sidebar-collapsed-mode .sidebar {
   width: 0 !important;
   min-width: 0 !important;
@@ -10941,7 +10941,7 @@ body.sidebar-collapsed-mode .sidebar {
   box-shadow: none !important;
 }
 
-/* El contenido se expande cuando el menÃº estÃ¡ oculto */
+/* El contenido se expande cuando el menÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã¢â‚¬Â ÃƒÂ¢Ã¢â€šÂ¬Ã¢â€žÂ¢ÃƒÆ’Ã†â€™ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Âº estÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã¢â‚¬Â ÃƒÂ¢Ã¢â€šÂ¬Ã¢â€žÂ¢ÃƒÆ’Ã†â€™ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â¡ oculto */
 body.sidebar-collapsed-mode .app-shell {
   grid-template-columns: 1fr !important;
 }
@@ -10956,7 +10956,7 @@ body.sidebar-collapsed-mode .content-wrapper {
   margin-left: 0 !important;
 }
 
-/* Estado visual del botÃ³n cuando el menÃº estÃ¡ oculto */
+/* Estado visual del botÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã¢â‚¬Â ÃƒÂ¢Ã¢â€šÂ¬Ã¢â€žÂ¢ÃƒÆ’Ã†â€™ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â³n cuando el menÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã¢â‚¬Â ÃƒÂ¢Ã¢â€šÂ¬Ã¢â€žÂ¢ÃƒÆ’Ã†â€™ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Âº estÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã¢â‚¬Â ÃƒÂ¢Ã¢â€šÂ¬Ã¢â€žÂ¢ÃƒÆ’Ã†â€™ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â¡ oculto */
 body.sidebar-collapsed-mode .menu-button {
   background: #0f3d4a !important;
   color: #ffffff !important;
@@ -11015,7 +11015,7 @@ body.sidebar-collapsed-mode .menu-button {
   box-shadow: 0 6px 16px rgba(15, 23, 42, 0.10) !important;
 }
 
-/* Menú Archivo / Editar / Ver / Ventana / Ayuda */
+/* MenÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Âº Archivo / Editar / Ver / Ventana / Ayuda */
 .topbar-menu-main {
   display: flex !important;
   align-items: center !important;
@@ -11041,7 +11041,7 @@ body.sidebar-collapsed-mode .menu-button {
   color: #ffffff !important;
 }
 
-/* Acciones rápidas a la derecha de la franja */
+/* Acciones rÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â¡pidas a la derecha de la franja */
 .topbar-menu-actions {
   display: flex !important;
   align-items: center !important;
@@ -11069,7 +11069,7 @@ body.sidebar-collapsed-mode .menu-button {
   box-shadow: 0 8px 18px rgba(249, 115, 22, 0.22) !important;
 }
 
-/* Área blanca del topbar */
+/* ÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Ârea blanca del topbar */
 .topbar > .menu-button,
 .topbar > .topbar-search,
 .topbar > .topbar-actions {
@@ -11106,7 +11106,7 @@ body.sidebar-collapsed-mode .menu-button {
   color: #94a3b8 !important;
 }
 
-/* Botones de notificación y tema */
+/* Botones de notificaciÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â³n y tema */
 .topbar-actions {
   display: flex !important;
   align-items: center !important;
@@ -11174,7 +11174,7 @@ body.sidebar-collapsed-mode .menu-button {
   box-shadow: 0 10px 20px rgba(37, 99, 235, 0.13) !important;
 }
 
-/* Menú desplegable Archivo, si ya existe */
+/* MenÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Âº desplegable Archivo, si ya existe */
 .topbar-file-menu {
   position: relative !important;
 }
@@ -11265,4 +11265,344 @@ body.sidebar-collapsed-mode .menu-button {
     width: 40px !important;
     height: 40px !important;
   }
+}
+
+
+
+
+/* =========================================================
+   SIDEBAR ACTIVO DINAMICO - SIN RESALTADO FIJO
+   ========================================================= */
+
+/* Estado normal de todos los modulos */
+.sidebar button,
+.sidebar a,
+.sidebar .nav-item,
+.sidebar .menu-item,
+.sidebar .sidebar-link,
+.sidebar .module-card,
+.sidebar .module-button,
+.sidebar .module-item {
+  background: transparent !important;
+  box-shadow: none !important;
+  border: none !important;
+}
+
+/* Texto normal */
+.sidebar button *,
+.sidebar a *,
+.sidebar .nav-item *,
+.sidebar .menu-item *,
+.sidebar .sidebar-link *,
+.sidebar .module-card *,
+.sidebar .module-button *,
+.sidebar .module-item * {
+  color: rgba(255, 255, 255, 0.82) !important;
+}
+
+/* Iconos normales */
+.sidebar button svg,
+.sidebar a svg,
+.sidebar .nav-item svg,
+.sidebar .menu-item svg,
+.sidebar .sidebar-link svg,
+.sidebar .module-card svg,
+.sidebar .module-button svg,
+.sidebar .module-item svg {
+  color: #fdba74 !important;
+}
+
+/* Numeros normales */
+.sidebar .module-number,
+.sidebar .nav-number,
+.sidebar .badge-number {
+  background: rgba(255, 255, 255, 0.10) !important;
+  color: #ffffff !important;
+}
+
+/* Solo el modulo seleccionado se pone naranja */
+.sidebar button.active,
+.sidebar a.active,
+.sidebar .nav-item.active,
+.sidebar .menu-item.active,
+.sidebar .sidebar-link.active,
+.sidebar .module-card.active,
+.sidebar .module-button.active,
+.sidebar .module-item.active,
+.sidebar [aria-current="page"],
+.sidebar [data-active="true"] {
+  background: linear-gradient(90deg, #ff7a18 0%, #f97316 100%) !important;
+  color: #ffffff !important;
+  box-shadow: 0 14px 30px rgba(249, 115, 22, 0.28) !important;
+}
+
+/* Texto del modulo seleccionado */
+.sidebar button.active *,
+.sidebar a.active *,
+.sidebar .nav-item.active *,
+.sidebar .menu-item.active *,
+.sidebar .sidebar-link.active *,
+.sidebar .module-card.active *,
+.sidebar .module-button.active *,
+.sidebar .module-item.active *,
+.sidebar [aria-current="page"] *,
+.sidebar [data-active="true"] * {
+  color: #ffffff !important;
+}
+
+/* Icono del modulo seleccionado */
+.sidebar button.active svg,
+.sidebar a.active svg,
+.sidebar .nav-item.active svg,
+.sidebar .menu-item.active svg,
+.sidebar .sidebar-link.active svg,
+.sidebar .module-card.active svg,
+.sidebar .module-button.active svg,
+.sidebar .module-item.active svg,
+.sidebar [aria-current="page"] svg,
+.sidebar [data-active="true"] svg {
+  color: #ffffff !important;
+}
+
+/* Hover suave para modulos no seleccionados */
+.sidebar button:not(.active):hover,
+.sidebar a:not(.active):hover,
+.sidebar .nav-item:not(.active):hover,
+.sidebar .menu-item:not(.active):hover,
+.sidebar .sidebar-link:not(.active):hover,
+.sidebar .module-card:not(.active):hover,
+.sidebar .module-button:not(.active):hover,
+.sidebar .module-item:not(.active):hover {
+  background: rgba(255, 255, 255, 0.06) !important;
+  transform: translateX(3px) !important;
+}
+
+
+/* =========================================================
+   SIDEBAR - TODOS LOS MODULOS IGUALES SIN RESALTADO FIJO
+   ========================================================= */
+
+/* Quitar cualquier fondo activo, seleccionado, abierto o resaltado */
+.sidebar button,
+.sidebar a,
+.sidebar nav button,
+.sidebar nav a,
+.sidebar [class*="active"],
+.sidebar [class*="selected"],
+.sidebar [class*="current"],
+.sidebar [class*="open"],
+.sidebar [class*="expanded"],
+.sidebar [aria-current],
+.sidebar [aria-selected="true"],
+.sidebar [aria-expanded="true"],
+.sidebar [data-active="true"],
+.sidebar [data-selected="true"] {
+  background: transparent !important;
+  background-color: transparent !important;
+  background-image: none !important;
+  color: rgba(255, 255, 255, 0.82) !important;
+  box-shadow: none !important;
+  border-color: transparent !important;
+}
+
+/* Quitar resaltado especialmente del segundo modulo visible: Inventario y Almacen */
+.sidebar nav > *:nth-child(2),
+.sidebar nav button:nth-child(2),
+.sidebar nav a:nth-child(2),
+.sidebar > *:nth-child(2),
+.sidebar > *:nth-child(3),
+.sidebar [class*="menu"] > *:nth-child(2),
+.sidebar [class*="nav"] > *:nth-child(2),
+.sidebar [class*="module"] > *:nth-child(2) {
+  background: transparent !important;
+  background-color: transparent !important;
+  background-image: none !important;
+  color: rgba(255, 255, 255, 0.82) !important;
+  box-shadow: none !important;
+  border-color: transparent !important;
+}
+
+/* Texto interno igual para todos */
+.sidebar button *,
+.sidebar a *,
+.sidebar nav button *,
+.sidebar nav a *,
+.sidebar [class*="active"] *,
+.sidebar [class*="selected"] *,
+.sidebar [class*="current"] *,
+.sidebar [class*="open"] *,
+.sidebar [class*="expanded"] *,
+.sidebar [aria-current] *,
+.sidebar [aria-selected="true"] *,
+.sidebar [aria-expanded="true"] *,
+.sidebar [data-active="true"] *,
+.sidebar [data-selected="true"] * {
+  color: rgba(255, 255, 255, 0.82) !important;
+}
+
+/* Iconos iguales */
+.sidebar svg,
+.sidebar button svg,
+.sidebar a svg,
+.sidebar nav button svg,
+.sidebar nav a svg {
+  color: #fdba74 !important;
+  stroke: currentColor !important;
+}
+
+/* Numeros iguales */
+.sidebar .module-number,
+.sidebar .nav-number,
+.sidebar .badge-number,
+.sidebar [class*="number"],
+.sidebar [class*="badge"] {
+  background: rgba(255, 255, 255, 0.10) !important;
+  color: #ffffff !important;
+  box-shadow: none !important;
+}
+
+/* Hover suave igual para todos */
+.sidebar button:hover,
+.sidebar a:hover,
+.sidebar nav button:hover,
+.sidebar nav a:hover {
+  background: rgba(255, 255, 255, 0.06) !important;
+  background-image: none !important;
+  color: #ffffff !important;
+  transform: translateX(3px) !important;
+}
+
+/* Texto blanco solo al pasar el mouse */
+.sidebar button:hover *,
+.sidebar a:hover *,
+.sidebar nav button:hover *,
+.sidebar nav a:hover * {
+  color: #ffffff !important;
+}
+
+/* Evitar cualquier naranja fijo dentro del sidebar */
+.sidebar .active,
+.sidebar .selected,
+.sidebar .current {
+  background: transparent !important;
+  background-image: none !important;
+}
+
+
+/* =========================================================
+   SIDEBAR FINAL - SIN MODULOS RESALTADOS FIJOS
+   ========================================================= */
+
+/* Anular cualquier fondo activo o seleccionado en los botones del sidebar */
+body .app-shell .sidebar button,
+body .app-shell .sidebar a,
+body .app-shell .sidebar [role="button"],
+body .app-shell .sidebar nav button,
+body .app-shell .sidebar nav a,
+body .app-shell .sidebar button.active,
+body .app-shell .sidebar a.active,
+body .app-shell .sidebar [class*="active"],
+body .app-shell .sidebar [class*="selected"],
+body .app-shell .sidebar [class*="current"],
+body .app-shell .sidebar [aria-current],
+body .app-shell .sidebar [aria-selected="true"],
+body .app-shell .sidebar [data-active="true"],
+body .app-shell .sidebar [data-selected="true"] {
+  background: transparent !important;
+  background-color: transparent !important;
+  background-image: none !important;
+  box-shadow: none !important;
+  border-color: transparent !important;
+  color: rgba(255, 255, 255, 0.82) !important;
+}
+
+/* Anular especialmente cualquier tarjeta del menu que tenga icono o numero */
+body .app-shell .sidebar button:has(svg),
+body .app-shell .sidebar a:has(svg),
+body .app-shell .sidebar div:has(> svg),
+body .app-shell .sidebar li:has(svg),
+body .app-shell .sidebar button:has([class*="number"]),
+body .app-shell .sidebar a:has([class*="number"]),
+body .app-shell .sidebar div:has([class*="number"]),
+body .app-shell .sidebar li:has([class*="number"]) {
+  background: transparent !important;
+  background-color: transparent !important;
+  background-image: none !important;
+  box-shadow: none !important;
+  border-color: transparent !important;
+}
+
+/* Texto interno igual para todos */
+body .app-shell .sidebar button *,
+body .app-shell .sidebar a *,
+body .app-shell .sidebar [role="button"] *,
+body .app-shell .sidebar [class*="active"] *,
+body .app-shell .sidebar [class*="selected"] *,
+body .app-shell .sidebar [class*="current"] *,
+body .app-shell .sidebar [aria-current] *,
+body .app-shell .sidebar [aria-selected="true"] *,
+body .app-shell .sidebar [data-active="true"] *,
+body .app-shell .sidebar [data-selected="true"] * {
+  color: rgba(255, 255, 255, 0.82) !important;
+}
+
+/* Iconos iguales para todos */
+body .app-shell .sidebar svg {
+  color: #fdba74 !important;
+  stroke: currentColor !important;
+}
+
+/* Numeros iguales para todos */
+body .app-shell .sidebar [class*="number"],
+body .app-shell .sidebar [class*="badge"],
+body .app-shell .sidebar .module-number,
+body .app-shell .sidebar .nav-number,
+body .app-shell .sidebar .badge-number {
+  background: rgba(255, 255, 255, 0.10) !important;
+  background-color: rgba(255, 255, 255, 0.10) !important;
+  color: #ffffff !important;
+  box-shadow: none !important;
+}
+
+/* Hover suave igual para todos los modulos */
+body .app-shell .sidebar button:hover,
+body .app-shell .sidebar a:hover,
+body .app-shell .sidebar [role="button"]:hover,
+body .app-shell .sidebar button:has(svg):hover,
+body .app-shell .sidebar a:has(svg):hover {
+  background: rgba(255, 255, 255, 0.06) !important;
+  background-color: rgba(255, 255, 255, 0.06) !important;
+  background-image: none !important;
+  color: #ffffff !important;
+  transform: translateX(3px) !important;
+}
+
+/* Texto blanco solo al pasar el mouse */
+body .app-shell .sidebar button:hover *,
+body .app-shell .sidebar a:hover *,
+body .app-shell .sidebar [role="button"]:hover * {
+  color: #ffffff !important;
+}
+
+/* Flechas del menu iguales */
+body .app-shell .sidebar button:hover svg,
+body .app-shell .sidebar a:hover svg {
+  color: #ffffff !important;
+}
+
+/* Evitar que Inventario y Almacen tome fondo beige/naranja por ser primer modulo */
+body .app-shell .sidebar nav > *:nth-child(1),
+body .app-shell .sidebar nav > *:nth-child(2),
+body .app-shell .sidebar nav > *:nth-child(3),
+body .app-shell .sidebar [class*="module"] > *:nth-child(1),
+body .app-shell .sidebar [class*="module"] > *:nth-child(2),
+body .app-shell .sidebar [class*="module"] > *:nth-child(3),
+body .app-shell .sidebar [class*="menu"] > *:nth-child(1),
+body .app-shell .sidebar [class*="menu"] > *:nth-child(2),
+body .app-shell .sidebar [class*="menu"] > *:nth-child(3) {
+  background: transparent !important;
+  background-color: transparent !important;
+  background-image: none !important;
+  box-shadow: none !important;
+  border-color: transparent !important;
 }
