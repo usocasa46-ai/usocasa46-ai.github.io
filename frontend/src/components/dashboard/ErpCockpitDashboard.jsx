@@ -167,7 +167,7 @@ export default function ErpCockpitDashboard() {
       color: 'blue',
       moduleText: ['Compras'],
       actionFlow: [
-        ['Ordenes de compra', 'ÃƒÆ’Ã¢â‚¬Å“rdenes de compra', 'Compra', 'Compras'],
+        ['Ordenes de compra', 'Compra', 'Compras'],
         ['Nueva orden', 'Crear orden', 'Nueva compra', 'Crear compra', 'Agregar compra'],
       ],
     },
@@ -176,10 +176,10 @@ export default function ErpCockpitDashboard() {
       subtitle: 'Crear recepcion',
       icon: Truck,
       color: 'orange',
-      moduleText: ['Inventario', 'Inventario y Almacen', 'Inventario y AlmacÃƒÆ’Ã‚Â©n', 'Compras'],
+      moduleText: ['Inventario', 'Inventario y Almacen', 'Compras'],
       actionFlow: [
-        ['Recepcion', 'RecepciÃƒÆ’Ã‚Â³n', 'Recibir mercancia', 'Recibir mercancÃƒÆ’Ã‚Â­a'],
-        ['Nueva recepcion', 'Nueva recepciÃƒÆ’Ã‚Â³n', 'Crear recepcion', 'Crear recepciÃƒÆ’Ã‚Â³n', 'Registrar entrada', 'Recibir'],
+        ['Recepcion', 'Recibir mercancia'],
+        ['Nueva recepcion', 'Crear recepcion', 'Registrar entrada', 'Recibir'],
       ],
     },
     {
@@ -187,7 +187,7 @@ export default function ErpCockpitDashboard() {
       subtitle: 'Stock y movimientos',
       icon: Warehouse,
       color: 'cyan',
-      moduleText: ['Inventario', 'Inventario y Almacen', 'Inventario y AlmacÃƒÆ’Ã‚Â©n'],
+      moduleText: ['Inventario', 'Inventario y Almacen'],
     },
     {
       title: 'Cotizacion',
@@ -196,8 +196,8 @@ export default function ErpCockpitDashboard() {
       color: 'blue',
       moduleText: ['Ventas'],
       actionFlow: [
-        ['Cotizaciones', 'Cotizacion', 'CotizaciÃƒÆ’Ã‚Â³n'],
-        ['Nueva cotizacion', 'Nueva cotizaciÃƒÆ’Ã‚Â³n', 'Crear cotizacion', 'Crear cotizaciÃƒÆ’Ã‚Â³n', 'Agregar cotizacion'],
+        ['Cotizaciones', 'Cotizacion'],
+        ['Nueva cotizacion', 'Crear cotizacion', 'Agregar cotizacion'],
       ],
     },
     {
@@ -304,7 +304,7 @@ export default function ErpCockpitDashboard() {
 
         <div className="simple-dashboard-date">
           <strong>Hoy</strong>
-          <span>24 mayo 2025</span>
+          <span>2025</span>
         </div>
       </header>
 
@@ -409,7 +409,7 @@ export default function ErpCockpitDashboard() {
         <span>INVE-FAT SYSTEM</span>
         <span>Sucursal Principal</span>
         <span>Usuario: Administrador</span>
-        <span>ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â© 2025</span>
+        <span>2025</span>
       </footer>
     </section>
   )
