@@ -101,6 +101,10 @@ export const erpModules = [
       { id: 'finance-bank-reconciliation', label: 'Conciliacion bancaria' },
       { id: 'finance-balance-sheet', label: 'Balance general' },
       { id: 'finance-income-statement', label: 'Estado de resultados' },
+      { id: 'finance-dgii-606', label: 'DGII 606 - Compras' },
+      { id: 'finance-dgii-607', label: 'DGII 607 - Ventas' },
+      { id: 'finance-ncf-sequences', label: 'Comprobantes fiscales / NCF' },
+      { id: 'finance-accounting-settings', label: 'Configuracion contable' },
     ],
   },
   {

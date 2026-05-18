@@ -3,6 +3,20 @@ import AdvancedSidebar from './AdvancedSidebar.jsx'
 import TopActionBar from './TopActionBar.jsx'
 import { DEFAULT_PAGE_ID, erpModules, getModuleByPageId, getPageMeta } from '../config/modulesMap.js'
 import AlertsCenterPage from '../pages/alerts/AlertsCenterPage.jsx'
+import AccountingSettingsPage from '../pages/accounting/AccountingSettingsPage.jsx'
+import BankReconciliationPage from '../pages/accounting/BankReconciliationPage.jsx'
+import BalanceSheetPage from '../pages/accounting/BalanceSheetPage.jsx'
+import BanksPage from '../pages/accounting/BanksPage.jsx'
+import ChartOfAccountsPage from '../pages/accounting/ChartOfAccountsPage.jsx'
+import Dgii606Page from '../pages/accounting/Dgii606Page.jsx'
+import Dgii607Page from '../pages/accounting/Dgii607Page.jsx'
+import FinanceAccountsPayablePage from '../pages/accounting/AccountsPayablePage.jsx'
+import FinanceAccountsReceivablePage from '../pages/accounting/AccountsReceivablePage.jsx'
+import GeneralLedgerPage from '../pages/accounting/GeneralLedgerPage.jsx'
+import IncomeStatementPage from '../pages/accounting/IncomeStatementPage.jsx'
+import JournalEntriesPage from '../pages/accounting/JournalEntriesPage.jsx'
+import NcfSequencesPage from '../pages/accounting/NcfSequencesPage.jsx'
+import PettyCashPage from '../pages/accounting/PettyCashPage.jsx'
 import DashboardPage from '../pages/dashboard/DashboardPage.jsx'
 import InventoryAdjustmentsPage from '../pages/inventory/InventoryAdjustmentsPage.jsx'
 import InventoryBarcodesPage from '../pages/inventory/InventoryBarcodesPage.jsx'
@@ -101,6 +115,20 @@ const pageComponents = {
   'warehouse-quarantine': WarehouseQuarantinePage,
   'warehouse-quality': WarehouseQualityPage,
   'warehouse-routes': WarehouseRoutesPage,
+  'finance-chart-accounts': ChartOfAccountsPage,
+  'finance-journal-entries': JournalEntriesPage,
+  'finance-general-ledger': GeneralLedgerPage,
+  'finance-receivables': FinanceAccountsReceivablePage,
+  'finance-payables': FinanceAccountsPayablePage,
+  'finance-banks': BanksPage,
+  'finance-petty-cash': PettyCashPage,
+  'finance-bank-reconciliation': BankReconciliationPage,
+  'finance-balance-sheet': BalanceSheetPage,
+  'finance-income-statement': IncomeStatementPage,
+  'finance-dgii-606': Dgii606Page,
+  'finance-dgii-607': Dgii607Page,
+  'finance-ncf-sequences': NcfSequencesPage,
+  'finance-accounting-settings': AccountingSettingsPage,
   'security-users': SecurityUsersPage,
   'security-roles': SecurityRolesPage,
   'security-permissions': SecurityPermissionsPage,

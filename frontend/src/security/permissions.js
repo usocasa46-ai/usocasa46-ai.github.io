@@ -236,6 +236,24 @@ export function getDefaultPermissions() {
     'inventory-rotation',
   ]
   const salesPages = ['dashboard', 'sales-invoice', 'sales-customers', 'sales-quotes', 'sales-customer-orders', 'sales-returns', 'sales-credit-notes', 'sales-receivables', 'sales-history', 'reports-sales']
+  const financePages = [
+    'dashboard',
+    'finance-chart-accounts',
+    'finance-journal-entries',
+    'finance-general-ledger',
+    'finance-receivables',
+    'finance-payables',
+    'finance-banks',
+    'finance-petty-cash',
+    'finance-bank-reconciliation',
+    'finance-balance-sheet',
+    'finance-income-statement',
+    'finance-dgii-606',
+    'finance-dgii-607',
+    'finance-ncf-sequences',
+    'finance-accounting-settings',
+    'reports-finance',
+  ]
 
   billingPages.forEach((pageId) => {
     permissions['ROLE-BILLING'][pageId] = pageId === 'inventory-products'
@@ -259,6 +277,14 @@ export function getDefaultPermissions() {
 
   salesPages.forEach((pageId) => {
     permissions['ROLE-SALES'][pageId] = ['view', 'create', 'edit', 'print', 'export']
+  })
+
+  financePages.forEach((pageId) => {
+    permissions['ROLE-BILLING'][pageId] = pageId.includes('dgii') || pageId.includes('ncf') || pageId.includes('settings')
+      ? ['view']
+      : ['view', 'create', 'edit', 'print', 'export']
+    permissions['ROLE-PURCHASES'][pageId] = ['view', 'create', 'edit', 'print', 'export']
+    permissions['ROLE-SALES'][pageId] = ['view']
   })
 
   Object.keys(pageRegistry).forEach((pageId) => {

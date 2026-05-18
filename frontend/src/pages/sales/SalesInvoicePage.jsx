@@ -24,6 +24,8 @@ import {
   openSalesDocumentPdf,
   printSalesDocumentPdf,
 } from '../../utils/pdf/salesDocumentPdf.js'
+import { ACCOUNTING_KEYS, createSalesInvoiceEntry, readArray as readAccountingArray } from '../../utils/accountingEntries.js'
+import { consumeNextNcf, peekNextNcf } from '../../utils/ncfGenerator.js'
 import './SalesInvoicePage.css'
 
 const INVOICES_KEY = 'invefat_sales_invoices'
@@ -279,6 +281,9 @@ function nextInvoiceNumber(settings, invoices) {
 
 function nextNcf(settings, invoices) {
   if (!settings.fiscal?.useNcf) return ''
+
+  const sequenceNcf = peekNextNcf(settings.fiscal.defaultReceiptType || settings.fiscal.ncfPrefix)
+  if (sequenceNcf) return sequenceNcf
 
   const prefix = settings.fiscal.ncfPrefix || 'B02'
   const length = Number(settings.fiscal.ncfLength) || 8
@@ -843,6 +848,18 @@ export default function SalesInvoicePage({ controls, onAction, searchValue = '',
       ncf: invoice.ncf || nextNcf(settings, invoices),
       ncfValidUntil: invoice.ncfValidUntil || settings.fiscal?.ncfValidUntil || '',
     }
+
+    if (settings.fiscal?.useNcf) {
+      const nextSequenceNcf = peekNextNcf(fiscalInvoice.receiptType || settings.fiscal.defaultReceiptType)
+      if (!invoice.ncf || fiscalInvoice.ncf === nextSequenceNcf) {
+        const consumed = consumeNextNcf(fiscalInvoice.receiptType || settings.fiscal.defaultReceiptType)
+        if (consumed.ncf) {
+          fiscalInvoice.ncf = consumed.ncf
+          fiscalInvoice.ncfValidUntil = fiscalInvoice.ncfValidUntil || consumed.validUntil
+        }
+      }
+    }
+
     const pdfInfo = createPdfMetadata(fiscalInvoice, settings, 'invoice')
     const savedInvoice = {
       ...fiscalInvoice,
@@ -864,6 +881,10 @@ export default function SalesInvoicePage({ controls, onAction, searchValue = '',
     setInvoices(nextInvoices)
     saveInvoices(nextInvoices)
     saveReport(savedInvoice, nextTotals)
+    const existingAccountingEntry = readAccountingArray(ACCOUNTING_KEYS.entries).some((entry) => entry.sourceDocument === savedInvoice.number && entry.sourceModule === 'Ventas')
+    if (!existingAccountingEntry && savedInvoice.state !== 'Anulada') {
+      createSalesInvoiceEntry(savedInvoice)
+    }
     setInvoice(savedInvoice)
     setSelectedInvoiceNumber(savedInvoice.number)
     setCustomers(loadCustomers(nextInvoices))

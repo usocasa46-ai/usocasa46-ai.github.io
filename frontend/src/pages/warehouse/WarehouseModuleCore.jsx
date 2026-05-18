@@ -24,6 +24,7 @@ import {
   X,
 } from 'lucide-react'
 import ModulePageLayout from '../shared/ModulePageLayout.jsx'
+import { createSupplierInvoiceEntry } from '../../utils/accountingEntries.js'
 import './WarehouseModulePages.css'
 
 const PRODUCTS_KEY = 'inveFatInventoryProducts'
@@ -32,6 +33,8 @@ const WAREHOUSES_KEY = 'invefat_warehouses'
 const LOCATIONS_KEY = 'invefat_warehouse_locations'
 const RECEIPTS_KEY = 'invefat_warehouse_receipts'
 const PURCHASE_ORDERS_KEY = 'invefat_purchase_orders'
+const SUPPLIER_INVOICES_KEY = 'invefat_supplier_invoices'
+const JOURNAL_ENTRIES_KEY = 'invefat_journal_entries'
 const PENDING_RECEIPT_ORDER_KEY = 'invefat_pending_receipt_order'
 const DISPATCHES_KEY = 'invefat_warehouse_dispatches'
 const TRANSFERS_KEY = 'invefat_warehouse_transfers'
@@ -725,6 +728,48 @@ function updatePurchaseOrderReceiptState(orderNumber, receipts) {
   )))
 }
 
+function syncSupplierInvoiceFromReceipt(receipt) {
+  if (!receipt?.supplierNcf && receipt?.hasSupplierInvoice !== 'Si') return
+
+  const supplierInvoices = readArray(SUPPLIER_INVOICES_KEY)
+  const invoiceNumber = receipt.supplierInvoiceNumber || receipt.number
+  const total = toNumber(receipt.supplierInvoiceAmount) || (receipt.lines || []).reduce((sum, line) => sum + toNumber(line.total), 0)
+  const tax = toNumber(receipt.supplierInvoiceTax) || (receipt.lines || []).reduce((sum, line) => sum + toNumber(line.tax), 0)
+  const invoice = {
+    id: `supplier-invoice-${receipt.number}`,
+    number: invoiceNumber,
+    internalNumber: receipt.number,
+    supplierInvoiceNumber: invoiceNumber,
+    date: receipt.supplierInvoiceDate || receipt.date,
+    supplier: receipt.supplier,
+    fiscalId: receipt.supplierFiscalId || receipt.fiscalId,
+    ncf: receipt.supplierNcf,
+    supplierNcf: receipt.supplierNcf,
+    receiptType: receipt.supplierReceiptType || 'B01 Credito fiscal',
+    relatedReceipt: receipt.number,
+    relatedOrder: receipt.purchaseOrder,
+    paymentCondition: receipt.paymentCondition || 'Credito',
+    dueDate: receipt.supplierInvoiceDueDate || receipt.date,
+    paymentMethod: receipt.supplierPaymentMethod || 'Credito',
+    status: total > 0 ? 'Pendiente de pago' : 'Registrada',
+    total,
+    tax,
+    balance: total,
+    lines: receipt.lines || [],
+    updatedAt: nowIso(),
+  }
+
+  const nextInvoices = supplierInvoices.some((item) => item.relatedReceipt === receipt.number || item.supplierInvoiceNumber === invoiceNumber)
+    ? supplierInvoices.map((item) => (item.relatedReceipt === receipt.number || item.supplierInvoiceNumber === invoiceNumber ? invoice : item))
+    : [invoice, ...supplierInvoices]
+  writeArray(SUPPLIER_INVOICES_KEY, nextInvoices)
+
+  const alreadyPosted = readArray(JOURNAL_ENTRIES_KEY).some((entry) => entry.sourceDocument === invoiceNumber && entry.sourceModule === 'Compras')
+  if (!alreadyPosted) {
+    createSupplierInvoiceEntry(invoice)
+  }
+}
+
 function DocumentPage({
   title,
   description,
@@ -777,6 +822,16 @@ function DocumentPage({
     origin: '',
     relatedDocument: '',
     purchaseOrder: '',
+    hasSupplierInvoice: 'No',
+    supplierInvoiceNumber: '',
+    supplierNcf: '',
+    supplierInvoiceDate: today(),
+    supplierFiscalId: '',
+    supplierReceiptType: 'B01 Credito fiscal',
+    supplierInvoiceAmount: 0,
+    supplierInvoiceTax: 0,
+    supplierInvoiceDueDate: today(),
+    supplierPaymentMethod: 'Credito',
     reason: '',
     observations: '',
     status: defaultStatus,
@@ -939,13 +994,19 @@ function DocumentPage({
       const isPartialReceipt = normalizedLines.some((line) => toNumber(line.receivedQuantity) < toNumber(line.pendingQuantity))
       normalized.status = isPartialReceipt ? 'Parcial' : completedStatus
     }
+    if (purchaseOrderSupport && normalized.status !== 'Anulado' && normalized.hasSupplierInvoice !== 'Si' && !normalized.supplierInvoiceNumber) {
+      normalized.status = 'Pendiente de factura'
+    }
 
     const overReceivedLine = purchaseOrderSupport
       ? normalizedLines.find((line) => toNumber(line.receivedQuantity) > toNumber(line.pendingQuantity))
       : null
+    const supplierInvoiceValidation = purchaseOrderSupport && (normalized.hasSupplierInvoice === 'Si' || normalized.supplierInvoiceNumber)
+      ? (!normalized.supplierNcf ? 'El NCF proveedor es obligatorio cuando se registra factura recibida.' : '')
+      : ''
     const validationMessage = overReceivedLine
       ? `No puede recibir mas de lo pendiente para ${overReceivedLine.productName}.`
-      : validate?.(normalized, products) || ''
+      : supplierInvoiceValidation || validate?.(normalized, products) || ''
     if (validationMessage) {
       setMessage(validationMessage)
       return
@@ -966,6 +1027,9 @@ function DocumentPage({
       : [normalized, ...records]
     saveRecords(nextRecords)
     if (purchaseOrderSupport) updatePurchaseOrderReceiptState(normalized.purchaseOrder, nextRecords)
+    if (purchaseOrderSupport && !exists && (normalized.hasSupplierInvoice === 'Si' || normalized.supplierInvoiceNumber)) {
+      syncSupplierInvoiceFromReceipt(normalized)
+    }
     setSelectedNumber(normalized.number)
     setDraft(null)
     setMessage(`${title}: registro guardado correctamente.`)
@@ -1282,7 +1346,7 @@ export function WarehouseReceivingPage(props) {
       newLabel="Nueva recepcion"
       defaultStatus="Borrador"
       completedStatus="Recibida"
-      statuses={['Borrador', 'Parcial', 'Recibida', 'Anulado']}
+      statuses={['Borrador', 'Parcial', 'Recibida', 'Pendiente de factura', 'Anulado']}
       stockMode="entry"
       movementType="Entrada por recepcion"
       lineMode="receiving"
@@ -1299,7 +1363,17 @@ export function WarehouseReceivingPage(props) {
         { name: 'paymentCondition', label: 'Condicion de pago', readOnly: true },
         { name: 'warehouse', label: 'Almacen destino', type: 'select', options: warehouseOptions },
         { name: 'responsible', label: 'Responsable' },
-        { name: 'status', label: 'Estado', type: 'select', options: ['Borrador', 'Parcial', 'Recibida', 'Anulado'] },
+        { name: 'hasSupplierInvoice', label: 'Registra factura proveedor', type: 'select', options: ['No', 'Si'] },
+        { name: 'supplierInvoiceNumber', label: 'Numero factura proveedor' },
+        { name: 'supplierNcf', label: 'NCF proveedor' },
+        { name: 'supplierInvoiceDate', label: 'Fecha factura proveedor', type: 'date' },
+        { name: 'supplierFiscalId', label: 'RNC proveedor factura' },
+        { name: 'supplierReceiptType', label: 'Tipo comprobante', type: 'select', options: ['B01 Credito fiscal', 'B02 Consumidor final', 'B14 Regimen especial', 'B15 Gubernamental', 'Otro'] },
+        { name: 'supplierInvoiceAmount', label: 'Monto factura', type: 'number' },
+        { name: 'supplierInvoiceTax', label: 'ITBIS', type: 'number' },
+        { name: 'supplierInvoiceDueDate', label: 'Fecha vencimiento', type: 'date' },
+        { name: 'supplierPaymentMethod', label: 'Forma de pago', type: 'select', options: ['Credito', 'Efectivo', 'Transferencia', 'Cheque', 'Tarjeta', 'Otro'] },
+        { name: 'status', label: 'Estado', type: 'select', options: ['Borrador', 'Parcial', 'Recibida', 'Pendiente de factura', 'Anulado'] },
         { name: 'observations', label: 'Observaciones', type: 'textarea', span: 'full' },
       ]}
       columns={documentColumns([
