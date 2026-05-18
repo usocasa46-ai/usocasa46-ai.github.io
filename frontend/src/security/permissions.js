@@ -185,7 +185,22 @@ export function getDefaultPermissions() {
   })
 
   const billingPages = ['dashboard', 'sales-invoice', 'sales-customers', 'sales-history', 'sales-receivables', 'inventory-products', 'reports-sales', 'reports-customers']
-  const inventoryPages = ['dashboard', 'inventory-products', 'inventory-stock-product', 'inventory-kardex', 'inventory-adjustments', 'inventory-physical-count', 'reports-inventory']
+  const inventoryPages = [
+    'dashboard',
+    'inventory-products',
+    'inventory-categories',
+    'inventory-brands',
+    'inventory-units',
+    'inventory-price-lists',
+    'inventory-stock',
+    'inventory-kardex',
+    'inventory-adjustments',
+    'inventory-count',
+    'inventory-lots',
+    'inventory-barcodes',
+    'inventory-costs',
+    'reports-inventory',
+  ]
   const warehousePages = ['dashboard', 'warehouse-list', 'warehouse-locations', 'warehouse-receiving', 'warehouse-dispatch', 'warehouse-transfers', 'warehouse-picking', 'warehouse-putaway', 'reports-warehouse']
   const purchasePages = ['dashboard', 'purchase-requests', 'purchase-orders', 'purchase-vendors', 'purchase-invoices', 'purchase-payables', 'reports-purchases', 'inventory-products']
   const salesPages = ['dashboard', 'sales-invoice', 'sales-customers', 'sales-quotes', 'sales-customer-orders', 'sales-history', 'reports-sales']
@@ -317,11 +332,17 @@ export function loadPermissions() {
   const defaultPermissions = getDefaultPermissions()
 
   if (saved && typeof saved === 'object') {
-    return {
-      ...defaultPermissions,
-      ...saved,
-      'ROLE-MAIN-ADMIN': defaultPermissions['ROLE-MAIN-ADMIN'],
-    }
+    const mergedPermissions = { ...defaultPermissions }
+
+    Object.keys(saved).forEach((roleId) => {
+      mergedPermissions[roleId] = {
+        ...(defaultPermissions[roleId] || {}),
+        ...(saved[roleId] || {}),
+      }
+    })
+
+    mergedPermissions['ROLE-MAIN-ADMIN'] = defaultPermissions['ROLE-MAIN-ADMIN']
+    return mergedPermissions
   }
 
   savePermissions(defaultPermissions)

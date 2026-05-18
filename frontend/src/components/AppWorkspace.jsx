@@ -3,7 +3,18 @@ import AdvancedSidebar from './AdvancedSidebar.jsx'
 import TopActionBar from './TopActionBar.jsx'
 import { DEFAULT_PAGE_ID, erpModules, getModuleByPageId, getPageMeta } from '../config/modulesMap.js'
 import DashboardPage from '../pages/dashboard/DashboardPage.jsx'
+import InventoryAdjustmentsPage from '../pages/inventory/InventoryAdjustmentsPage.jsx'
+import InventoryBarcodesPage from '../pages/inventory/InventoryBarcodesPage.jsx'
+import InventoryBrandsPage from '../pages/inventory/InventoryBrandsPage.jsx'
+import InventoryCategoriesPage from '../pages/inventory/InventoryCategoriesPage.jsx'
+import InventoryCostsPage from '../pages/inventory/InventoryCostsPage.jsx'
+import InventoryKardexPage from '../pages/inventory/InventoryKardexPage.jsx'
+import InventoryLotsPage from '../pages/inventory/InventoryLotsPage.jsx'
+import InventoryPhysicalCountPage from '../pages/inventory/InventoryPhysicalCountPage.jsx'
+import InventoryPriceListsPage from '../pages/inventory/InventoryPriceListsPage.jsx'
 import InventoryProductsPage from '../pages/inventory/InventoryProductsPage.jsx'
+import InventoryStockPage from '../pages/inventory/InventoryStockPage.jsx'
+import InventoryUnitsPage from '../pages/inventory/InventoryUnitsPage.jsx'
 import PurchaseOrdersPage from '../pages/purchases/PurchaseOrdersPage.jsx'
 import SalesCustomersPage from '../pages/sales/SalesCustomersPage.jsx'
 import SalesInvoicePage from '../pages/sales/SalesInvoicePage.jsx'
@@ -26,6 +37,17 @@ const pageComponents = {
   'sales-customers': SalesCustomersPage,
   'purchase-orders': PurchaseOrdersPage,
   'inventory-products': InventoryProductsPage,
+  'inventory-categories': InventoryCategoriesPage,
+  'inventory-brands': InventoryBrandsPage,
+  'inventory-units': InventoryUnitsPage,
+  'inventory-price-lists': InventoryPriceListsPage,
+  'inventory-stock': InventoryStockPage,
+  'inventory-kardex': InventoryKardexPage,
+  'inventory-adjustments': InventoryAdjustmentsPage,
+  'inventory-count': InventoryPhysicalCountPage,
+  'inventory-lots': InventoryLotsPage,
+  'inventory-barcodes': InventoryBarcodesPage,
+  'inventory-costs': InventoryCostsPage,
   'warehouse-receiving': WarehouseReceivingPage,
   'security-users': SecurityUsersPage,
   'security-roles': SecurityRolesPage,
