@@ -31,6 +31,8 @@ const MOVEMENTS_KEY = 'invefat_inventory_movements'
 const WAREHOUSES_KEY = 'invefat_warehouses'
 const LOCATIONS_KEY = 'invefat_warehouse_locations'
 const RECEIPTS_KEY = 'invefat_warehouse_receipts'
+const PURCHASE_ORDERS_KEY = 'invefat_purchase_orders'
+const PENDING_RECEIPT_ORDER_KEY = 'invefat_pending_receipt_order'
 const DISPATCHES_KEY = 'invefat_warehouse_dispatches'
 const TRANSFERS_KEY = 'invefat_warehouse_transfers'
 const PICKING_KEY = 'invefat_warehouse_picking'
@@ -191,6 +193,22 @@ function warehouseOptions() {
   return readWarehouses().map((warehouse) => ({ value: warehouse.code, label: `${warehouse.code} - ${warehouse.name}` }))
 }
 
+function readPurchaseOrders() {
+  return readArray(PURCHASE_ORDERS_KEY).filter((order) => !['Anulada', 'Cerrada', 'Recibida'].includes(order.status))
+}
+
+function purchaseOrderOptions() {
+  const orders = readPurchaseOrders()
+  return [
+    { value: '', label: orders.length ? 'Seleccione una orden' : 'No hay ordenes de compra disponibles' },
+    ...orders.map((order) => ({ value: order.number, label: `${order.number} - ${order.supplier || order.supplierCode || 'Proveedor'}` })),
+  ]
+}
+
+function findPurchaseOrder(orderNumber) {
+  return readArray(PURCHASE_ORDERS_KEY).find((order) => order.number === orderNumber)
+}
+
 function readProducts() {
   return readArray(PRODUCTS_KEY).map((product) => ({
     code: String(product.code || '').trim(),
@@ -256,7 +274,11 @@ function normalizeLine(line, products) {
   const product = productFromLine(line, products)
   const quantity = toNumber(line.quantity || line.receivedQuantity || line.dispatchedQuantity || line.returnedQuantity || 0)
   const orderedQuantity = toNumber(line.orderedQuantity || quantity)
+  const alreadyReceivedQuantity = toNumber(line.alreadyReceivedQuantity || line.previouslyReceivedQuantity || 0)
+  const receivedQuantity = toNumber(line.receivedQuantity ?? quantity)
   const cost = toNumber(line.cost ?? product.cost)
+  const tax = toNumber(line.tax)
+  const effectiveQuantity = toNumber(line.receivedQuantity ?? quantity)
 
   return {
     id: line.id || makeId('line'),
@@ -266,11 +288,13 @@ function normalizeLine(line, products) {
     barcode: line.barcode || product.barcode || '',
     quantity,
     orderedQuantity,
-    receivedQuantity: toNumber(line.receivedQuantity || quantity),
-    pendingQuantity: Math.max(0, orderedQuantity - toNumber(line.receivedQuantity || quantity)),
+    alreadyReceivedQuantity,
+    receivedQuantity,
+    pendingQuantity: Math.max(0, orderedQuantity - alreadyReceivedQuantity),
     stockAvailable: toNumber(line.stockAvailable ?? product.stock),
     cost,
-    total: quantity * cost,
+    tax,
+    total: effectiveQuantity * cost + tax,
     condition: line.condition || 'Buena',
     suggestedLocation: line.suggestedLocation || '',
     finalLocation: line.finalLocation || '',
@@ -628,6 +652,79 @@ function createBlankLine(products) {
   }, products)
 }
 
+function receivedQuantityForOrder(orderNumber, productCode, receipts = readArray(RECEIPTS_KEY)) {
+  return receipts
+    .filter((receipt) => receipt.purchaseOrder === orderNumber && receipt.status !== 'Anulado')
+    .flatMap((receipt) => receipt.lines || [])
+    .filter((line) => line.productCode === productCode)
+    .reduce((sum, line) => sum + toNumber(line.receivedQuantity || line.quantity), 0)
+}
+
+function draftFromPurchaseOrder(order, baseDraft, products, receipts = readArray(RECEIPTS_KEY)) {
+  if (!order) return baseDraft
+
+  const lines = (order.lines || []).map((line) => {
+    const product = products.find((item) => item.code === line.productCode) || {}
+    const orderedQuantity = toNumber(line.quantity || line.orderedQuantity)
+    const alreadyReceivedQuantity = receivedQuantityForOrder(order.number, line.productCode, receipts)
+    const pendingQuantity = Math.max(0, orderedQuantity - alreadyReceivedQuantity)
+    const cost = toNumber(line.cost ?? product.cost)
+    const tax = toNumber(line.tax)
+
+    return normalizeLine({
+      id: makeId('receipt-line'),
+      productCode: line.productCode,
+      productName: line.productName || product.name,
+      unit: line.unit || product.unit,
+      orderedQuantity,
+      alreadyReceivedQuantity,
+      pendingQuantity,
+      receivedQuantity: pendingQuantity,
+      quantity: pendingQuantity,
+      cost,
+      tax,
+      stockAvailable: product.stock,
+      lineStatus: pendingQuantity > 0 ? 'Pendiente' : 'Recibida',
+    }, products)
+  })
+
+  return {
+    ...baseDraft,
+    supplier: order.supplier || order.supplierCode || '',
+    fiscalId: order.fiscalId || '',
+    phone: order.phone || '',
+    address: order.address || '',
+    orderDate: order.date || '',
+    paymentCondition: order.paymentCondition || '',
+    purchaseOrder: order.number,
+    warehouse: order.warehouse || baseDraft.warehouse,
+    observations: order.observations || baseDraft.observations,
+    lines,
+  }
+}
+
+function updatePurchaseOrderReceiptState(orderNumber, receipts) {
+  if (!orderNumber) return
+
+  const orders = readArray(PURCHASE_ORDERS_KEY)
+  const order = orders.find((item) => item.number === orderNumber)
+  if (!order) return
+
+  const hasAnyReceipt = (order.lines || []).some((line) => receivedQuantityForOrder(orderNumber, line.productCode, receipts) > 0)
+  const isFullyReceived = (order.lines || []).every((line) => {
+    const orderedQuantity = toNumber(line.quantity || line.orderedQuantity)
+    return receivedQuantityForOrder(orderNumber, line.productCode, receipts) >= orderedQuantity
+  })
+  const nextStatus = isFullyReceived ? 'Recibida' : hasAnyReceipt ? 'Parcialmente recibida' : order.status
+  const nextReceptionStatus = isFullyReceived ? 'Recibida' : hasAnyReceipt ? 'Parcial' : order.receptionStatus || 'Pendiente'
+
+  writeArray(PURCHASE_ORDERS_KEY, orders.map((item) => (
+    item.number === orderNumber
+      ? { ...item, status: nextStatus, receptionStatus: nextReceptionStatus, updatedAt: nowIso() }
+      : item
+  )))
+}
+
 function DocumentPage({
   title,
   description,
@@ -641,6 +738,7 @@ function DocumentPage({
   columns,
   lineMode = 'product',
   stockMode = 'none',
+  purchaseOrderSupport = false,
   movementType = '',
   movementEntryType = '',
   movementExitType = '',
@@ -658,6 +756,7 @@ function DocumentPage({
   const [mode, setMode] = useState('edit')
   const [message, setMessage] = useState('')
   const selected = records.find((record) => record.number === selectedNumber)
+  const availablePurchaseOrders = purchaseOrderSupport ? readPurchaseOrders() : []
 
   const saveRecords = (nextRecords) => {
     setRecords(nextRecords)
@@ -690,6 +789,28 @@ function DocumentPage({
     setDraft(newDraft())
   }
 
+  useEffect(() => {
+    if (!purchaseOrderSupport || !canUseStorage()) return
+
+    const pendingOrderNumber = localStorage.getItem(PENDING_RECEIPT_ORDER_KEY)
+    if (!pendingOrderNumber) return
+
+    const freshProducts = readProducts()
+    const order = findPurchaseOrder(pendingOrderNumber)
+    localStorage.removeItem(PENDING_RECEIPT_ORDER_KEY)
+    setProducts(freshProducts)
+    setMode('edit')
+
+    if (!order) {
+      setDraft(newDraft())
+      setMessage(`No se encontro la orden ${pendingOrderNumber}.`)
+      return
+    }
+
+    setDraft(draftFromPurchaseOrder(order, newDraft(), freshProducts, records))
+    setMessage(`Orden ${order.number} cargada para recepcion.`)
+  }, [purchaseOrderSupport])
+
   const openEdit = (record = selected) => {
     if (!record) return
     setMode('edit')
@@ -703,7 +824,16 @@ function DocumentPage({
   }
 
   const updateDraft = (field, value) => {
-    setDraft((current) => ({ ...current, [field]: value }))
+    setDraft((current) => {
+      const next = { ...current, [field]: value }
+
+      if (purchaseOrderSupport && field === 'purchaseOrder' && value) {
+        const order = findPurchaseOrder(value)
+        if (order) return draftFromPurchaseOrder(order, next, products, records)
+      }
+
+      return next
+    })
   }
 
   const updateLine = (lineId, field, value) => {
@@ -722,9 +852,9 @@ function DocumentPage({
         }
         const normalized = normalizeLine(nextLine, products)
         if (lineMode === 'receiving') {
-          normalized.pendingQuantity = Math.max(0, toNumber(normalized.orderedQuantity) - toNumber(normalized.receivedQuantity))
+          normalized.pendingQuantity = Math.max(0, toNumber(normalized.orderedQuantity) - toNumber(normalized.alreadyReceivedQuantity))
           normalized.quantity = toNumber(normalized.receivedQuantity)
-          normalized.total = toNumber(normalized.receivedQuantity) * toNumber(normalized.cost)
+          normalized.total = toNumber(normalized.receivedQuantity) * toNumber(normalized.cost) + toNumber(normalized.tax)
         }
         return normalized
       }),
@@ -805,8 +935,17 @@ function DocumentPage({
       status: draft.status === 'Borrador' ? completedStatus : draft.status,
       updatedAt: nowIso(),
     }
+    if (purchaseOrderSupport && normalized.status === completedStatus) {
+      const isPartialReceipt = normalizedLines.some((line) => toNumber(line.receivedQuantity) < toNumber(line.pendingQuantity))
+      normalized.status = isPartialReceipt ? 'Parcial' : completedStatus
+    }
 
-    const validationMessage = validate?.(normalized, products) || ''
+    const overReceivedLine = purchaseOrderSupport
+      ? normalizedLines.find((line) => toNumber(line.receivedQuantity) > toNumber(line.pendingQuantity))
+      : null
+    const validationMessage = overReceivedLine
+      ? `No puede recibir mas de lo pendiente para ${overReceivedLine.productName}.`
+      : validate?.(normalized, products) || ''
     if (validationMessage) {
       setMessage(validationMessage)
       return
@@ -826,6 +965,7 @@ function DocumentPage({
       ? records.map((record) => record.number === normalized.number ? normalized : record)
       : [normalized, ...records]
     saveRecords(nextRecords)
+    if (purchaseOrderSupport) updatePurchaseOrderReceiptState(normalized.purchaseOrder, nextRecords)
     setSelectedNumber(normalized.number)
     setDraft(null)
     setMessage(`${title}: registro guardado correctamente.`)
@@ -901,6 +1041,9 @@ function DocumentPage({
 
         {draft && (
           <Modal title={`${mode === 'view' ? 'Ver' : 'Editar'} ${title.toLowerCase()}`} subtitle={draft.number} onClose={() => setDraft(null)} onSave={mode === 'view' ? null : saveDraft} wide>
+            {purchaseOrderSupport && availablePurchaseOrders.length === 0 && (
+              <div className="warehouse-message">No hay ordenes de compra disponibles.</div>
+            )}
             <div className="warehouse-form-grid">
               {fields.map((field) => <FieldControl key={field.name} field={{ ...field, readOnly: mode === 'view' || field.readOnly }} value={draft[field.name]} onChange={updateDraft} />)}
             </div>
@@ -934,13 +1077,15 @@ function ProductLinesTable({ lines, products, mode, updateLine, removeLine, read
           <th>Producto</th>
           <th>Unidad</th>
           {mode === 'receiving' && <th>Ordenada</th>}
-          <th>Cantidad</th>
+          {mode === 'receiving' && <th>Ya recibida</th>}
           {mode === 'receiving' && <th>Pendiente</th>}
+          <th>{mode === 'receiving' ? 'A recibir' : 'Cantidad'}</th>
           {mode === 'picking' && <th>Ubicacion sugerida</th>}
           {mode === 'putaway' && <th>Ubicacion final</th>}
           {mode === 'returns' && <th>Condicion</th>}
           <th>Stock</th>
           <th>Costo</th>
+          {mode === 'receiving' && <th>Impuesto</th>}
           <th>Total</th>
           <th>Estado</th>
           {!readOnly && <th>Accion</th>}
@@ -956,19 +1101,21 @@ function ProductLinesTable({ lines, products, mode, updateLine, removeLine, read
             </td>
             <td>{line.unit}</td>
             {mode === 'receiving' && <td><input className="warehouse-line-input" type="number" value={line.orderedQuantity} onChange={(event) => updateLine(line.id, 'orderedQuantity', event.target.value)} disabled={readOnly} /></td>}
-            <td><input className="warehouse-line-input" type="number" value={mode === 'receiving' ? line.receivedQuantity : line.quantity} onChange={(event) => updateLine(line.id, mode === 'receiving' ? 'receivedQuantity' : 'quantity', event.target.value)} disabled={readOnly} /></td>
+            {mode === 'receiving' && <td>{formatNumber(line.alreadyReceivedQuantity)}</td>}
             {mode === 'receiving' && <td>{formatNumber(line.pendingQuantity)}</td>}
+            <td><input className="warehouse-line-input" type="number" value={mode === 'receiving' ? line.receivedQuantity : line.quantity} onChange={(event) => updateLine(line.id, mode === 'receiving' ? 'receivedQuantity' : 'quantity', event.target.value)} disabled={readOnly} /></td>
             {mode === 'picking' && <td><select className="warehouse-line-input" value={line.suggestedLocation} onChange={(event) => updateLine(line.id, 'suggestedLocation', event.target.value)} disabled={readOnly}>{locationOptions().map((option) => <option key={option.value} value={option.value}>{option.label}</option>)}</select></td>}
             {mode === 'putaway' && <td><select className="warehouse-line-input" value={line.finalLocation} onChange={(event) => updateLine(line.id, 'finalLocation', event.target.value)} disabled={readOnly}>{locationOptions().map((option) => <option key={option.value} value={option.value}>{option.label}</option>)}</select></td>}
             {mode === 'returns' && <td><select className="warehouse-line-input" value={line.condition} onChange={(event) => updateLine(line.id, 'condition', event.target.value)} disabled={readOnly}><option>Buena</option><option>Danada</option><option>Cuarentena</option></select></td>}
             <td>{formatNumber(line.stockAvailable)}</td>
             <td><input className="warehouse-line-input" type="number" value={line.cost} onChange={(event) => updateLine(line.id, 'cost', event.target.value)} disabled={readOnly} /></td>
+            {mode === 'receiving' && <td><input className="warehouse-line-input" type="number" value={line.tax} onChange={(event) => updateLine(line.id, 'tax', event.target.value)} disabled={readOnly} /></td>}
             <td>{formatCurrency(line.total)}</td>
             <td><StatusBadge value={line.lineStatus || 'Pendiente'} /></td>
             {!readOnly && <td><button type="button" className="warehouse-small-button" onClick={() => removeLine(line.id)}>Eliminar</button></td>}
           </tr>
         ))}
-        {lines.length === 0 && <tr><td colSpan="11" className="warehouse-empty-state">No hay productos en el detalle.</td></tr>}
+        {lines.length === 0 && <tr><td colSpan={mode === 'receiving' ? 12 : 11} className="warehouse-empty-state">No hay productos en el detalle.</td></tr>}
       </tbody>
     </table>
   )
@@ -1139,11 +1286,17 @@ export function WarehouseReceivingPage(props) {
       stockMode="entry"
       movementType="Entrada por recepcion"
       lineMode="receiving"
+      purchaseOrderSupport
       fields={[
         { name: 'number', label: 'Numero recepcion', readOnly: true },
         { name: 'date', label: 'Fecha', type: 'date' },
+        { name: 'purchaseOrder', label: 'Orden de compra', type: 'select', options: purchaseOrderOptions },
         { name: 'supplier', label: 'Proveedor' },
-        { name: 'purchaseOrder', label: 'Orden relacionada' },
+        { name: 'fiscalId', label: 'RNC proveedor', readOnly: true },
+        { name: 'phone', label: 'Telefono', readOnly: true },
+        { name: 'address', label: 'Direccion', readOnly: true },
+        { name: 'orderDate', label: 'Fecha de orden', type: 'date', readOnly: true },
+        { name: 'paymentCondition', label: 'Condicion de pago', readOnly: true },
         { name: 'warehouse', label: 'Almacen destino', type: 'select', options: warehouseOptions },
         { name: 'responsible', label: 'Responsable' },
         { name: 'status', label: 'Estado', type: 'select', options: ['Borrador', 'Parcial', 'Recibida', 'Anulado'] },

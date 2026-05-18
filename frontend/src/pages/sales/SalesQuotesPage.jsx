@@ -979,12 +979,27 @@ export default function SalesQuotesPage({ controls, onAction, searchValue = '', 
                     <td>{item.validUntil}</td>
                     <td>
                       <div className="sales-row-actions">
-                        <button type="button" onClick={(event) => { event.stopPropagation(); setSelectedQuoteNumber(item.number); previewQuotePdf(item) }}>Ver</button>
-                        <button type="button" onClick={(event) => { event.stopPropagation(); openQuoteEditor(item) }}>Editar</button>
-                        <button type="button" onClick={(event) => { event.stopPropagation(); printQuotePdf(item) }}>Imprimir</button>
-                        <button type="button" onClick={(event) => { event.stopPropagation(); downloadQuotePdf(item) }}>Descargar PDF</button>
-                        <button type="button" disabled={item.state === 'Convertida a factura' || item.state === 'Anulada'} onClick={(event) => { event.stopPropagation(); convertQuoteToInvoice(item) }}>Convertir a factura</button>
-                        <button type="button" className="is-danger" disabled={item.state === 'Anulada'} onClick={(event) => { event.stopPropagation(); cancelQuote(item) }}>Anular</button>
+                        <button type="button" title="Ver cotizacion" aria-label="Ver cotizacion" onClick={(event) => { event.stopPropagation(); setSelectedQuoteNumber(item.number); previewQuotePdf(item) }}>
+                          <Eye size={15} />
+                        </button>
+                        <button type="button" title="Editar cotizacion" aria-label="Editar cotizacion" onClick={(event) => { event.stopPropagation(); openQuoteEditor(item) }}>
+                          <Edit3 size={15} />
+                        </button>
+                        <button type="button" title="Imprimir cotizacion" aria-label="Imprimir cotizacion" onClick={(event) => { event.stopPropagation(); printQuotePdf(item) }}>
+                          <Printer size={15} />
+                        </button>
+                        <button type="button" title="Descargar PDF" aria-label="Descargar PDF" onClick={(event) => { event.stopPropagation(); downloadQuotePdf(item) }}>
+                          <Download size={15} />
+                        </button>
+                        <button type="button" title="Convertir a factura" aria-label="Convertir a factura" disabled={item.state === 'Convertida a factura' || item.state === 'Anulada'} onClick={(event) => { event.stopPropagation(); convertQuoteToInvoice(item) }}>
+                          <FilePlus2 size={15} />
+                        </button>
+                        <button type="button" title="Enviar cotizacion" aria-label="Enviar cotizacion" onClick={(event) => { event.stopPropagation(); notify(`Cotizacion ${item.number} lista para envio.`) }}>
+                          <Send size={15} />
+                        </button>
+                        <button type="button" className="is-danger" title="Anular cotizacion" aria-label="Anular cotizacion" disabled={item.state === 'Anulada'} onClick={(event) => { event.stopPropagation(); cancelQuote(item) }}>
+                          <Ban size={15} />
+                        </button>
                       </div>
                     </td>
                   </tr>

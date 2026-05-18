@@ -28,6 +28,7 @@ const CREDIT_NOTES_KEY = 'invefat_supplier_credit_notes'
 const SUPPLIERS_KEY = 'invefat_suppliers'
 const PAYMENTS_KEY = 'invefat_supplier_payments'
 const RECEIPTS_KEY = 'invefat_warehouse_receipts'
+const PENDING_RECEIPT_ORDER_KEY = 'invefat_pending_receipt_order'
 
 const DEFAULT_SUPPLIERS = [
   {
@@ -624,6 +625,7 @@ function DocumentPage({
   onSearchChange,
   controls,
   onAction,
+  onNavigate,
 }) {
   const [records, setRecords] = useState(() => readArray(storageKey))
   const [products] = useState(() => readProducts())
@@ -788,7 +790,7 @@ function DocumentPage({
         { id: 'edit', label: 'Editar', icon: Edit3, disabled: !selected || selected.status === 'Anulada', onClick: () => openEdit() },
         allowApprove && { id: 'approve', label: 'Aprobar', icon: CheckCircle2, disabled: !selected, onClick: () => setRecordStatus(selected, 'Aprobada') },
         allowReject && { id: 'reject', label: 'Rechazar', icon: Ban, disabled: !selected, onClick: () => setRecordStatus(selected, 'Rechazada') },
-        allowConvert && { id: 'convert', label: convertLabel, icon: Send, disabled: !selected, onClick: () => convertAction?.(selected, saveRecords, records, setMessage) },
+        allowConvert && { id: 'convert', label: convertLabel, icon: Send, disabled: !selected, onClick: () => convertAction?.(selected, saveRecords, records, setMessage, onNavigate) },
         { id: 'print', label: 'Imprimir', icon: Printer, disabled: !selected, onClick: () => window.print() },
         { id: 'export', label: 'Exportar', icon: Download, onClick: () => exportJson(`${storageKey}.json`, records) },
         { id: 'exit', label: 'Salir', icon: X, onClick: controls?.onClose },
@@ -818,7 +820,7 @@ function DocumentPage({
                       onPrint={() => window.print()}
                       onSend={title === 'Ordenes de compra' ? () => onAction?.('Orden preparada para envio al proveedor.') : null}
                       onVoid={(item) => setRecordStatus(item, 'Anulada')}
-                      extra={allowConvert ? <button type="button" title={convertLabel} aria-label={convertLabel} onClick={(event) => { event.stopPropagation(); convertAction?.(record, saveRecords, records, setMessage) }}><Send size={15} /></button> : null}
+                      extra={allowConvert ? <button type="button" title={convertLabel} aria-label={convertLabel} onClick={(event) => { event.stopPropagation(); convertAction?.(record, saveRecords, records, setMessage, onNavigate) }}><Send size={15} /></button> : null}
                     />
                   </td>
                 </tr>
@@ -1001,20 +1003,18 @@ export function SupplierQuotesPage(props) {
 }
 
 export function PurchaseOrdersPage(props) {
-  const convertToReceipt = (order, saveRecords, records, setMessage) => {
-    const receipts = readArray('invefat_warehouse_receipts')
-    const receipt = {
-      ...order,
-      id: makeId('receipt'),
-      number: nextDocument(receipts, 'REC'),
-      purchaseOrder: order.number,
-      warehouse: order.warehouse,
-      status: 'Borrador',
-      updatedAt: nowIso(),
+  const convertToReceipt = (order, saveRecords, records, setMessage, onNavigate) => {
+    if (canUseStorage()) {
+      localStorage.setItem(PENDING_RECEIPT_ORDER_KEY, order.number)
     }
-    writeArray('invefat_warehouse_receipts', [receipt, ...receipts])
-    saveRecords(records.map((item) => item.number === order.number ? { ...item, receptionStatus: 'Preparada', relatedReceipt: receipt.number } : item))
-    setMessage(`Recepcion preparada: ${receipt.number}.`)
+
+    saveRecords(records.map((item) => (
+      item.number === order.number
+        ? { ...item, receptionStatus: 'Preparada', updatedAt: nowIso() }
+        : item
+    )))
+    setMessage(`Orden ${order.number} preparada para recepcion.`)
+    onNavigate?.('warehouse-receiving')
   }
 
   return (

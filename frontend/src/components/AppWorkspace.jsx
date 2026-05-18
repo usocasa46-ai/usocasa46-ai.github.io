@@ -213,6 +213,7 @@ export default function AppWorkspace({
       return (
         <ActivePage
           controls={pageControls}
+          onNavigate={selectPage}
           onAction={showNotice}
           searchValue={pageSearches[currentPageId] || ''}
           onSearchChange={updateCurrentSearch}
