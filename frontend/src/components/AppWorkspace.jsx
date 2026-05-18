@@ -45,6 +45,7 @@ import SalesCreditNotesPage from '../pages/sales/SalesCreditNotesPage.jsx'
 import SalesHistoryPage from '../pages/sales/SalesHistoryPage.jsx'
 import SalesInvoicePage from '../pages/sales/SalesInvoicePage.jsx'
 import SalesOrdersPage from '../pages/sales/SalesOrdersPage.jsx'
+import SalesPosPage from '../pages/sales/SalesPosPage.jsx'
 import SalesQuotesPage from '../pages/sales/SalesQuotesPage.jsx'
 import AccountsReceivablePage from '../pages/sales/AccountsReceivablePage.jsx'
 import SalesReturnsPage from '../pages/sales/SalesReturnsPage.jsx'
@@ -74,6 +75,7 @@ import './AppWorkspace.css'
 const pageComponents = {
   'system-alerts': AlertsCenterPage,
   'sales-invoice': SalesInvoicePage,
+  'sales-pos': SalesPosPage,
   'sales-quotes': SalesQuotesPage,
   'sales-customer-orders': SalesOrdersPage,
   'sales-customers': SalesCustomersPage,

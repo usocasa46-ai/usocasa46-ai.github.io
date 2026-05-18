@@ -22,6 +22,7 @@ export const erpModules = [
     icon: 'ReceiptText',
     pages: [
       { id: 'sales-invoice', label: 'Factura', keywords: ['factura', 'venta', 'cliente'] },
+      { id: 'sales-pos', label: 'Punto de venta', keywords: ['pos', 'caja', 'touch', 'ticket'] },
       { id: 'sales-quotes', label: 'Cotizaciones' },
       { id: 'sales-customer-orders', label: 'Pedidos de clientes' },
       { id: 'sales-customers', label: 'Clientes' },
@@ -193,6 +194,7 @@ export const erpModules = [
 
 export const quickAccessPages = [
   { id: 'system-alerts', label: 'Alertas', moduleId: 'system' },
+  { id: 'sales-pos', label: 'Punto de venta', moduleId: 'sales' },
   { id: 'sales-invoice', label: 'Nueva factura', moduleId: 'sales' },
   { id: 'purchase-orders', label: 'Nueva orden de compra', moduleId: 'purchases' },
   { id: 'warehouse-receiving', label: 'Recepcion de mercancia', moduleId: 'warehouse' },

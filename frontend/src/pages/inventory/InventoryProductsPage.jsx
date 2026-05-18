@@ -17,6 +17,7 @@ import { productsService } from '../../services/productsService.js'
 import './InventoryProductsPage.css'
 
 const STORAGE_KEY = 'inveFatInventoryProducts'
+const SUPPLIERS_KEY = 'invefat_suppliers'
 const SALES_INVOICES_KEY = 'invefat_sales_invoices'
 const INVENTORY_MOVEMENT_KEYS = ['invefat_inventory_movements', 'inveFatInventoryMovements', 'inventory_movements']
 const TRANSFER_KEYS = ['invefat_warehouse_transfers', 'invefat_inventory_transfers', 'invefat_stock_transfers']
@@ -112,9 +113,9 @@ const initialMovementFilters = {
   dateTo: '',
 }
 
-const bulkImportExample = `codigo,nombre,categoria,unidad,costo,precio,stock,codigoBarra
-PRD-001,Producto A,General,UND,100,150,10,123456
-PRD-002,Producto B,General,UND,200,250,5,789456`
+const bulkImportExample = `codigo,nombre,categoria,unidad,costo,precio,stock,codigoBarra,proveedor
+PRD-001,Producto A,General,UND,100,150,10,123456,Proveedor 1
+PRD-002,Producto B,General,UND,200,250,5,789456,Proveedor 1`
 
 function normalizeNumber(value) {
   const numericValue = Number(value)
@@ -141,6 +142,9 @@ function normalizeProduct(product) {
     minStock: normalizeNumber(product.minStock),
     maxStock: normalizeNumber(product.maxStock),
     stock: normalizeNumber(product.stock),
+    supplierId: String(product.supplierId || product.supplierCode || '').trim(),
+    supplierCode: String(product.supplierCode || product.providerCode || product.mainSupplierCode || '').trim(),
+    supplierName: String(product.supplierName || product.providerName || product.supplier || product.provider || '').trim(),
     status: product.status === 'Inactivo' ? 'Inactivo' : 'Activo',
     createdAt: product.createdAt || new Date().toISOString(),
     updatedAt: product.updatedAt || new Date().toISOString(),
@@ -193,6 +197,9 @@ function createEmptyProduct(products) {
     minStock: '',
     maxStock: '',
     stock: '',
+    supplierId: '',
+    supplierCode: '',
+    supplierName: '',
     status: 'Activo',
   }
 }
@@ -220,12 +227,14 @@ function productMatchesText(product, value) {
     product.brand,
     product.unit,
     product.barcode,
+    product.supplierCode,
+    product.supplierName,
     product.status,
   ].some((field) => String(field || '').toLowerCase().includes(text))
 }
 
 function exportProducts(products) {
-  const headers = ['Codigo', 'Producto', 'Categoria', 'Unidad', 'Costo', 'Precio', 'Stock', 'Estado']
+  const headers = ['Codigo', 'Producto', 'Categoria', 'Unidad', 'Costo', 'Precio', 'Stock', 'Proveedor', 'Estado']
   const rows = products.map((product) => [
     product.code,
     product.name,
@@ -234,6 +243,7 @@ function exportProducts(products) {
     product.cost,
     product.price,
     product.stock,
+    product.supplierName,
     product.status,
   ])
 
@@ -267,6 +277,35 @@ function loadStorageArray(key) {
   }
 
   return []
+}
+
+function normalizeSupplier(supplier) {
+  const code = String(supplier.code || supplier.supplierCode || supplier.id || '').trim()
+  const name = String(supplier.commercialName || supplier.name || supplier.legalName || supplier.supplierName || '').trim()
+
+  return {
+    id: String(supplier.id || code || name).trim(),
+    code,
+    name,
+    status: supplier.status || supplier.estado || 'Activo',
+  }
+}
+
+function loadSuppliers() {
+  return loadStorageArray(SUPPLIERS_KEY)
+    .map(normalizeSupplier)
+    .filter((supplier) => supplier.name && supplier.status !== 'Inactivo')
+}
+
+function findSupplierMatch(value, suppliers) {
+  const cleanValue = cleanText(value)
+  if (!cleanValue) return null
+
+  return suppliers.find((supplier) => (
+    cleanText(supplier.code) === cleanValue ||
+    cleanText(supplier.name) === cleanValue ||
+    cleanText(`${supplier.code} - ${supplier.name}`) === cleanValue
+  )) || null
 }
 
 function loadArraysFromKeys(keys) {
@@ -465,6 +504,7 @@ function buildProductMovements(product) {
 
 export default function InventoryProductsPage({ controls, onAction, searchValue = '', onSearchChange }) {
   const [products, setProducts] = useState(() => loadProducts())
+  const [suppliers, setSuppliers] = useState(() => loadSuppliers())
   const [filters, setFilters] = useState(initialFilters)
   const [selectedCode, setSelectedCode] = useState('')
   const [formData, setFormData] = useState(() => createEmptyProduct(loadProducts()))
@@ -478,6 +518,8 @@ export default function InventoryProductsPage({ controls, onAction, searchValue 
 
   useEffect(() => {
     let isActive = true
+
+    setSuppliers(loadSuppliers())
 
     productsService.getAll().then((storedProducts) => {
       if (!isActive || !Array.isArray(storedProducts) || storedProducts.length === 0) return
@@ -501,6 +543,13 @@ export default function InventoryProductsPage({ controls, onAction, searchValue 
   const brands = useMemo(() => {
     return Array.from(new Set(products.map((product) => product.brand).filter(Boolean))).sort()
   }, [products])
+
+  const supplierOptions = useMemo(() => (
+    suppliers.map((supplier) => ({
+      value: supplier.code || supplier.name,
+      label: supplier.code ? `${supplier.code} - ${supplier.name}` : supplier.name,
+    }))
+  ), [suppliers])
 
   const summary = useMemo(() => {
     const activeProducts = products.filter((product) => product.status === 'Activo')
@@ -584,6 +633,17 @@ export default function InventoryProductsPage({ controls, onAction, searchValue 
   }
 
   const updateForm = (field, value) => {
+    if (field === 'supplierCode') {
+      const supplier = findSupplierMatch(value, suppliers)
+      setFormData((current) => ({
+        ...current,
+        supplierId: supplier?.id || '',
+        supplierCode: supplier?.code || '',
+        supplierName: supplier?.name || value,
+      }))
+      return
+    }
+
     setFormData((current) => ({
       ...current,
       [field]: value,
@@ -781,8 +841,9 @@ export default function InventoryProductsPage({ controls, onAction, searchValue 
         return
       }
 
-      const [code, name, category, unit, cost, price, stock, barcode] = fields
+      const [code, name, category, unit, cost, price, stock, barcode, supplierValue = ''] = fields
       const cleanCode = String(code || '').trim()
+      const supplier = findSupplierMatch(supplierValue, suppliers)
 
       if (!cleanCode || !name || existingCodes.has(cleanCode.toLowerCase()) || importedCodes.has(cleanCode.toLowerCase())) {
         skippedLines += 1
@@ -804,6 +865,9 @@ export default function InventoryProductsPage({ controls, onAction, searchValue 
         minStock: 0,
         maxStock: 0,
         stock,
+        supplierId: supplier?.id || '',
+        supplierCode: supplier?.code || '',
+        supplierName: supplier?.name || supplierValue,
         status: 'Activo',
         createdAt: new Date().toISOString(),
         updatedAt: new Date().toISOString(),
@@ -1019,6 +1083,19 @@ export default function InventoryProductsPage({ controls, onAction, searchValue 
                     <input value={formData.barcode} onChange={(event) => updateForm('barcode', event.target.value)} />
                   </label>
                   <label>
+                    Proveedor principal
+                    <select value={formData.supplierCode || formData.supplierName || ''} onChange={(event) => updateForm('supplierCode', event.target.value)}>
+                      <option value="">Sin proveedor</option>
+                      {formData.supplierName && !formData.supplierCode && (
+                        <option value={formData.supplierName}>{formData.supplierName}</option>
+                      )}
+                      {supplierOptions.map((supplier) => (
+                        <option key={supplier.value} value={supplier.value}>{supplier.label}</option>
+                      ))}
+                    </select>
+                    {suppliers.length === 0 && <small>No hay proveedores registrados</small>}
+                  </label>
+                  <label>
                     Costo
                     <input type="number" min="0" step="0.01" value={formData.cost} onChange={(event) => updateForm('cost', event.target.value)} />
                   </label>
@@ -1081,7 +1158,7 @@ export default function InventoryProductsPage({ controls, onAction, searchValue 
             </div>
 
             <label className="inventory-bulk-field">
-              Pega productos en formato: codigo,nombre,categoria,unidad,costo,precio,stock,codigoBarra
+              Pega productos en formato: codigo,nombre,categoria,unidad,costo,precio,stock,codigoBarra,proveedor
               <textarea
                 value={bulkText}
                 onChange={(event) => setBulkText(event.target.value)}
@@ -1298,7 +1375,7 @@ export default function InventoryProductsPage({ controls, onAction, searchValue 
                     <td>{product.code}</td>
                     <td>
                       <strong>{product.name}</strong>
-                      <small>{product.brand || 'Sin marca'}</small>
+                      <small>{[product.brand || 'Sin marca', product.supplierName || 'Sin proveedor'].join(' | ')}</small>
                     </td>
                     <td>{product.category || 'Sin categoria'}</td>
                     <td>{product.unit}</td>
