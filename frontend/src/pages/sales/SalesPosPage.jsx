@@ -20,8 +20,9 @@ import ModulePageLayout from '../shared/ModulePageLayout.jsx'
 import { invoicesService } from '../../services/invoicesService.js'
 import { productsService } from '../../services/productsService.js'
 import { createSalesInvoiceEntry, readArray as readAccountingArray, ACCOUNTING_KEYS } from '../../utils/accountingEntries.js'
-import { createPdfMetadata, downloadSalesDocumentPdf, printSalesDocumentPdf } from '../../utils/pdf/salesDocumentPdf.js'
-import { consumeNextNcf, peekNextNcf } from '../../utils/ncfGenerator.js'
+import { createPdfMetadata, downloadSalesDocumentPdf } from '../../utils/pdf/salesDocumentPdf.js'
+import { consumeNextNcf, NCF_SEQUENCES_KEY, peekNextNcf } from '../../utils/ncfGenerator.js'
+import { openThermalTicket } from '../../utils/posThermalPrint.js'
 import './SalesPosPage.css'
 
 const PRODUCTS_KEY = 'inveFatInventoryProducts'
@@ -35,6 +36,17 @@ const SUSPENDED_KEY = 'invefat_pos_suspended_sales'
 const CASH_MOVEMENTS_KEY = 'invefat_cash_movements'
 
 const paymentMethods = ['Efectivo', 'Tarjeta', 'Transferencia', 'Credito', 'Mixto']
+const fiscalReceiptTypes = ['Credito fiscal', 'Consumidor final', 'Regimen especial', 'Gubernamental']
+
+const defaultFiscalReceipt = {
+  enabled: false,
+  receiptType: 'Credito fiscal',
+  fiscalId: '',
+  name: '',
+  phone: '',
+  address: '',
+  paymentCondition: 'Contado',
+}
 
 const defaultSettings = {
   company: {
@@ -275,6 +287,65 @@ function nextNcf(settings, invoices, receiptType) {
   return `${prefix}${String(Math.max(configuredNext, maxExisting + 1)).padStart(length, '0')}`
 }
 
+function sequenceMatches(sequence, receiptType) {
+  const cleanType = cleanText(receiptType)
+  return (
+    cleanText(sequence.type).includes(cleanType) ||
+    cleanText(sequence.prefix) === cleanType ||
+    cleanText(sequence.name).includes(cleanType)
+  )
+}
+
+function findConfiguredNcfSequence(receiptType) {
+  const sequences = readArray(NCF_SEQUENCES_KEY)
+  return sequences.find((sequence) => sequence.status !== 'Inactivo' && sequenceMatches(sequence, receiptType))
+}
+
+function previewConfiguredNcf(receiptType) {
+  const sequence = findConfiguredNcfSequence(receiptType)
+  if (!sequence) return { ncf: '', validUntil: '', sequence: null, error: 'No hay secuencia NCF configurada para este tipo de comprobante.' }
+
+  const next = Math.max(toNumber(sequence.nextNumber), toNumber(sequence.from) || 1)
+  if (toNumber(sequence.to) > 0 && next > toNumber(sequence.to)) {
+    return { ncf: '', validUntil: sequence.validUntil || '', sequence, error: 'La secuencia NCF seleccionada no tiene numeros disponibles.' }
+  }
+
+  return {
+    ncf: `${sequence.prefix}${String(next).padStart(8, '0')}`,
+    validUntil: sequence.validUntil || '',
+    sequence,
+    error: '',
+  }
+}
+
+function consumeConfiguredNcf(receiptType) {
+  const sequences = readArray(NCF_SEQUENCES_KEY)
+  const sequence = findConfiguredNcfSequence(receiptType)
+  if (!sequence) return { ncf: '', validUntil: '', error: 'No hay secuencia NCF configurada para este tipo de comprobante.' }
+
+  const next = Math.max(toNumber(sequence.nextNumber), toNumber(sequence.from) || 1)
+  if (toNumber(sequence.to) > 0 && next > toNumber(sequence.to)) {
+    return { ncf: '', validUntil: sequence.validUntil || '', error: 'La secuencia NCF seleccionada no tiene numeros disponibles.' }
+  }
+
+  const ncf = `${sequence.prefix}${String(next).padStart(8, '0')}`
+  const updated = sequences.map((item) => item.id === sequence.id ? { ...item, nextNumber: next + 1, updatedAt: new Date().toISOString() } : item)
+  writeStorage(NCF_SEQUENCES_KEY, updated)
+  return { ncf, validUntil: sequence.validUntil || '', error: '' }
+}
+
+function mergeFiscalCustomer(current, selectedCustomer) {
+  const isCash = selectedCustomer.code === cashCustomer.code
+  return {
+    ...current,
+    fiscalId: isCash ? current.fiscalId : selectedCustomer.fiscalId || current.fiscalId,
+    name: isCash ? current.name : selectedCustomer.name || current.name,
+    phone: isCash ? current.phone : selectedCustomer.phone || current.phone,
+    address: isCash ? current.address : selectedCustomer.address || current.address,
+    paymentCondition: selectedCustomer.paymentCondition || current.paymentCondition || 'Contado',
+  }
+}
+
 function lineBase(line) {
   return toNumber(line.quantity) * toNumber(line.price)
 }
@@ -380,6 +451,7 @@ export default function SalesPosPage({ controls, onAction, searchValue = '', onS
   const [customer, setCustomer] = useState(cashCustomer)
   const [lines, setLines] = useState([])
   const [payment, setPayment] = useState({ method: 'Efectivo', received: '', card: '', transfer: '', reference: '', bank: '' })
+  const [fiscalReceipt, setFiscalReceipt] = useState(defaultFiscalReceipt)
   const [message, setMessage] = useState('')
   const [completedInvoice, setCompletedInvoice] = useState(null)
   const [showSuspended, setShowSuspended] = useState(false)
@@ -395,6 +467,9 @@ export default function SalesPosPage({ controls, onAction, searchValue = '', onS
   const warehouse = defaultWarehouse(settings, branch.code)
   const totals = useMemo(() => calculateTotals(lines, payment), [lines, payment])
   const categories = useMemo(() => ['Todas', ...Array.from(new Set(products.map((product) => product.category).filter(Boolean))).sort()], [products])
+  const fiscalPreview = useMemo(() => (
+    fiscalReceipt.enabled ? previewConfiguredNcf(fiscalReceipt.receiptType) : { ncf: '', validUntil: '', error: '' }
+  ), [fiscalReceipt.enabled, fiscalReceipt.receiptType])
 
   const filteredProducts = useMemo(() => {
     const query = cleanText(`${searchValue || ''} ${productQuery}`.trim())
@@ -423,6 +498,7 @@ export default function SalesPosPage({ controls, onAction, searchValue = '', onS
     setCustomer(cashCustomer)
     setCustomerQuery('')
     setProductQuery('')
+    setFiscalReceipt(defaultFiscalReceipt)
     setCompletedInvoice(null)
   }
 
@@ -430,9 +506,17 @@ export default function SalesPosPage({ controls, onAction, searchValue = '', onS
     const nextCustomer = customers.find((item) => item.code === code) || cashCustomer
     setCustomer(nextCustomer)
     setCustomerQuery(`${nextCustomer.code} - ${nextCustomer.name}${nextCustomer.fiscalId ? ` - ${nextCustomer.fiscalId}` : ''}`)
+    setFiscalReceipt((current) => current.enabled ? mergeFiscalCustomer(current, nextCustomer) : current)
     if (nextCustomer.paymentCondition === 'Credito') {
       setPayment((current) => ({ ...current, method: 'Credito' }))
     }
+  }
+
+  const toggleFiscalReceipt = (enabled) => {
+    setFiscalReceipt((current) => {
+      if (!enabled) return { ...defaultFiscalReceipt, enabled: false }
+      return mergeFiscalCustomer({ ...current, enabled: true, receiptType: current.receiptType || 'Credito fiscal' }, customer)
+    })
   }
 
   const updateCustomerQuery = (value) => {
@@ -505,6 +589,12 @@ export default function SalesPosPage({ controls, onAction, searchValue = '', onS
 
     if (payment.method === 'Efectivo' && toNumber(payment.received) < totals.total) return 'El monto recibido no cubre el total.'
     if (payment.method === 'Mixto' && totals.paid < totals.total) return 'El pago mixto no cubre el total.'
+    if (fiscalReceipt.enabled) {
+      if (!String(fiscalReceipt.fiscalId).trim()) return 'El RNC del cliente es obligatorio para comprobante fiscal.'
+      if (!String(fiscalReceipt.name).trim()) return 'El nombre o razon social es obligatorio para comprobante fiscal.'
+      if (!String(fiscalReceipt.receiptType).trim()) return 'Seleccione el tipo de comprobante fiscal.'
+      if (!fiscalPreview.ncf) return fiscalPreview.error || 'No hay secuencia NCF configurada para este tipo de comprobante.'
+    }
 
     return ''
   }
@@ -591,11 +681,20 @@ export default function SalesPosPage({ controls, onAction, searchValue = '', onS
     }
 
     const freshInvoices = readArray(INVOICES_KEY)
-    const receiptType = customer.preferredReceiptType || settings.fiscal?.defaultReceiptType || 'Consumidor final'
-    let ncf = nextNcf(settings, freshInvoices, receiptType)
+    const isFiscalReceipt = Boolean(fiscalReceipt.enabled)
+    const receiptType = isFiscalReceipt ? fiscalReceipt.receiptType : 'Consumidor final'
+    let ncf = isFiscalReceipt ? '' : nextNcf(settings, freshInvoices, receiptType)
     let ncfValidUntil = settings.fiscal?.ncfValidUntil || ''
 
-    if (settings.fiscal?.useNcf) {
+    if (isFiscalReceipt) {
+      const consumed = consumeConfiguredNcf(receiptType)
+      if (!consumed.ncf) {
+        notify(consumed.error || 'No hay secuencia NCF configurada para este tipo de comprobante.')
+        return
+      }
+      ncf = consumed.ncf
+      ncfValidUntil = consumed.validUntil || ncfValidUntil
+    } else if (settings.fiscal?.useNcf) {
       const consumed = consumeNextNcf(receiptType)
       if (consumed.ncf) {
         ncf = consumed.ncf
@@ -604,34 +703,56 @@ export default function SalesPosPage({ controls, onAction, searchValue = '', onS
     }
 
     const invoiceTotals = calculateTotals(lines, payment)
+    const invoiceCustomer = isFiscalReceipt
+      ? {
+          code: customer.code === cashCustomer.code ? 'CLI-FISCAL-POS' : customer.code,
+          name: fiscalReceipt.name.trim(),
+          fiscalId: fiscalReceipt.fiscalId.trim(),
+          phone: fiscalReceipt.phone,
+          email: customer.email,
+          address: fiscalReceipt.address,
+          paymentCondition: fiscalReceipt.paymentCondition || customer.paymentCondition || 'Contado',
+          creditDays: customer.creditDays,
+        }
+      : customer
     const invoice = {
       id: makeId('invoice'),
       number: nextInvoiceNumber(settings, freshInvoices),
       date: todayDate(),
-      customerCode: customer.code,
-      customer: customer.name,
-      fiscalId: customer.fiscalId,
-      phone: customer.phone,
-      email: customer.email,
-      invoiceEmail: customer.email,
-      address: customer.address,
+      customerCode: invoiceCustomer.code,
+      customer: invoiceCustomer.name,
+      fiscalId: isFiscalReceipt ? invoiceCustomer.fiscalId : '',
+      phone: invoiceCustomer.phone,
+      email: invoiceCustomer.email,
+      invoiceEmail: invoiceCustomer.email,
+      address: invoiceCustomer.address,
       seller: session?.fullName || session?.username || 'Caja',
       branch: branch.code,
       warehouse,
-      paymentCondition: payment.method === 'Credito' ? 'Credito' : customer.paymentCondition || 'Contado',
+      paymentCondition: payment.method === 'Credito' ? 'Credito' : invoiceCustomer.paymentCondition || 'Contado',
       paymentMethod: payment.method,
       paymentDetail: collectPaymentSnapshot(),
       receiptType,
+      tipoComprobante: receiptType,
+      comprobanteFiscal: isFiscalReceipt,
       ncf,
       ncfValidUntil,
+      ncfValidoHasta: ncfValidUntil,
       dueDate: payment.method === 'Credito' ? todayDate() : todayDate(),
-      creditDays: payment.method === 'Credito' ? toNumber(customer.creditDays) : 0,
+      creditDays: payment.method === 'Credito' ? toNumber(invoiceCustomer.creditDays) : 0,
       state: payment.method === 'Credito' ? 'Pendiente' : 'Pagada',
       paidAmount: payment.method === 'Credito' ? 0 : invoiceTotals.paid,
       totals: invoiceTotals,
       lines,
       source: 'POS',
       inventoryApplied: true,
+      printFormat: ticketSettings().billing.printFormat,
+      thermalTicket: true,
+      thermalPrint: {
+        format: ticketSettings().billing.printFormat,
+        ready: true,
+        generatedAt: new Date().toISOString(),
+      },
       pdf: null,
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),
@@ -652,7 +773,9 @@ export default function SalesPosPage({ controls, onAction, searchValue = '', onS
     setCompletedInvoice(savedInvoice)
     setLines([])
     setPayment({ method: 'Efectivo', received: '', card: '', transfer: '', reference: '', bank: '' })
-    notify(`Venta POS completada: ${savedInvoice.number}.`)
+    setFiscalReceipt(defaultFiscalReceipt)
+    const ticketWindow = openThermalTicket(savedInvoice, ticketSettings(), { autoPrint: true })
+    notify(ticketWindow ? `Venta POS completada: ${savedInvoice.number}. Ticket termico listo.` : `Venta POS completada: ${savedInvoice.number}. Active ventanas emergentes para imprimir el ticket.`)
   }
 
   const ticketSettings = () => ({
@@ -665,12 +788,29 @@ export default function SalesPosPage({ controls, onAction, searchValue = '', onS
     },
   })
 
-  const printCompleted = async () => {
+  const printCompleted = () => {
     if (!completedInvoice) return
-    const pdfInfo = await printSalesDocumentPdf({ documentData: completedInvoice, settings: ticketSettings(), documentType: 'invoice' })
-    const nextInvoices = readArray(INVOICES_KEY).map((item) => item.number === completedInvoice.number ? { ...item, pdf: pdfInfo } : item)
+    const printedAt = new Date().toISOString()
+    const ticketWindow = openThermalTicket(completedInvoice, ticketSettings(), { autoPrint: true })
+    const nextInvoices = readArray(INVOICES_KEY).map((item) => item.number === completedInvoice.number ? {
+      ...item,
+      thermalPrint: {
+        ...(item.thermalPrint || {}),
+        lastPrintedAt: printedAt,
+        format: ticketSettings().billing.printFormat,
+      },
+    } : item)
     writeStorage(INVOICES_KEY, nextInvoices)
     setInvoices(nextInvoices)
+    setCompletedInvoice((current) => current ? {
+      ...current,
+      thermalPrint: {
+        ...(current.thermalPrint || {}),
+        lastPrintedAt: printedAt,
+        format: ticketSettings().billing.printFormat,
+      },
+    } : current)
+    if (!ticketWindow) notify('Active ventanas emergentes para reimprimir el ticket termico.')
   }
 
   const downloadCompleted = async () => {
@@ -689,6 +829,7 @@ export default function SalesPosPage({ controls, onAction, searchValue = '', onS
       customer,
       lines,
       payment,
+      fiscalReceipt,
       total: totals.total,
       user: session?.fullName || 'Caja',
     }
@@ -703,6 +844,7 @@ export default function SalesPosPage({ controls, onAction, searchValue = '', onS
     setCustomer(record.customer || cashCustomer)
     setLines(record.lines || [])
     setPayment(record.payment || { method: 'Efectivo', received: '', card: '', transfer: '', reference: '', bank: '' })
+    setFiscalReceipt(record.fiscalReceipt || defaultFiscalReceipt)
     const next = suspendedSales.filter((item) => item.id !== record.id)
     setSuspendedSales(next)
     writeStorage(SUSPENDED_KEY, next)
@@ -892,6 +1034,65 @@ export default function SalesPosPage({ controls, onAction, searchValue = '', onS
               <datalist id="pos-customers">
                 {filteredCustomers.map((item) => <option key={item.code} value={`${item.code} - ${item.name}`} />)}
               </datalist>
+            </div>
+
+            <div className="pos-fiscal-card">
+              <div className="pos-fiscal-header">
+                <div>
+                  <span>Comprobante fiscal</span>
+                  <strong>Factura con comprobante?</strong>
+                </div>
+                <div className="pos-fiscal-toggle" role="group" aria-label="Factura con comprobante fiscal">
+                  <button type="button" className={!fiscalReceipt.enabled ? 'is-active' : ''} onClick={() => toggleFiscalReceipt(false)} aria-pressed={!fiscalReceipt.enabled}>No</button>
+                  <button type="button" className={fiscalReceipt.enabled ? 'is-active' : ''} onClick={() => toggleFiscalReceipt(true)} aria-pressed={fiscalReceipt.enabled}>Si</button>
+                </div>
+              </div>
+
+              {!fiscalReceipt.enabled && (
+                <div className="pos-fiscal-note">
+                  Se emitira como consumidor final sin comprobante fiscal especial.
+                </div>
+              )}
+
+              {fiscalReceipt.enabled && (
+                <div className="pos-fiscal-grid">
+                  <label>
+                    RNC cliente
+                    <input value={fiscalReceipt.fiscalId} onChange={(event) => setFiscalReceipt((current) => ({ ...current, fiscalId: event.target.value }))} placeholder="RNC obligatorio" />
+                  </label>
+                  <label>
+                    Nombre / razon social
+                    <input value={fiscalReceipt.name} onChange={(event) => setFiscalReceipt((current) => ({ ...current, name: event.target.value }))} placeholder="Nombre fiscal" />
+                  </label>
+                  <label>
+                    Tipo de comprobante
+                    <select value={fiscalReceipt.receiptType} onChange={(event) => setFiscalReceipt((current) => ({ ...current, receiptType: event.target.value }))}>
+                      {fiscalReceiptTypes.map((type) => <option key={type} value={type}>{type}</option>)}
+                    </select>
+                  </label>
+                  <label>
+                    NCF generado
+                    <input readOnly value={fiscalPreview.ncf || 'Sin secuencia disponible'} />
+                  </label>
+                  <label>
+                    Valido hasta
+                    <input readOnly value={fiscalPreview.validUntil || 'No configurado'} />
+                  </label>
+                  <label>
+                    Condicion de pago
+                    <input value={fiscalReceipt.paymentCondition} onChange={(event) => setFiscalReceipt((current) => ({ ...current, paymentCondition: event.target.value }))} />
+                  </label>
+                  <label>
+                    Telefono
+                    <input value={fiscalReceipt.phone} onChange={(event) => setFiscalReceipt((current) => ({ ...current, phone: event.target.value }))} />
+                  </label>
+                  <label>
+                    Direccion
+                    <input value={fiscalReceipt.address} onChange={(event) => setFiscalReceipt((current) => ({ ...current, address: event.target.value }))} />
+                  </label>
+                  {fiscalPreview.error && <div className="pos-fiscal-warning">{fiscalPreview.error}</div>}
+                </div>
+              )}
             </div>
 
             <div className="pos-cart-list">

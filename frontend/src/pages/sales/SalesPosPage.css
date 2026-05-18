@@ -87,6 +87,7 @@
 .pos-cart-zone,
 .pos-search-card,
 .pos-customer-card,
+.pos-fiscal-card,
 .pos-cart-list,
 .pos-payment-panel,
 .pos-total-panel {
@@ -106,7 +107,7 @@
 
 .pos-cart-zone {
   display: grid;
-  grid-template-rows: auto minmax(220px, 1fr) auto auto;
+  grid-template-rows: auto auto minmax(220px, 1fr) auto auto;
   gap: 10px;
   padding: 12px;
   min-width: 0;
@@ -194,6 +195,8 @@
 .pos-category-select select:focus,
 .pos-customer-card input:focus,
 .pos-customer-card select:focus,
+.pos-fiscal-card input:focus,
+.pos-fiscal-card select:focus,
 .pos-payment-fields input:focus {
   border-color: #4e87bc;
   box-shadow: 0 0 0 3px rgba(78, 135, 188, 0.14);
@@ -422,6 +425,8 @@
 
 .pos-customer-card input,
 .pos-customer-card select,
+.pos-fiscal-card input,
+.pos-fiscal-card select,
 .pos-payment-fields input {
   width: 100%;
   min-height: 38px;
@@ -432,6 +437,103 @@
   padding: 7px 10px;
   font: inherit;
   outline: 0;
+}
+
+.pos-fiscal-card {
+  display: grid;
+  gap: 9px;
+  padding: 10px;
+  border-top: 4px solid #d9a15b;
+}
+
+.pos-fiscal-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.pos-fiscal-header > div:first-child {
+  min-width: 0;
+  display: grid;
+  gap: 2px;
+}
+
+.pos-fiscal-header span,
+.pos-fiscal-note,
+.pos-fiscal-card label {
+  color: #60758b;
+  font-size: 11px;
+  font-weight: 850;
+}
+
+.pos-fiscal-header strong {
+  color: #10243a;
+  font-size: 14px;
+  font-weight: 900;
+}
+
+.pos-fiscal-toggle {
+  display: inline-flex;
+  overflow: hidden;
+  flex: 0 0 auto;
+  border: 1px solid #d8e2ed;
+  border-radius: 999px;
+  background: #f8fbfe;
+  padding: 3px;
+}
+
+.pos-fiscal-toggle button {
+  min-width: 45px;
+  min-height: 30px;
+  border: 0;
+  border-radius: 999px;
+  background: transparent;
+  color: #52677d;
+  font: inherit;
+  font-size: 12px;
+  font-weight: 900;
+  cursor: pointer;
+}
+
+.pos-fiscal-toggle button.is-active {
+  background: var(--pos-blue);
+  color: #ffffff;
+}
+
+.pos-fiscal-note {
+  border-radius: 10px;
+  background: #f7f9fc;
+  padding: 9px 10px;
+}
+
+.pos-fiscal-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.pos-fiscal-card label {
+  display: grid;
+  gap: 5px;
+}
+
+.pos-fiscal-card input[readonly] {
+  background: #f4f7fb;
+  color: #18334e;
+  font-weight: 900;
+}
+
+.pos-fiscal-warning {
+  grid-column: 1 / -1;
+  border: 1px solid #ffd7bd;
+  border-left: 4px solid var(--pos-orange);
+  border-radius: 10px;
+  background: #fff7f0;
+  color: #9b4c12;
+  padding: 9px 10px;
+  font-size: 12px;
+  font-weight: 850;
 }
 
 .pos-cart-list {
@@ -738,6 +840,7 @@ body.theme-dark .pos-product-zone,
 body.theme-dark .pos-cart-zone,
 body.theme-dark .pos-search-card,
 body.theme-dark .pos-customer-card,
+body.theme-dark .pos-fiscal-card,
 body.theme-dark .pos-cart-list,
 body.theme-dark .pos-payment-panel,
 body.theme-dark .pos-total-panel,
@@ -754,6 +857,8 @@ body.theme-dark .pos-search-card input,
 body.theme-dark .pos-category-select select,
 body.theme-dark .pos-customer-card input,
 body.theme-dark .pos-customer-card select,
+body.theme-dark .pos-fiscal-card input,
+body.theme-dark .pos-fiscal-card select,
 body.theme-dark .pos-payment-fields input,
 body.theme-dark .pos-qty-controls input,
 body.theme-dark .pos-line-money input {
@@ -763,6 +868,7 @@ body.theme-dark .pos-line-money input {
 }
 
 body.theme-dark .pos-customer-card strong,
+body.theme-dark .pos-fiscal-header strong,
 body.theme-dark .pos-cart-line strong,
 body.theme-dark .pos-total-panel strong,
 body.theme-dark .pos-modal h2,
@@ -782,6 +888,8 @@ body.theme-dark .pos-product-image {
 
 body.theme-dark .pos-search-header button,
 body.theme-dark .pos-category-row button,
+body.theme-dark .pos-fiscal-toggle,
+body.theme-dark .pos-fiscal-note,
 body.theme-dark .pos-payment-methods button,
 body.theme-dark .pos-suspended-row button,
 body.theme-dark .pos-modal footer button {
@@ -832,6 +940,15 @@ body.theme-dark .pos-modal footer button {
   .pos-payment-methods,
   .pos-payment-fields {
     grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .pos-fiscal-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .pos-fiscal-header {
+    align-items: flex-start;
+    flex-direction: column;
   }
 
   .pos-total-panel .is-grand span,
