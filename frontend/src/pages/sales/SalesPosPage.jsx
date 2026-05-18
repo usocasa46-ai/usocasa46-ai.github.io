@@ -4,6 +4,7 @@ import {
   Download,
   Maximize2,
   Minus,
+  Package,
   Pause,
   Plus,
   Printer,
@@ -185,13 +186,15 @@ function normalizeProduct(product) {
     code: String(product.code || product.codigo || '').trim(),
     name: String(product.name || product.nombre || 'Producto sin nombre').trim(),
     description: String(product.description || product.descripcion || '').trim(),
-    category: String(product.category || product.categoria || 'General').trim(),
+    category: String(product.category || product.categoria || '').trim() || 'Sin asignar',
     unit: String(product.unit || product.unidad || 'UND').trim(),
     barcode: String(product.barcode || product.codigoBarra || '').trim(),
+    image: product.image || product.imageUrl || product.photo || product.productImage || product.imagen || product.logo || '',
     price: toNumber(product.price ?? product.precio),
     cost: toNumber(product.cost ?? product.costo),
     tax: rawTax === undefined || rawTax === null || rawTax === '' ? 0 : toNumber(rawTax),
     stock: toNumber(product.stock),
+    minStock: toNumber(product.minStock || product.stockMin || product.stockMinimo),
     supplierCode: String(product.supplierCode || product.providerCode || '').trim(),
     supplierName: String(product.supplierName || product.providerName || product.supplier || '').trim(),
     status: product.status || product.estado || 'Activo',
@@ -326,6 +329,15 @@ function makeLine(product) {
     discount: 0,
     taxRate: product.tax || 0,
   }
+}
+
+function productStockStatus(product) {
+  const stock = toNumber(product.stock)
+  const minStock = toNumber(product.minStock)
+
+  if (stock <= 0) return { label: 'Sin stock', className: 'is-out' }
+  if (minStock > 0 && stock <= minStock) return { label: 'Stock bajo', className: 'is-low' }
+  return { label: 'Disponible', className: 'is-ok' }
 }
 
 function buildReport(invoice, totals) {
@@ -717,6 +729,12 @@ export default function SalesPosPage({ controls, onAction, searchValue = '', onS
     }))
   }
 
+  const clearProductFilters = () => {
+    setProductQuery('')
+    setSelectedCategory('Todas')
+    onSearchChange?.('')
+  }
+
   const paymentInputs = (
     <div className="pos-payment-fields">
       {payment.method === 'Efectivo' && (
@@ -770,18 +788,53 @@ export default function SalesPosPage({ controls, onAction, searchValue = '', onS
       <section className={`sales-pos-page ${fullscreen ? 'is-pos-fullscreen' : ''}`}>
         {message && <div className="pos-message">{message}</div>}
 
+        <div className="pos-session-strip">
+          <article>
+            <span>Cajero</span>
+            <strong>{session?.fullName || session?.username || 'Caja'}</strong>
+          </article>
+          <article>
+            <span>Sucursal</span>
+            <strong>{branch.name || branch.code}</strong>
+          </article>
+          <article>
+            <span>Almacen</span>
+            <strong>{warehouse}</strong>
+          </article>
+          <article>
+            <span>Facturas POS</span>
+            <strong>{invoices.filter((item) => item.source === 'POS').length}</strong>
+          </article>
+        </div>
+
         <div className="pos-shell">
           <section className="pos-product-zone">
             <div className="pos-search-card">
-              <label>
-                <Search size={22} />
-                <input
-                  value={productQuery}
-                  onChange={(event) => updateProductQuery(event.target.value)}
-                  placeholder="Codigo, nombre o codigo de barra"
-                  autoComplete="off"
-                />
-              </label>
+              <div className="pos-search-header">
+                <div>
+                  <span>Productos</span>
+                  <strong>{filteredProducts.length} encontrados</strong>
+                </div>
+                <button type="button" onClick={clearProductFilters}>Limpiar filtros</button>
+              </div>
+
+              <div className="pos-search-grid">
+                <label className="pos-search-field">
+                  <Search size={20} />
+                  <input
+                    value={productQuery}
+                    onChange={(event) => updateProductQuery(event.target.value)}
+                    placeholder="Buscar por nombre, codigo, barra o categoria"
+                    autoComplete="off"
+                  />
+                </label>
+                <label className="pos-category-select">
+                  Categoria
+                  <select value={selectedCategory} onChange={(event) => setSelectedCategory(event.target.value)}>
+                    {categories.map((category) => <option key={category}>{category}</option>)}
+                  </select>
+                </label>
+              </div>
             </div>
 
             <div className="pos-category-row">
@@ -793,14 +846,32 @@ export default function SalesPosPage({ controls, onAction, searchValue = '', onS
             </div>
 
             <div className="pos-products-grid">
-              {filteredProducts.map((product) => (
-                <button type="button" key={product.code} className={toNumber(product.stock) <= 0 ? 'is-out' : ''} onClick={() => addProduct(product)}>
-                  <strong>{product.name}</strong>
-                  <span>{product.code}</span>
-                  <small>Stock {formatQuantity(product.stock)} | {currency(product.price, settings)}</small>
-                </button>
-              ))}
-              {filteredProducts.length === 0 && <div className="pos-empty-card">No hay productos disponibles con esa busqueda.</div>}
+              {filteredProducts.map((product) => {
+                const stockStatus = productStockStatus(product)
+                return (
+                  <button type="button" key={product.code} className={`pos-product-card ${stockStatus.className}`} onClick={() => addProduct(product)}>
+                    <div className="pos-product-image">
+                      {product.image ? <img src={product.image} alt={product.name} /> : <Package size={28} />}
+                    </div>
+                    <div className="pos-product-info">
+                      <strong>{product.name}</strong>
+                      <span>{product.code}</span>
+                    </div>
+                    <div className="pos-product-meta">
+                      <strong>{currency(product.price, settings)}</strong>
+                      <small>Stock {formatQuantity(product.stock)}</small>
+                    </div>
+                    <em className={`pos-stock-pill ${stockStatus.className}`}>{stockStatus.label}</em>
+                  </button>
+                )
+              })}
+              {filteredProducts.length === 0 && (
+                <div className="pos-empty-card">
+                  <Package size={30} />
+                  <strong>No hay productos encontrados.</strong>
+                  <span>Prueba con otro nombre, codigo, barra o categoria.</span>
+                </div>
+              )}
             </div>
           </section>
 
