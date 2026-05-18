@@ -9,6 +9,14 @@ export const erpModules = [
     pageId: 'dashboard',
   },
   {
+    id: 'system',
+    label: 'Sistema',
+    icon: 'Bell',
+    pages: [
+      { id: 'system-alerts', label: 'Alertas', keywords: ['alerta', 'stock bajo', 'orden sugerida'] },
+    ],
+  },
+  {
     id: 'sales',
     label: 'Ventas',
     icon: 'ReceiptText',
@@ -51,6 +59,8 @@ export const erpModules = [
       { id: 'inventory-stock', label: 'Stock por producto' },
       { id: 'inventory-kardex', label: 'Kardex / movimientos' },
       { id: 'inventory-adjustments', label: 'Ajustes de inventario' },
+      { id: 'inventory-rotation', label: 'Rotacion de inventario' },
+      { id: 'inventory-cycle-count', label: 'Conteo ciclico' },
       { id: 'inventory-count', label: 'Conteo fisico' },
       { id: 'inventory-lots', label: 'Lotes y series' },
       { id: 'inventory-barcodes', label: 'Codigos de barra / QR' },
@@ -178,6 +188,7 @@ export const erpModules = [
 ]
 
 export const quickAccessPages = [
+  { id: 'system-alerts', label: 'Alertas', moduleId: 'system' },
   { id: 'sales-invoice', label: 'Nueva factura', moduleId: 'sales' },
   { id: 'purchase-orders', label: 'Nueva orden de compra', moduleId: 'purchases' },
   { id: 'warehouse-receiving', label: 'Recepcion de mercancia', moduleId: 'warehouse' },

@@ -29,6 +29,8 @@ const SUPPLIERS_KEY = 'invefat_suppliers'
 const PAYMENTS_KEY = 'invefat_supplier_payments'
 const RECEIPTS_KEY = 'invefat_warehouse_receipts'
 const PENDING_RECEIPT_ORDER_KEY = 'invefat_pending_receipt_order'
+const PENDING_PURCHASE_ORDER_KEY = 'invefat_pending_purchase_order_from_alert'
+const PRODUCT_SUPPLIERS_KEY = 'invefat_product_suppliers'
 
 const DEFAULT_SUPPLIERS = [
   {
@@ -160,13 +162,49 @@ function readProducts() {
   return readArray(PRODUCTS_KEY).map((product) => ({
     code: String(product.code || '').trim(),
     name: String(product.name || '').trim(),
+    category: String(product.category || '').trim(),
     unit: String(product.unit || 'Unidad').trim(),
     barcode: String(product.barcode || '').trim(),
     cost: toNumber(product.cost),
     price: toNumber(product.price),
     stock: toNumber(product.stock),
+    minStock: toNumber(product.minStock),
+    maxStock: toNumber(product.maxStock),
+    supplierCode: String(product.supplierCode || product.providerCode || product.mainSupplierCode || '').trim(),
+    supplierName: String(product.supplierName || product.providerName || product.supplier || product.provider || '').trim(),
     status: product.status || 'Activo',
   }))
+}
+
+function productSuppliersMap() {
+  return readArray(PRODUCT_SUPPLIERS_KEY).reduce((map, record) => {
+    if (!record.productCode) return map
+    map[record.productCode] = [
+      record.supplierCode,
+      record.supplierName,
+      ...(record.suppliers || []).map((supplier) => supplier.code || supplier.name),
+    ].filter(Boolean)
+    return map
+  }, {})
+}
+
+function productBelongsToSupplier(product, supplierCode, supplierName, relationMap = productSuppliersMap()) {
+  if (!supplierCode && !supplierName) return false
+  const productSuppliers = [
+    product.supplierCode,
+    product.supplierName,
+    ...(relationMap[product.code] || []),
+  ].map((value) => cleanText(value)).filter(Boolean)
+  return productSuppliers.includes(cleanText(supplierCode)) || productSuppliers.includes(cleanText(supplierName))
+}
+
+function isLowStockProduct(product) {
+  return toNumber(product.minStock) > 0 && toNumber(product.stock) <= toNumber(product.minStock)
+}
+
+function getSuggestedQuantity(product) {
+  const target = toNumber(product.maxStock) > 0 ? toNumber(product.maxStock) : toNumber(product.minStock)
+  return Math.max(1, target - toNumber(product.stock))
 }
 
 function productOptions(products) {
@@ -635,6 +673,12 @@ function DocumentPage({
   const [mode, setMode] = useState('edit')
   const [message, setMessage] = useState('')
   const selected = records.find((record) => record.number === selectedNumber)
+  const isPurchaseOrderPage = storageKey === ORDERS_KEY
+  const supplierProductRows = useMemo(() => {
+    if (!isPurchaseOrderPage || !draft?.supplierCode) return []
+    const relationMap = productSuppliersMap()
+    return products.filter((product) => productBelongsToSupplier(product, draft.supplierCode, draft.supplier, relationMap))
+  }, [draft?.supplierCode, draft?.supplier, isPurchaseOrderPage, products])
 
   const saveRecords = (nextRecords) => {
     setRecords(nextRecords)
@@ -709,6 +753,42 @@ function DocumentPage({
     setDraft((current) => ({ ...current, lines: [...(current.lines || []), createBlankLine(products)] }))
   }
 
+  const addProductToOrder = (product, quantity = 1) => {
+    setDraft((current) => {
+      const existing = (current.lines || []).find((line) => line.productCode === product.code)
+      if (existing) {
+        return {
+          ...current,
+          lines: current.lines.map((line) => (
+            line.productCode === product.code
+              ? normalizeLine({ ...line, quantity: toNumber(line.quantity) + toNumber(quantity) }, products)
+              : line
+          )),
+        }
+      }
+
+      return {
+        ...current,
+        lines: [
+          ...(current.lines || []).filter((line) => line.productCode),
+          normalizeLine({
+            productCode: product.code,
+            productName: product.name,
+            unit: product.unit,
+            quantity,
+            cost: product.cost,
+            discount: 0,
+            tax: 0,
+          }, products),
+        ],
+      }
+    })
+  }
+
+  const addLowStockSupplierProducts = () => {
+    supplierProductRows.filter(isLowStockProduct).forEach((product) => addProductToOrder(product, getSuggestedQuantity(product)))
+  }
+
   const removeLine = (lineId) => {
     setDraft((current) => ({ ...current, lines: current.lines.filter((line) => line.id !== lineId) }))
   }
@@ -717,6 +797,46 @@ function DocumentPage({
     setMode('edit')
     setDraft(createDraft())
   }
+
+  useEffect(() => {
+    if (!isPurchaseOrderPage || !canUseStorage()) return
+
+    const raw = localStorage.getItem(PENDING_PURCHASE_ORDER_KEY)
+    if (!raw) return
+
+    localStorage.removeItem(PENDING_PURCHASE_ORDER_KEY)
+    try {
+      const payload = JSON.parse(raw)
+      const supplier = getSupplier(payload.supplierCode)
+      const base = createDraft()
+      const lines = (payload.lines || []).map((line) => normalizeLine({
+        productCode: line.productCode,
+        productName: line.productName,
+        unit: line.unit,
+        quantity: line.quantity || 1,
+        cost: line.cost,
+        discount: 0,
+        tax: 0,
+      }, products)).filter((line) => line.productCode)
+
+      setMode('edit')
+      setDraft({
+        ...base,
+        supplierCode: payload.supplierCode || '',
+        supplier: supplier.commercialName || payload.supplier || '',
+        fiscalId: supplier.fiscalId || '',
+        phone: supplier.phone || '',
+        address: supplier.address || '',
+        paymentCondition: supplier.paymentCondition || 'Contado',
+        status: 'Borrador',
+        observations: 'Orden sugerida desde alertas de stock bajo.',
+        lines,
+      })
+      setMessage('Orden sugerida desde alertas cargada como borrador.')
+    } catch {
+      setMessage('No se pudo cargar la orden sugerida desde alertas.')
+    }
+  }, [isPurchaseOrderPage])
 
   const openEdit = (record = selected) => {
     if (!record) return
@@ -834,6 +954,47 @@ function DocumentPage({
             <div className="purchase-form-grid">
               {fields.map((field) => <FieldControl key={field.name} field={{ ...field, readOnly: mode === 'view' || field.readOnly }} value={draft[field.name]} onChange={updateDraft} />)}
             </div>
+            {isPurchaseOrderPage && mode !== 'view' && (
+              <section className="purchase-supplier-products">
+                <div className="purchase-panel-heading">
+                  <div>
+                    <span>Proveedor</span>
+                    <h2>Productos asociados al proveedor</h2>
+                  </div>
+                  <button type="button" className="purchase-small-button" onClick={addLowStockSupplierProducts} disabled={!supplierProductRows.some(isLowStockProduct)}>
+                    Agregar stock bajo
+                  </button>
+                </div>
+                {!draft.supplierCode && <div className="purchase-empty-state">Seleccione un proveedor para ver productos asociados.</div>}
+                {draft.supplierCode && supplierProductRows.length === 0 && <div className="purchase-empty-state">Este proveedor no tiene productos asociados.</div>}
+                {supplierProductRows.length > 0 && (
+                  <div className="purchase-table-wrap">
+                    <table className="purchase-table is-wide">
+                      <thead><tr><th>Codigo</th><th>Producto</th><th>Categoria</th><th>Stock</th><th>Minimo</th><th>Maximo</th><th>Costo</th><th>Unidad</th><th>Estado stock</th><th>Accion</th></tr></thead>
+                      <tbody>
+                        {supplierProductRows.map((product) => {
+                          const lowStock = isLowStockProduct(product)
+                          return (
+                            <tr key={product.code} className={lowStock ? 'is-low-stock' : ''}>
+                              <td>{product.code}</td>
+                              <td><strong>{product.name}</strong><small>{product.supplierName || draft.supplier}</small></td>
+                              <td>{product.category || 'N/D'}</td>
+                              <td>{formatNumber(product.stock)}</td>
+                              <td>{formatNumber(product.minStock)}</td>
+                              <td>{formatNumber(product.maxStock)}</td>
+                              <td>{formatCurrency(product.cost)}</td>
+                              <td>{product.unit}</td>
+                              <td><StatusBadge value={lowStock ? 'Stock bajo' : 'Normal'} /></td>
+                              <td><button type="button" className="purchase-small-button" onClick={() => addProductToOrder(product, lowStock ? getSuggestedQuantity(product) : 1)}>Agregar</button></td>
+                            </tr>
+                          )
+                        })}
+                      </tbody>
+                    </table>
+                  </div>
+                )}
+              </section>
+            )}
             {lineMode !== 'none' && (
               <>
                 <h3 className="purchase-modal-section-title">Detalle de productos</h3>

@@ -1,0 +1,92 @@
+.cycle-modal-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 120;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+  background: rgba(15, 39, 66, 0.38);
+  backdrop-filter: blur(4px);
+}
+
+.cycle-modal {
+  width: min(1120px, 100%);
+  max-height: calc(100vh - 58px);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  border-radius: 12px;
+  background: #fff;
+  box-shadow: 0 26px 80px rgba(15, 39, 66, 0.28);
+}
+
+.cycle-modal header,
+.cycle-modal footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 10px 14px;
+  border-bottom: 1px solid #dce5ef;
+}
+
+.cycle-modal footer {
+  justify-content: flex-end;
+  border-top: 1px solid #dce5ef;
+  border-bottom: 0;
+}
+
+.cycle-modal header span {
+  color: #66788b;
+  font-size: 11px;
+  font-weight: 900;
+  text-transform: uppercase;
+}
+
+.cycle-modal header h2 {
+  margin: 2px 0 0;
+  color: #10243a;
+  font-size: 18px;
+}
+
+.cycle-modal header button,
+.cycle-modal footer button {
+  min-height: 32px;
+  border: 1px solid #d7e1ec;
+  border-radius: 8px;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: #fff;
+  color: #24435f;
+  cursor: pointer;
+  padding: 6px 10px;
+  font-weight: 800;
+}
+
+.cycle-modal footer .cycle-primary {
+  border-color: #f1872d;
+  background: #f1872d;
+  color: #fff;
+}
+
+.cycle-modal-body {
+  overflow: auto;
+  padding: 14px;
+}
+
+.cycle-refresh-lines {
+  margin: 12px 0;
+}
+
+@media (max-width: 720px) {
+  .cycle-modal-backdrop {
+    align-items: stretch;
+    padding: 12px;
+  }
+
+  .cycle-modal {
+    max-height: calc(100vh - 24px);
+  }
+}

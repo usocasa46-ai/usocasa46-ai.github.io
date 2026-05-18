@@ -187,6 +187,7 @@ export function getDefaultPermissions() {
   const billingPages = ['dashboard', 'sales-invoice', 'sales-customers', 'sales-history', 'sales-receivables', 'inventory-products', 'reports-sales', 'reports-customers']
   const inventoryPages = [
     'dashboard',
+    'system-alerts',
     'inventory-products',
     'inventory-categories',
     'inventory-brands',
@@ -195,6 +196,8 @@ export function getDefaultPermissions() {
     'inventory-stock',
     'inventory-kardex',
     'inventory-adjustments',
+    'inventory-rotation',
+    'inventory-cycle-count',
     'inventory-count',
     'inventory-lots',
     'inventory-barcodes',
@@ -219,6 +222,7 @@ export function getDefaultPermissions() {
   ]
   const purchasePages = [
     'dashboard',
+    'system-alerts',
     'purchase-requests',
     'purchase-quotes',
     'purchase-orders',
@@ -229,6 +233,7 @@ export function getDefaultPermissions() {
     'purchase-history',
     'reports-purchases',
     'inventory-products',
+    'inventory-rotation',
   ]
   const salesPages = ['dashboard', 'sales-invoice', 'sales-customers', 'sales-quotes', 'sales-customer-orders', 'sales-history', 'reports-sales']
 

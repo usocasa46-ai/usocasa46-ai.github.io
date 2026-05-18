@@ -2,10 +2,84 @@
   min-height: 100vh;
   display: grid;
   place-items: center;
-  padding: 32px;
+  padding: 58px 32px 32px;
   background:
     radial-gradient(circle at top left, rgba(249, 115, 22, 0.18), transparent 34%),
     linear-gradient(135deg, #061a22 0%, #0f3d4a 52%, #123f4d 100%);
+}
+
+.login-menu-bar {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 20;
+  min-height: 38px;
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.12);
+  background: rgba(6, 26, 34, 0.94);
+  box-shadow: 0 10px 24px rgba(2, 8, 23, 0.18);
+  padding: 0 14px;
+}
+
+.login-menu-item {
+  position: relative;
+}
+
+.login-menu-item > button {
+  min-height: 30px;
+  border: 0;
+  border-radius: 6px;
+  background: transparent;
+  color: rgba(255, 255, 255, 0.86);
+  cursor: pointer;
+  padding: 5px 10px;
+  font-size: 12px;
+  font-weight: 850;
+}
+
+.login-menu-item:hover > button,
+.login-menu-item:focus-within > button {
+  background: rgba(255, 255, 255, 0.10);
+  color: #ffffff;
+}
+
+.login-menu-dropdown {
+  position: absolute;
+  top: 34px;
+  left: 0;
+  min-width: 190px;
+  display: none;
+  border: 1px solid rgba(15, 61, 74, 0.14);
+  border-radius: 8px;
+  background: #ffffff;
+  box-shadow: 0 18px 44px rgba(2, 8, 23, 0.20);
+  padding: 5px;
+}
+
+.login-menu-item:hover .login-menu-dropdown,
+.login-menu-item:focus-within .login-menu-dropdown {
+  display: grid;
+}
+
+.login-menu-dropdown button {
+  min-height: 30px;
+  border: 0;
+  border-radius: 6px;
+  background: #ffffff;
+  color: #24435f;
+  cursor: pointer;
+  padding: 6px 9px;
+  text-align: left;
+  font-size: 12px;
+  font-weight: 800;
+}
+
+.login-menu-dropdown button:hover {
+  background: #f3f7fb;
+  color: #0f3d4a;
 }
 
 .login-shell {
@@ -221,7 +295,13 @@
 
 @media (max-width: 900px) {
   .login-screen {
-    padding: 18px;
+    padding: 78px 18px 18px;
+  }
+
+  .login-menu-bar {
+    overflow-x: auto;
+    align-items: stretch;
+    padding: 4px 8px;
   }
 
   .login-shell {

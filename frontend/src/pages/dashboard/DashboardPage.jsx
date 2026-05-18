@@ -1,5 +1,6 @@
 import { AlertTriangle, ArrowRight, PackageCheck, ReceiptText, ShoppingCart, TrendingUp } from 'lucide-react'
 import { quickAccessPages } from '../../config/modulesMap.js'
+import { buildLowStockGroups, getAlerts } from '../../utils/alertsEngine.js'
 import '../../components/AppWorkspace.css'
 
 const kpis = [
@@ -9,13 +10,15 @@ const kpis = [
   { label: 'Margen estimado', value: '28%', detail: 'resumen operativo', icon: TrendingUp },
 ]
 
-const alerts = [
-  '6 productos sin stock disponible.',
-  '2 ordenes de compra requieren aprobacion.',
-  '1 recepcion esta retenida por control de calidad.',
-]
-
 export default function DashboardPage({ session, onSelectPage }) {
+  const alerts = getAlerts().filter((alert) => alert.estado === 'pendiente').slice(0, 3)
+  const lowStockCount = buildLowStockGroups().reduce((sum, group) => sum + group.products.length, 0)
+  const dashboardKpis = kpis.map((kpi) => (
+    kpi.label === 'Productos criticos'
+      ? { ...kpi, value: String(lowStockCount), detail: 'stock bajo o agotado' }
+      : kpi
+  ))
+
   return (
     <section className="erp-dashboard-page">
       <header className="erp-dashboard-hero">
@@ -31,7 +34,7 @@ export default function DashboardPage({ session, onSelectPage }) {
       </header>
 
       <div className="erp-dashboard-kpis">
-        {kpis.map((kpi) => {
+        {dashboardKpis.map((kpi) => {
           const Icon = kpi.icon
           return (
             <article key={kpi.label}>
@@ -63,12 +66,22 @@ export default function DashboardPage({ session, onSelectPage }) {
           <h2>Alertas criticas</h2>
           <ul className="erp-alert-list">
             {alerts.map((alert) => (
-              <li key={alert}>
+              <li key={alert.id}>
                 <AlertTriangle size={16} />
-                <span>{alert}</span>
+                <span>{alert.titulo}</span>
               </li>
             ))}
+            {alerts.length === 0 && (
+              <li>
+                <AlertTriangle size={16} />
+                <span>No hay alertas pendientes.</span>
+              </li>
+            )}
           </ul>
+          <button type="button" className="erp-dashboard-link-button" onClick={() => onSelectPage('system-alerts')}>
+            Ver todas las alertas
+            <ArrowRight size={15} />
+          </button>
         </section>
 
         <section className="erp-panel erp-dashboard-summary">

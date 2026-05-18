@@ -182,6 +182,11 @@
   box-shadow: inset 3px 0 0 #6d9fca;
 }
 
+.purchase-table tbody tr.is-low-stock {
+  background: #fff3f3;
+  box-shadow: inset 3px 0 0 #efb5b5;
+}
+
 .purchase-table tr:last-child td {
   border-bottom: 0;
 }
@@ -487,6 +492,14 @@
   margin-top: 5px;
   color: #10243a;
   font-size: 18px;
+}
+
+.purchase-supplier-products {
+  margin-top: 14px;
+  border: 1px solid var(--purchase-border);
+  border-radius: 10px;
+  background: #f8fafc;
+  padding: 12px;
 }
 
 @media (max-width: 1180px) {

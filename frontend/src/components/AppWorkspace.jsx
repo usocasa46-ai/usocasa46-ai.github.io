@@ -2,17 +2,20 @@ import { useMemo, useRef, useState } from 'react'
 import AdvancedSidebar from './AdvancedSidebar.jsx'
 import TopActionBar from './TopActionBar.jsx'
 import { DEFAULT_PAGE_ID, erpModules, getModuleByPageId, getPageMeta } from '../config/modulesMap.js'
+import AlertsCenterPage from '../pages/alerts/AlertsCenterPage.jsx'
 import DashboardPage from '../pages/dashboard/DashboardPage.jsx'
 import InventoryAdjustmentsPage from '../pages/inventory/InventoryAdjustmentsPage.jsx'
 import InventoryBarcodesPage from '../pages/inventory/InventoryBarcodesPage.jsx'
 import InventoryBrandsPage from '../pages/inventory/InventoryBrandsPage.jsx'
 import InventoryCategoriesPage from '../pages/inventory/InventoryCategoriesPage.jsx'
 import InventoryCostsPage from '../pages/inventory/InventoryCostsPage.jsx'
+import InventoryCycleCountPage from '../pages/inventory/InventoryCycleCountPage.jsx'
 import InventoryKardexPage from '../pages/inventory/InventoryKardexPage.jsx'
 import InventoryLotsPage from '../pages/inventory/InventoryLotsPage.jsx'
 import InventoryPhysicalCountPage from '../pages/inventory/InventoryPhysicalCountPage.jsx'
 import InventoryPriceListsPage from '../pages/inventory/InventoryPriceListsPage.jsx'
 import InventoryProductsPage from '../pages/inventory/InventoryProductsPage.jsx'
+import InventoryRotationPage from '../pages/inventory/InventoryRotationPage.jsx'
 import InventoryStockPage from '../pages/inventory/InventoryStockPage.jsx'
 import InventoryUnitsPage from '../pages/inventory/InventoryUnitsPage.jsx'
 import AccountsPayablePage from '../pages/purchases/AccountsPayablePage.jsx'
@@ -50,6 +53,7 @@ import { getVisibleModules } from '../security/permissions.js'
 import './AppWorkspace.css'
 
 const pageComponents = {
+  'system-alerts': AlertsCenterPage,
   'sales-invoice': SalesInvoicePage,
   'sales-quotes': SalesQuotesPage,
   'sales-customers': SalesCustomersPage,
@@ -69,6 +73,8 @@ const pageComponents = {
   'inventory-stock': InventoryStockPage,
   'inventory-kardex': InventoryKardexPage,
   'inventory-adjustments': InventoryAdjustmentsPage,
+  'inventory-rotation': InventoryRotationPage,
+  'inventory-cycle-count': InventoryCycleCountPage,
   'inventory-count': InventoryPhysicalCountPage,
   'inventory-lots': InventoryLotsPage,
   'inventory-barcodes': InventoryBarcodesPage,

@@ -1,6 +1,16 @@
 import { useState } from 'react'
 import './LoginScreen.css'
 
+const loginMenu = [
+  { label: 'Archivo', options: ['Iniciar sesion', 'Salir'] },
+  { label: 'Editar', options: ['Limpiar formulario'] },
+  { label: 'Visualizar datos', options: ['Modo compacto', 'Refrescar'] },
+  { label: 'Modulos', options: ['Ventas', 'Compras', 'Inventario', 'Almacen', 'Reportes'] },
+  { label: 'Herramientas', options: ['Configuracion local', 'Exportar respaldo', 'Importar respaldo'] },
+  { label: 'Ventana', options: ['Pantalla completa'] },
+  { label: 'Ayuda', options: ['Acerca del sistema', 'Soporte'] },
+]
+
 export default function LoginScreen({ onLogin }) {
   const [formData, setFormData] = useState({
     username: '',
@@ -44,8 +54,39 @@ export default function LoginScreen({ onLogin }) {
     setError('')
   }
 
+  const handleMenuAction = (option) => {
+    if (option === 'Limpiar formulario') {
+      setFormData({ username: '', password: '', remember: true })
+      setError('')
+      return
+    }
+
+    if (option === 'Refrescar') {
+      window.location.reload()
+      return
+    }
+
+    if (option === 'Pantalla completa' && document.fullscreenEnabled) {
+      document.documentElement.requestFullscreen?.()
+    }
+  }
+
   return (
     <main className="login-screen">
+      <nav className="login-menu-bar" aria-label="Menu principal de login">
+        {loginMenu.map((menu) => (
+          <div className="login-menu-item" key={menu.label}>
+            <button type="button">{menu.label}</button>
+            <div className="login-menu-dropdown">
+              {menu.options.map((option) => (
+                <button type="button" key={option} onClick={() => handleMenuAction(option)}>
+                  {option}
+                </button>
+              ))}
+            </div>
+          </div>
+        ))}
+      </nav>
       <section className="login-shell">
         <div className="login-brand-panel">
           <div className="login-brand-mark">
