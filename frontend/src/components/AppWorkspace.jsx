@@ -15,7 +15,14 @@ import InventoryPriceListsPage from '../pages/inventory/InventoryPriceListsPage.
 import InventoryProductsPage from '../pages/inventory/InventoryProductsPage.jsx'
 import InventoryStockPage from '../pages/inventory/InventoryStockPage.jsx'
 import InventoryUnitsPage from '../pages/inventory/InventoryUnitsPage.jsx'
+import AccountsPayablePage from '../pages/purchases/AccountsPayablePage.jsx'
 import PurchaseOrdersPage from '../pages/purchases/PurchaseOrdersPage.jsx'
+import PurchaseHistoryPage from '../pages/purchases/PurchaseHistoryPage.jsx'
+import PurchaseRequestsPage from '../pages/purchases/PurchaseRequestsPage.jsx'
+import SupplierCreditNotesPage from '../pages/purchases/SupplierCreditNotesPage.jsx'
+import SupplierInvoicesPage from '../pages/purchases/SupplierInvoicesPage.jsx'
+import SupplierQuotesPage from '../pages/purchases/SupplierQuotesPage.jsx'
+import SuppliersPage from '../pages/purchases/SuppliersPage.jsx'
 import SalesCustomersPage from '../pages/sales/SalesCustomersPage.jsx'
 import SalesInvoicePage from '../pages/sales/SalesInvoicePage.jsx'
 import SalesQuotesPage from '../pages/sales/SalesQuotesPage.jsx'
@@ -46,7 +53,14 @@ const pageComponents = {
   'sales-invoice': SalesInvoicePage,
   'sales-quotes': SalesQuotesPage,
   'sales-customers': SalesCustomersPage,
+  'purchase-requests': PurchaseRequestsPage,
+  'purchase-quotes': SupplierQuotesPage,
   'purchase-orders': PurchaseOrdersPage,
+  'purchase-invoices': SupplierInvoicesPage,
+  'purchase-credit-notes': SupplierCreditNotesPage,
+  'purchase-suppliers': SuppliersPage,
+  'purchase-payables': AccountsPayablePage,
+  'purchase-history': PurchaseHistoryPage,
   'inventory-products': InventoryProductsPage,
   'inventory-categories': InventoryCategoriesPage,
   'inventory-brands': InventoryBrandsPage,

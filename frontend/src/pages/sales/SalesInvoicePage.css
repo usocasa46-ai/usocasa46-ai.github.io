@@ -315,23 +315,34 @@
   display: flex;
   align-items: center;
   flex-wrap: wrap;
-  gap: 6px;
+  gap: 5px;
+  min-width: 0;
 }
 
 .sales-row-actions button {
-  min-height: 30px;
+  width: 31px;
+  min-width: 31px;
+  height: 31px;
   border: 1px solid #d7e1ec;
   border-radius: 7px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
   background: #fff;
   color: #24435f;
   cursor: pointer;
-  padding: 5px 8px;
+  padding: 0;
   font-size: 12px;
   font-weight: 800;
 }
 
+.sales-row-actions button svg {
+  flex: 0 0 auto;
+}
+
 .sales-row-actions button:hover {
   background: #f2f6fb;
+  color: #10243a;
 }
 
 .sales-row-actions button.is-danger {

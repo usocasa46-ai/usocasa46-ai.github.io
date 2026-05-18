@@ -29,11 +29,11 @@ export const erpModules = [
     icon: 'ShoppingCart',
     pages: [
       { id: 'purchase-requests', label: 'Solicitudes de compra' },
-      { id: 'purchase-vendor-quotes', label: 'Cotizaciones proveedor' },
+      { id: 'purchase-quotes', label: 'Cotizaciones proveedor' },
       { id: 'purchase-orders', label: 'Ordenes de compra', keywords: ['orden', 'compra', 'proveedor'] },
       { id: 'purchase-invoices', label: 'Facturas de proveedor' },
       { id: 'purchase-credit-notes', label: 'Notas de credito proveedor' },
-      { id: 'purchase-vendors', label: 'Proveedores' },
+      { id: 'purchase-suppliers', label: 'Proveedores' },
       { id: 'purchase-payables', label: 'Cuentas por pagar' },
       { id: 'purchase-history', label: 'Historial de compras' },
     ],

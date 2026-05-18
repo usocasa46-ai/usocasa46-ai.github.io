@@ -1054,11 +1054,24 @@ export default function SalesInvoicePage({ controls, onAction, searchValue = '',
                     <td><span className={`sales-state-badge ${String(item.state || '').toLowerCase()}`}>{item.state}</span></td>
                     <td>
                       <div className="sales-row-actions">
-                        <button type="button" onClick={(event) => { event.stopPropagation(); setSelectedInvoiceNumber(item.number); showPreview(item) }}>Ver</button>
-                        <button type="button" onClick={(event) => { event.stopPropagation(); setSelectedInvoiceNumber(item.number); printInvoice(item) }}>Reimprimir</button>
-                        <button type="button" onClick={(event) => { event.stopPropagation(); setSelectedInvoiceNumber(item.number); downloadInvoicePdf(item) }}>Descargar PDF</button>
-                        <button type="button" onClick={(event) => { event.stopPropagation(); openInvoiceEditor(item) }}>Editar</button>
-                        <button type="button" className="is-danger" disabled={item.state === 'Anulada'} onClick={(event) => { event.stopPropagation(); setSelectedInvoiceNumber(item.number); cancelSelectedInvoice(item) }}>Anular</button>
+                        <button type="button" className="sales-icon-action" title="Ver factura" aria-label="Ver factura" onClick={(event) => { event.stopPropagation(); setSelectedInvoiceNumber(item.number); showPreview(item) }}>
+                          <Eye size={15} />
+                        </button>
+                        <button type="button" className="sales-icon-action" title="Reimprimir factura" aria-label="Reimprimir factura" onClick={(event) => { event.stopPropagation(); setSelectedInvoiceNumber(item.number); printInvoice(item) }}>
+                          <Printer size={15} />
+                        </button>
+                        <button type="button" className="sales-icon-action" title="Descargar PDF" aria-label="Descargar PDF" onClick={(event) => { event.stopPropagation(); setSelectedInvoiceNumber(item.number); downloadInvoicePdf(item) }}>
+                          <Download size={15} />
+                        </button>
+                        <button type="button" className="sales-icon-action" title="Enviar factura" aria-label="Enviar factura" onClick={(event) => { event.stopPropagation(); setSelectedInvoiceNumber(item.number); sendInvoice() }}>
+                          <Send size={15} />
+                        </button>
+                        <button type="button" className="sales-icon-action" title="Editar factura" aria-label="Editar factura" onClick={(event) => { event.stopPropagation(); openInvoiceEditor(item) }}>
+                          <Edit3 size={15} />
+                        </button>
+                        <button type="button" className="sales-icon-action is-danger" title="Anular factura" aria-label="Anular factura" disabled={item.state === 'Anulada'} onClick={(event) => { event.stopPropagation(); setSelectedInvoiceNumber(item.number); cancelSelectedInvoice(item) }}>
+                          <Ban size={15} />
+                        </button>
                       </div>
                     </td>
                   </tr>
