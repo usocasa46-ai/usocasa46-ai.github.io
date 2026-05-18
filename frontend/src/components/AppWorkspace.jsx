@@ -27,7 +27,18 @@ import SecurityRolesPage from '../pages/security/SecurityRolesPage.jsx'
 import SecuritySessionsPage from '../pages/security/SecuritySessionsPage.jsx'
 import SecurityUsersPage from '../pages/security/SecurityUsersPage.jsx'
 import SettingsGeneralPage from '../pages/settings/SettingsGeneralPage.jsx'
+import WarehouseDamagesPage from '../pages/warehouse/WarehouseDamagesPage.jsx'
+import WarehouseDispatchPage from '../pages/warehouse/WarehouseDispatchPage.jsx'
+import WarehouseListPage from '../pages/warehouse/WarehouseListPage.jsx'
+import WarehouseLocationsPage from '../pages/warehouse/WarehouseLocationsPage.jsx'
+import WarehousePickingPage from '../pages/warehouse/WarehousePickingPage.jsx'
+import WarehousePutawayPage from '../pages/warehouse/WarehousePutawayPage.jsx'
+import WarehouseQualityPage from '../pages/warehouse/WarehouseQualityPage.jsx'
+import WarehouseQuarantinePage from '../pages/warehouse/WarehouseQuarantinePage.jsx'
 import WarehouseReceivingPage from '../pages/warehouse/WarehouseReceivingPage.jsx'
+import WarehouseReturnsPage from '../pages/warehouse/WarehouseReturnsPage.jsx'
+import WarehouseRoutesPage from '../pages/warehouse/WarehouseRoutesPage.jsx'
+import WarehouseTransfersPage from '../pages/warehouse/WarehouseTransfersPage.jsx'
 import { getVisibleModules } from '../security/permissions.js'
 import './AppWorkspace.css'
 
@@ -48,7 +59,18 @@ const pageComponents = {
   'inventory-lots': InventoryLotsPage,
   'inventory-barcodes': InventoryBarcodesPage,
   'inventory-costs': InventoryCostsPage,
+  'warehouse-list': WarehouseListPage,
+  'warehouse-locations': WarehouseLocationsPage,
   'warehouse-receiving': WarehouseReceivingPage,
+  'warehouse-dispatch': WarehouseDispatchPage,
+  'warehouse-transfers': WarehouseTransfersPage,
+  'warehouse-picking': WarehousePickingPage,
+  'warehouse-putaway': WarehousePutawayPage,
+  'warehouse-returns': WarehouseReturnsPage,
+  'warehouse-damages': WarehouseDamagesPage,
+  'warehouse-quarantine': WarehouseQuarantinePage,
+  'warehouse-quality': WarehouseQualityPage,
+  'warehouse-routes': WarehouseRoutesPage,
   'security-users': SecurityUsersPage,
   'security-roles': SecurityRolesPage,
   'security-permissions': SecurityPermissionsPage,

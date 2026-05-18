@@ -201,7 +201,22 @@ export function getDefaultPermissions() {
     'inventory-costs',
     'reports-inventory',
   ]
-  const warehousePages = ['dashboard', 'warehouse-list', 'warehouse-locations', 'warehouse-receiving', 'warehouse-dispatch', 'warehouse-transfers', 'warehouse-picking', 'warehouse-putaway', 'reports-warehouse']
+  const warehousePages = [
+    'dashboard',
+    'warehouse-list',
+    'warehouse-locations',
+    'warehouse-receiving',
+    'warehouse-dispatch',
+    'warehouse-transfers',
+    'warehouse-picking',
+    'warehouse-putaway',
+    'warehouse-returns',
+    'warehouse-damages',
+    'warehouse-quarantine',
+    'warehouse-quality',
+    'warehouse-routes',
+    'reports-warehouse',
+  ]
   const purchasePages = ['dashboard', 'purchase-requests', 'purchase-orders', 'purchase-vendors', 'purchase-invoices', 'purchase-payables', 'reports-purchases', 'inventory-products']
   const salesPages = ['dashboard', 'sales-invoice', 'sales-customers', 'sales-quotes', 'sales-customer-orders', 'sales-history', 'reports-sales']
 

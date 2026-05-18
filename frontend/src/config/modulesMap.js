@@ -70,7 +70,7 @@ export const erpModules = [
       { id: 'warehouse-picking', label: 'Picking' },
       { id: 'warehouse-putaway', label: 'Putaway' },
       { id: 'warehouse-returns', label: 'Devoluciones al almacen' },
-      { id: 'warehouse-waste', label: 'Mermas y averias' },
+      { id: 'warehouse-damages', label: 'Mermas y averias' },
       { id: 'warehouse-quarantine', label: 'Cuarentena' },
       { id: 'warehouse-quality', label: 'Control de calidad' },
       { id: 'warehouse-routes', label: 'Rutas de despacho' },

@@ -1,0 +1,541 @@
+.warehouse-module-page {
+  --warehouse-blue: #0f2742;
+  --warehouse-orange: #f1872d;
+  --warehouse-border: #dce5ef;
+  --warehouse-soft: #f6f9fc;
+  display: grid;
+  gap: 12px;
+}
+
+.erp-module-page:has(.warehouse-module-page) {
+  gap: 10px;
+  margin-top: 12px;
+}
+
+.erp-module-page:has(.warehouse-module-page) .erp-page-toolbar {
+  align-items: flex-start;
+  justify-content: flex-start;
+  padding: 8px 10px;
+}
+
+.erp-module-page:has(.warehouse-module-page) .erp-status-strip {
+  display: none;
+}
+
+.erp-module-page:has(.warehouse-module-page) .erp-page-actions {
+  flex: 1;
+  justify-content: flex-start;
+  gap: 6px;
+}
+
+.erp-module-page:has(.warehouse-module-page) .erp-page-actions button {
+  min-height: 32px;
+  gap: 6px;
+  border-radius: 7px;
+  padding: 6px 9px;
+  font-size: 12px;
+}
+
+.warehouse-panel {
+  border: 1px solid var(--warehouse-border);
+  border-radius: 10px;
+  background: #fff;
+  padding: 12px;
+  box-shadow: 0 10px 26px rgba(15, 39, 66, 0.04);
+}
+
+.warehouse-filter-panel {
+  padding: 10px 12px;
+}
+
+.warehouse-panel-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 10px;
+}
+
+.warehouse-panel-heading span {
+  display: inline-flex;
+  min-height: 20px;
+  align-items: center;
+  border-radius: 999px;
+  background: #eaf1f8;
+  color: #24435f;
+  padding: 2px 8px;
+  font-size: 11px;
+  font-weight: 800;
+}
+
+.warehouse-panel-heading h2 {
+  margin: 4px 0 0;
+  color: #10243a;
+  font-size: 16px;
+  letter-spacing: 0;
+}
+
+.warehouse-filter-grid,
+.warehouse-form-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.warehouse-form-grid {
+  gap: 12px;
+}
+
+.warehouse-filter-grid label,
+.warehouse-form-grid label,
+.warehouse-inline-field {
+  display: grid;
+  gap: 5px;
+  color: #52677d;
+  font-size: 11px;
+  font-weight: 800;
+}
+
+.warehouse-filter-grid input,
+.warehouse-filter-grid select,
+.warehouse-form-grid input,
+.warehouse-form-grid select,
+.warehouse-form-grid textarea,
+.warehouse-inline-field input,
+.warehouse-inline-field select,
+.warehouse-inline-field textarea,
+.warehouse-line-input {
+  width: 100%;
+  min-height: 34px;
+  border: 1px solid #d7e1ec;
+  border-radius: 8px;
+  background: #fbfdff;
+  color: #172d43;
+  padding: 6px 9px;
+  font: inherit;
+  outline: 0;
+}
+
+.warehouse-form-grid textarea,
+.warehouse-inline-field textarea {
+  min-height: 82px;
+  resize: vertical;
+}
+
+.warehouse-filter-grid input:focus,
+.warehouse-filter-grid select:focus,
+.warehouse-form-grid input:focus,
+.warehouse-form-grid select:focus,
+.warehouse-form-grid textarea:focus,
+.warehouse-inline-field input:focus,
+.warehouse-inline-field select:focus,
+.warehouse-inline-field textarea:focus,
+.warehouse-line-input:focus {
+  border-color: #4e87bc;
+  box-shadow: 0 0 0 3px rgba(78, 135, 188, 0.12);
+}
+
+.warehouse-span-2 {
+  grid-column: span 2;
+}
+
+.warehouse-span-full {
+  grid-column: 1 / -1;
+}
+
+.warehouse-table-wrap {
+  overflow: auto;
+  border: 1px solid var(--warehouse-border);
+  border-radius: 10px;
+  background: #fff;
+}
+
+.warehouse-table {
+  width: 100%;
+  min-width: 860px;
+  border-collapse: collapse;
+}
+
+.warehouse-table.is-wide {
+  min-width: 1140px;
+}
+
+.warehouse-table th,
+.warehouse-table td {
+  padding: 10px 11px;
+  border-bottom: 1px solid #edf2f7;
+  text-align: left;
+  vertical-align: middle;
+  font-size: 13px;
+}
+
+.warehouse-table th {
+  background: #f5f8fb;
+  color: #52677d;
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0;
+}
+
+.warehouse-table tbody tr {
+  cursor: pointer;
+}
+
+.warehouse-table tbody tr:hover {
+  background: #f8fbfe;
+}
+
+.warehouse-table tbody tr.is-selected {
+  background: #eef6fd;
+  box-shadow: inset 3px 0 0 #6d9fca;
+}
+
+.warehouse-table tr:last-child td {
+  border-bottom: 0;
+}
+
+.warehouse-table td strong,
+.warehouse-table td small {
+  display: block;
+}
+
+.warehouse-table td strong {
+  color: #14283c;
+  font-size: 13px;
+}
+
+.warehouse-table td small {
+  margin-top: 3px;
+  color: #718397;
+  font-size: 12px;
+}
+
+.warehouse-table-actions {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.warehouse-table-actions button,
+.warehouse-small-button {
+  min-height: 30px;
+  border: 1px solid #d7e1ec;
+  border-radius: 8px;
+  background: #fff;
+  color: #24435f;
+  cursor: pointer;
+  padding: 6px 9px;
+  font-weight: 800;
+}
+
+.warehouse-table-actions button {
+  width: 31px;
+  padding: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.warehouse-table-actions button:hover,
+.warehouse-small-button:hover {
+  background: #f2f6fb;
+}
+
+.warehouse-table-actions button:disabled,
+.warehouse-small-button:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.warehouse-badge {
+  display: inline-flex;
+  min-height: 23px;
+  align-items: center;
+  justify-content: center;
+  border-radius: 999px;
+  background: #e8f0f8;
+  color: #254963;
+  padding: 3px 9px;
+  font-size: 12px;
+  font-weight: 800;
+}
+
+.warehouse-badge.is-success {
+  background: #e7f6ec;
+  color: #1c7d3b;
+}
+
+.warehouse-badge.is-warning {
+  background: #fff4df;
+  color: #a55a12;
+}
+
+.warehouse-badge.is-danger {
+  background: #fff0ef;
+  color: #a3332e;
+}
+
+.warehouse-badge.is-info {
+  background: #eaf3ff;
+  color: #1d5f9b;
+}
+
+.warehouse-empty-state {
+  padding: 24px;
+  color: #66788b;
+  line-height: 1.45;
+  text-align: center;
+}
+
+.warehouse-message {
+  border: 1px solid #cbe9d4;
+  border-left: 4px solid #1c9b4f;
+  border-radius: 10px;
+  background: #f1fbf4;
+  color: #176d39;
+  padding: 10px 13px;
+  font-weight: 800;
+}
+
+.warehouse-message.is-warning {
+  border-color: #f3dfc7;
+  border-left-color: var(--warehouse-orange);
+  background: #fffaf3;
+  color: #815015;
+}
+
+.warehouse-modal-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 120;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 40px 20px;
+  background: rgba(15, 39, 66, 0.34);
+  backdrop-filter: blur(3px);
+}
+
+.warehouse-modal {
+  width: min(900px, 100%);
+  max-height: calc(100vh - 80px);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  border: 1px solid rgba(220, 229, 239, 0.95);
+  border-radius: 14px;
+  background: #fff;
+  box-shadow: 0 28px 80px rgba(16, 36, 58, 0.28);
+}
+
+.warehouse-modal.is-wide {
+  width: min(1120px, 100%);
+}
+
+.warehouse-modal.is-maximized {
+  width: calc(100vw - 28px);
+  max-height: calc(100vh - 28px);
+  border-radius: 10px;
+}
+
+.warehouse-modal-header,
+.warehouse-modal-footer {
+  flex: 0 0 auto;
+  background: #fff;
+}
+
+.warehouse-modal-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  min-height: 52px;
+  padding: 9px 12px;
+  border-bottom: 1px solid var(--warehouse-border);
+}
+
+.warehouse-modal-header span {
+  display: inline-flex;
+  min-height: 19px;
+  align-items: center;
+  border-radius: 999px;
+  background: #eaf1f8;
+  color: #24435f;
+  padding: 2px 8px;
+  font-size: 11px;
+  font-weight: 800;
+}
+
+.warehouse-modal-header h2 {
+  margin: 4px 0 0;
+  color: #10243a;
+  font-size: 17px;
+  letter-spacing: 0;
+  line-height: 1.1;
+}
+
+.warehouse-modal-controls {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  flex-wrap: nowrap;
+  gap: 6px;
+}
+
+.warehouse-modal-controls button {
+  min-width: 30px;
+  height: 30px;
+  border: 1px solid #d7e1ec;
+  border-radius: 8px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: #f8fafc;
+  color: #24435f;
+  cursor: pointer;
+  padding: 0 8px;
+  font-size: 11px;
+  font-weight: 900;
+}
+
+.warehouse-modal-controls button:hover {
+  background: #eef4fa;
+}
+
+.warehouse-modal-controls button.is-exit {
+  border-color: #f2c6c3;
+  background: #fff6f5;
+  color: #a3332e;
+}
+
+.warehouse-minimized-modal {
+  position: fixed;
+  right: 24px;
+  bottom: 24px;
+  z-index: 130;
+  min-height: 42px;
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  border: 1px solid #cfdceb;
+  border-left: 4px solid var(--warehouse-orange);
+  border-radius: 10px;
+  background: #fff;
+  color: #24435f;
+  box-shadow: 0 18px 44px rgba(17, 42, 70, 0.16);
+  cursor: pointer;
+  padding: 9px 13px;
+  font-weight: 800;
+}
+
+.warehouse-minimized-modal span {
+  color: #63768a;
+  font-size: 12px;
+}
+
+.warehouse-modal-body {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-y: auto;
+  padding: 14px 16px;
+}
+
+.warehouse-modal-footer {
+  display: flex;
+  justify-content: flex-end;
+  flex-wrap: wrap;
+  gap: 10px;
+  padding: 10px 14px;
+  border-top: 1px solid var(--warehouse-border);
+  box-shadow: 0 -10px 22px rgba(16, 36, 58, 0.04);
+}
+
+.warehouse-modal-footer button {
+  min-height: 34px;
+  border: 1px solid #d7e1ec;
+  border-radius: 8px;
+  background: #fff;
+  color: #24435f;
+  cursor: pointer;
+  padding: 8px 13px;
+  font-weight: 800;
+}
+
+.warehouse-modal-footer button:hover {
+  background: #f2f6fb;
+}
+
+.warehouse-modal-footer .warehouse-primary-action {
+  border-color: var(--warehouse-orange);
+  background: var(--warehouse-orange);
+  color: #fff;
+}
+
+.warehouse-modal-section-title {
+  margin: 16px 0 10px;
+  color: #10243a;
+  font-size: 15px;
+  font-weight: 900;
+}
+
+.warehouse-summary-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.warehouse-summary-grid article {
+  border: 1px solid var(--warehouse-border);
+  border-radius: 10px;
+  background: #f8fafc;
+  padding: 12px;
+}
+
+.warehouse-summary-grid span {
+  display: block;
+  color: #66788b;
+  font-size: 12px;
+  font-weight: 800;
+}
+
+.warehouse-summary-grid strong {
+  display: block;
+  margin-top: 5px;
+  color: #10243a;
+  font-size: 18px;
+}
+
+@media (max-width: 1180px) {
+  .warehouse-filter-grid,
+  .warehouse-form-grid,
+  .warehouse-summary-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 720px) {
+  .warehouse-modal-backdrop {
+    align-items: stretch;
+    padding: 14px;
+  }
+
+  .warehouse-modal {
+    max-height: calc(100vh - 28px);
+  }
+
+  .warehouse-filter-grid,
+  .warehouse-form-grid,
+  .warehouse-summary-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .warehouse-span-2,
+  .warehouse-span-full {
+    grid-column: auto;
+  }
+
+  .warehouse-panel-heading {
+    flex-direction: column;
+    align-items: stretch;
+  }
+}
