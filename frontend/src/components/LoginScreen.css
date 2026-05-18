@@ -92,6 +92,19 @@
   background: rgba(255, 255, 255, 0.98);
 }
 
+.login-copyright {
+  position: fixed;
+  left: 50%;
+  bottom: 14px;
+  transform: translateX(-50%);
+  width: min(100% - 32px, 760px);
+  color: rgba(255, 255, 255, 0.74);
+  text-align: center;
+  font-size: 12px;
+  font-weight: 750;
+  letter-spacing: 0;
+}
+
 .login-brand-panel {
   min-height: 560px;
   display: flex;
@@ -295,7 +308,7 @@
 
 @media (max-width: 900px) {
   .login-screen {
-    padding: 78px 18px 18px;
+    padding: 78px 18px 46px;
   }
 
   .login-menu-bar {
@@ -315,5 +328,11 @@
 
   .login-card {
     padding: 30px;
+  }
+
+  .login-copyright {
+    position: static;
+    transform: none;
+    margin-top: 12px;
   }
 }

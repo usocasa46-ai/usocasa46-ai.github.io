@@ -27,8 +27,13 @@ import SupplierInvoicesPage from '../pages/purchases/SupplierInvoicesPage.jsx'
 import SupplierQuotesPage from '../pages/purchases/SupplierQuotesPage.jsx'
 import SuppliersPage from '../pages/purchases/SuppliersPage.jsx'
 import SalesCustomersPage from '../pages/sales/SalesCustomersPage.jsx'
+import SalesCreditNotesPage from '../pages/sales/SalesCreditNotesPage.jsx'
+import SalesHistoryPage from '../pages/sales/SalesHistoryPage.jsx'
 import SalesInvoicePage from '../pages/sales/SalesInvoicePage.jsx'
+import SalesOrdersPage from '../pages/sales/SalesOrdersPage.jsx'
 import SalesQuotesPage from '../pages/sales/SalesQuotesPage.jsx'
+import AccountsReceivablePage from '../pages/sales/AccountsReceivablePage.jsx'
+import SalesReturnsPage from '../pages/sales/SalesReturnsPage.jsx'
 import SecurityAuditPage from '../pages/security/SecurityAuditPage.jsx'
 import SecurityChangePasswordPage from '../pages/security/SecurityChangePasswordPage.jsx'
 import SecurityCompanyCredentialPage from '../pages/security/SecurityCompanyCredentialPage.jsx'
@@ -56,7 +61,12 @@ const pageComponents = {
   'system-alerts': AlertsCenterPage,
   'sales-invoice': SalesInvoicePage,
   'sales-quotes': SalesQuotesPage,
+  'sales-customer-orders': SalesOrdersPage,
   'sales-customers': SalesCustomersPage,
+  'sales-returns': SalesReturnsPage,
+  'sales-credit-notes': SalesCreditNotesPage,
+  'sales-receivables': AccountsReceivablePage,
+  'sales-history': SalesHistoryPage,
   'purchase-requests': PurchaseRequestsPage,
   'purchase-quotes': SupplierQuotesPage,
   'purchase-orders': PurchaseOrdersPage,
@@ -282,6 +292,7 @@ export default function AppWorkspace({
           onToggleSidebar={() => setSidebarCollapsed((current) => !current)}
           onCommand={runTopCommand}
           session={session}
+          onNavigate={selectPage}
           onOpenAdmin={(target) => {
             if (target === 'settings-general') {
               selectPage('settings-general')

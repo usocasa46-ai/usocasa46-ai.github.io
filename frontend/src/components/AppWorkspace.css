@@ -1415,3 +1415,191 @@
     padding-top: 16px;
   }
 }
+
+body.theme-light {
+  --app-bg: #eef3f8;
+  --panel-bg: #ffffff;
+  --panel-soft: #f8fafc;
+  --text-main: #10243a;
+  --text-muted: #66788b;
+  --border-color: #dce5ef;
+  --accent-color: #f1872d;
+  --sidebar-bg: #0f2742;
+  --topbar-bg: #ffffff;
+}
+
+body.theme-dark {
+  --app-bg: #081522;
+  --panel-bg: #101f2e;
+  --panel-soft: #14283a;
+  --text-main: #edf5ff;
+  --text-muted: #9eb0c2;
+  --border-color: rgba(171, 190, 210, 0.22);
+  --accent-color: #f2994a;
+  --sidebar-bg: #07111d;
+  --topbar-bg: #0d1b29;
+  background: var(--app-bg);
+  color: var(--text-main);
+}
+
+body.theme-dark .erp-workspace-shell,
+body.theme-dark .erp-main-shell {
+  background: var(--app-bg);
+  color: var(--text-main);
+}
+
+body.theme-dark .erp-sidebar {
+  background: var(--sidebar-bg);
+  border-right-color: rgba(255, 255, 255, 0.08);
+}
+
+body.theme-dark .erp-topbar,
+body.theme-dark .erp-top-menu-strip,
+body.theme-dark .erp-top-context {
+  background: var(--topbar-bg);
+  border-color: var(--border-color);
+}
+
+body.theme-dark .erp-top-menu-button,
+body.theme-dark .erp-top-command,
+body.theme-dark .erp-top-icon,
+body.theme-dark .erp-admin-profile,
+body.theme-dark .erp-page-actions button,
+body.theme-dark .erp-window-controls button,
+body.theme-dark .erp-dashboard-link-button,
+body.theme-dark .erp-table-actions button {
+  background: var(--panel-soft);
+  border-color: var(--border-color);
+  color: var(--text-main);
+}
+
+body.theme-dark .erp-top-menu-button:hover,
+body.theme-dark .erp-top-menu-button.is-open,
+body.theme-dark .erp-top-command:hover,
+body.theme-dark .erp-top-icon:hover,
+body.theme-dark .erp-admin-profile.is-open,
+body.theme-dark .erp-page-actions button:hover {
+  background: #1b344c;
+  color: #ffffff;
+}
+
+body.theme-dark .erp-top-dropdown,
+body.theme-dark .erp-admin-dropdown,
+body.theme-dark .notification-dropdown,
+body.theme-dark .erp-page-header,
+body.theme-dark .erp-page-toolbar,
+body.theme-dark .erp-panel,
+body.theme-dark .erp-safe-placeholder,
+body.theme-dark .erp-minimized-page,
+body.theme-dark .erp-dashboard-hero,
+body.theme-dark .erp-dashboard-kpis article,
+body.theme-dark .erp-status-strip article,
+body.theme-dark .sales-modal,
+body.theme-dark .customers-modal {
+  background: var(--panel-bg);
+  border-color: var(--border-color);
+  color: var(--text-main);
+  box-shadow: 0 18px 50px rgba(0, 0, 0, 0.28);
+}
+
+body.theme-dark .erp-top-dropdown button,
+body.theme-dark .erp-admin-dropdown button,
+body.theme-dark .erp-admin-card,
+body.theme-dark .notification-actions,
+body.theme-dark .notification-item,
+body.theme-dark .erp-page-search,
+body.theme-dark .erp-top-search,
+body.theme-dark .erp-table-wrap,
+body.theme-dark .erp-total-box,
+body.theme-dark .sales-table-wrap,
+body.theme-dark .sales-compact-search-panel,
+body.theme-dark .sales-list-panel,
+body.theme-dark .sales-modal-section,
+body.theme-dark .sales-totals-panel,
+body.theme-dark .sales-note-box,
+body.theme-dark .sales-client-summary article {
+  background: var(--panel-soft);
+  border-color: var(--border-color);
+  color: var(--text-main);
+}
+
+body.theme-dark .erp-page-title-group h1,
+body.theme-dark .erp-panel h2,
+body.theme-dark .erp-panel h3,
+body.theme-dark .erp-dashboard-hero h1,
+body.theme-dark .erp-dashboard-hero aside strong,
+body.theme-dark .erp-dashboard-kpis strong,
+body.theme-dark .erp-status-strip strong,
+body.theme-dark .erp-safe-placeholder h1,
+body.theme-dark .erp-placeholder-grid span,
+body.theme-dark .erp-admin-card strong,
+body.theme-dark .notification-dropdown header h3,
+body.theme-dark .notification-item-main strong,
+body.theme-dark .sales-panel-heading h2,
+body.theme-dark .sales-modal header h2,
+body.theme-dark .sales-table td strong {
+  color: var(--text-main);
+}
+
+body.theme-dark .erp-page-title-group p,
+body.theme-dark .erp-breadcrumb,
+body.theme-dark .erp-dashboard-hero p,
+body.theme-dark .erp-dashboard-kpis small,
+body.theme-dark .erp-dashboard-kpis em,
+body.theme-dark .erp-status-strip span,
+body.theme-dark .erp-status-strip small,
+body.theme-dark .erp-safe-placeholder p,
+body.theme-dark .erp-admin-card span,
+body.theme-dark .notification-item-main p,
+body.theme-dark .sales-table td,
+body.theme-dark .sales-table td small,
+body.theme-dark .sales-form-grid label,
+body.theme-dark .sales-operation-grid label {
+  color: var(--text-muted);
+}
+
+body.theme-dark input,
+body.theme-dark select,
+body.theme-dark textarea,
+body.theme-dark .erp-page-search input,
+body.theme-dark .erp-top-search input,
+body.theme-dark .sales-table td input,
+body.theme-dark .sales-operation-grid input,
+body.theme-dark .sales-operation-grid select,
+body.theme-dark .sales-operation-grid textarea,
+body.theme-dark .sales-operation-product-picker select {
+  background: #0c1a28;
+  border-color: var(--border-color);
+  color: var(--text-main);
+}
+
+body.theme-dark .erp-table th,
+body.theme-dark .sales-table th {
+  background: #0c1a28;
+  color: #bdd0e3;
+  border-color: var(--border-color);
+}
+
+body.theme-dark .erp-table td,
+body.theme-dark .sales-table td,
+body.theme-dark .erp-detail-row,
+body.theme-dark .sales-modal header,
+body.theme-dark .sales-modal footer,
+body.theme-dark .notification-dropdown header,
+body.theme-dark .notification-actions {
+  border-color: var(--border-color);
+}
+
+body.theme-dark .erp-table tbody tr:hover,
+body.theme-dark .sales-table tbody tr:hover {
+  background: #182d42;
+}
+
+body.theme-dark .erp-table tbody tr.is-selected,
+body.theme-dark .sales-table tbody tr.is-selected {
+  background: rgba(78, 135, 188, 0.22);
+}
+
+body.theme-dark .sales-modal-backdrop {
+  background: rgba(0, 0, 0, 0.55);
+}

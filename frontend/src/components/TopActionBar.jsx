@@ -2,14 +2,18 @@ import { useEffect, useState } from 'react'
 import {
   ChevronDown,
   FileText,
+  Moon,
   PanelLeftClose,
   PanelLeftOpen,
   Printer,
   Save,
   Search,
   Settings,
+  Sun,
   UserRound,
 } from 'lucide-react'
+import useTheme from '../hooks/useTheme.js'
+import NotificationBell from './NotificationBell.jsx'
 import './AppWorkspace.css'
 
 const menuGroups = [
@@ -72,11 +76,13 @@ export default function TopActionBar({
   onToggleSidebar,
   onCommand,
   session,
+  onNavigate,
   onOpenAdmin,
   onLogout,
 }) {
   const [openMenu, setOpenMenu] = useState(null)
   const [adminMenuOpen, setAdminMenuOpen] = useState(false)
+  const { isDark, toggleTheme } = useTheme()
 
   useEffect(() => {
     const closeMenus = (event) => {
@@ -179,6 +185,18 @@ export default function TopActionBar({
           <Settings size={16} />
           Config
         </button>
+
+        <button
+          type="button"
+          className="erp-top-icon erp-theme-toggle"
+          onClick={toggleTheme}
+          title={isDark ? 'Cambiar a modo claro' : 'Cambiar a modo oscuro'}
+          aria-label={isDark ? 'Cambiar a modo claro' : 'Cambiar a modo oscuro'}
+        >
+          {isDark ? <Sun size={17} /> : <Moon size={17} />}
+        </button>
+
+        <NotificationBell onNavigate={onNavigate} />
 
         <div className="erp-admin-menu-wrap">
           <button

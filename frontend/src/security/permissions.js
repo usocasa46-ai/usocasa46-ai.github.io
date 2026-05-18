@@ -184,7 +184,7 @@ export function getDefaultPermissions() {
       : ['view', 'create', 'edit', 'delete', 'void', 'approve', 'print', 'export']
   })
 
-  const billingPages = ['dashboard', 'sales-invoice', 'sales-customers', 'sales-history', 'sales-receivables', 'inventory-products', 'reports-sales', 'reports-customers']
+  const billingPages = ['dashboard', 'sales-invoice', 'sales-quotes', 'sales-customer-orders', 'sales-customers', 'sales-returns', 'sales-credit-notes', 'sales-history', 'sales-receivables', 'inventory-products', 'reports-sales', 'reports-customers']
   const inventoryPages = [
     'dashboard',
     'system-alerts',
@@ -235,7 +235,7 @@ export function getDefaultPermissions() {
     'inventory-products',
     'inventory-rotation',
   ]
-  const salesPages = ['dashboard', 'sales-invoice', 'sales-customers', 'sales-quotes', 'sales-customer-orders', 'sales-history', 'reports-sales']
+  const salesPages = ['dashboard', 'sales-invoice', 'sales-customers', 'sales-quotes', 'sales-customer-orders', 'sales-returns', 'sales-credit-notes', 'sales-receivables', 'sales-history', 'reports-sales']
 
   billingPages.forEach((pageId) => {
     permissions['ROLE-BILLING'][pageId] = pageId === 'inventory-products'

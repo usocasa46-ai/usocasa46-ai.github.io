@@ -1,0 +1,80 @@
+.erp-module-page,
+.sales-operation-modal {
+  --sales-border: #dce5ef;
+  --sales-orange: #f1872d;
+}
+
+.sales-operation-modal.is-wide {
+  width: min(1080px, calc(100vw - 48px));
+}
+
+.sales-operation-body {
+  display: grid;
+  gap: 14px;
+}
+
+.sales-operation-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.sales-operation-grid label {
+  display: grid;
+  gap: 6px;
+  color: #52677d;
+  font-size: 12px;
+  font-weight: 800;
+}
+
+.sales-operation-grid input,
+.sales-operation-grid select,
+.sales-operation-grid textarea,
+.sales-operation-product-picker select {
+  width: 100%;
+  min-height: 38px;
+  border: 1px solid var(--sales-border);
+  border-radius: 8px;
+  background: #fbfdff;
+  color: #172d43;
+  padding: 8px 10px;
+  font: inherit;
+  outline: 0;
+}
+
+.sales-operation-grid textarea {
+  min-height: 82px;
+  resize: vertical;
+}
+
+.sales-operation-product-picker {
+  grid-template-columns: minmax(0, 1fr) auto;
+}
+
+.sales-operation-product-picker .sales-span-2 {
+  grid-column: auto;
+}
+
+.sales-operation-modal .sales-modal-body {
+  padding: 14px;
+}
+
+.sales-operation-modal footer {
+  gap: 8px;
+}
+
+.sales-operation-modal footer .sales-primary-button {
+  min-height: 36px;
+}
+
+@media (max-width: 820px) {
+  .sales-operation-modal.is-wide,
+  .sales-operation-modal {
+    width: calc(100vw - 18px);
+  }
+
+  .sales-operation-grid,
+  .sales-operation-product-picker {
+    grid-template-columns: 1fr;
+  }
+}

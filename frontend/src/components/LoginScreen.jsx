@@ -12,6 +12,7 @@ const loginMenu = [
 ]
 
 export default function LoginScreen({ onLogin }) {
+  const currentYear = new Date().getFullYear()
   const [formData, setFormData] = useState({
     username: '',
     password: '',
@@ -159,6 +160,9 @@ export default function LoginScreen({ onLogin }) {
           </button>
         </form>
       </section>
+      <footer className="login-copyright">
+        © {currentYear} INVE-FAT SYSTEM. Todos los derechos reservados. v1.0
+      </footer>
     </main>
   )
 }
