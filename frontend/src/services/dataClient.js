@@ -1,5 +1,7 @@
 import { isSupabaseConfigured, supabaseRequest } from '../lib/supabaseClient.js'
 
+export { isSupabaseConfigured }
+
 export function safeParseStorage(key, fallback) {
   try {
     const saved = localStorage.getItem(key)
@@ -18,6 +20,27 @@ function getRecordId(record, idField) {
   return record?.[idField] || record?.id || record?.code || record?.number || record?.username || ''
 }
 
+function unwrapSupabaseRow(row) {
+  if (row && typeof row === 'object' && 'data' in row) {
+    return { id: row.id, ...(row.data || {}) }
+  }
+
+  return row
+}
+
+function wrapSupabaseRecord(record, idField = 'id') {
+  const id = getRecordId(record, idField)
+  if (!id) {
+    throw new Error('El registro necesita un id, codigo o numero para sincronizar con Supabase.')
+  }
+
+  return {
+    id: String(id),
+    data: record,
+    updated_at: new Date().toISOString(),
+  }
+}
+
 function localCollection(storageKey, fallback = []) {
   const current = safeParseStorage(storageKey, fallback)
   return Array.isArray(current) ? current : fallback
@@ -34,6 +57,71 @@ async function withSupabaseFallback(operation, fallback) {
   }
 }
 
+export async function getRecords(tableName, localStorageKey) {
+  return withSupabaseFallback(
+    async () => {
+      const rows = await supabaseRequest(`/${tableName}?select=*&order=updated_at.desc`)
+      return Array.isArray(rows) ? rows.map(unwrapSupabaseRow) : []
+    },
+    () => localCollection(localStorageKey, []),
+  )
+}
+
+export async function createRecord(tableName, localStorageKey, data) {
+  return withSupabaseFallback(
+    async () => {
+      const payload = wrapSupabaseRecord(data)
+      const rows = await supabaseRequest(`/${tableName}?on_conflict=id`, {
+        method: 'POST',
+        headers: { Prefer: 'resolution=merge-duplicates,return=representation' },
+        body: JSON.stringify(payload),
+      })
+      return Array.isArray(rows) ? unwrapSupabaseRow(rows[0]) : data
+    },
+    () => {
+      const current = localCollection(localStorageKey, [])
+      const recordId = getRecordId(data, 'id')
+      const next = current.some((item) => getRecordId(item, 'id') === recordId)
+        ? current.map((item) => (getRecordId(item, 'id') === recordId ? data : item))
+        : [data, ...current]
+      saveStorage(localStorageKey, next)
+      return data
+    },
+  )
+}
+
+export async function updateRecord(tableName, localStorageKey, id, data) {
+  return withSupabaseFallback(
+    async () => {
+      const existingRows = await supabaseRequest(`/${tableName}?id=eq.${encodeURIComponent(id)}`)
+      const current = Array.isArray(existingRows) && existingRows[0] ? unwrapSupabaseRow(existingRows[0]) : { id }
+      const next = { ...current, ...data }
+      const rows = await supabaseRequest(`/${tableName}?id=eq.${encodeURIComponent(id)}`, {
+        method: 'PATCH',
+        body: JSON.stringify({ data: next, updated_at: new Date().toISOString() }),
+      })
+      return Array.isArray(rows) ? unwrapSupabaseRow(rows[0]) : next
+    },
+    () => {
+      const current = localCollection(localStorageKey, [])
+      const next = current.map((item) => (getRecordId(item, 'id') === id ? { ...item, ...data } : item))
+      saveStorage(localStorageKey, next)
+      return next.find((item) => getRecordId(item, 'id') === id) || null
+    },
+  )
+}
+
+export async function deleteRecord(tableName, localStorageKey, id) {
+  return withSupabaseFallback(
+    () => supabaseRequest(`/${tableName}?id=eq.${encodeURIComponent(id)}`, { method: 'DELETE', prefer: 'return=minimal' }),
+    () => {
+      const next = localCollection(localStorageKey, []).filter((item) => getRecordId(item, 'id') !== id)
+      saveStorage(localStorageKey, next)
+      return true
+    },
+  )
+}
+
 export function createCollectionClient({ table, storageKey, idField = 'id', fallback = [] }) {
   const selectByIdPath = (id) => {
     const encoded = encodeURIComponent(id)
@@ -43,7 +131,10 @@ export function createCollectionClient({ table, storageKey, idField = 'id', fall
   return {
     async getAll() {
       return withSupabaseFallback(
-        () => supabaseRequest(`/${table}?select=*`),
+        async () => {
+          const rows = await supabaseRequest(`/${table}?select=*&order=updated_at.desc`)
+          return Array.isArray(rows) ? rows.map(unwrapSupabaseRow) : []
+        },
         () => localCollection(storageKey, fallback),
       )
     },
@@ -51,8 +142,8 @@ export function createCollectionClient({ table, storageKey, idField = 'id', fall
     async getById(id) {
       return withSupabaseFallback(
         async () => {
-          const rows = await supabaseRequest(selectByIdPath(id))
-          return Array.isArray(rows) ? rows[0] || null : null
+          const rows = await supabaseRequest(`/${table}?id=eq.${encodeURIComponent(id)}`)
+          return Array.isArray(rows) ? unwrapSupabaseRow(rows[0]) || null : null
         },
         () => localCollection(storageKey, fallback).find((record) => getRecordId(record, idField) === id) || null,
       )
@@ -61,11 +152,12 @@ export function createCollectionClient({ table, storageKey, idField = 'id', fall
     async create(record) {
       return withSupabaseFallback(
         async () => {
-          const rows = await supabaseRequest(`/${table}`, {
+          const rows = await supabaseRequest(`/${table}?on_conflict=id`, {
             method: 'POST',
-            body: JSON.stringify(record),
+            headers: { Prefer: 'resolution=merge-duplicates,return=representation' },
+            body: JSON.stringify(wrapSupabaseRecord(record, idField)),
           })
-          return Array.isArray(rows) ? rows[0] || record : rows || record
+          return Array.isArray(rows) ? unwrapSupabaseRow(rows[0]) || record : record
         },
         () => {
           const current = localCollection(storageKey, fallback)
@@ -82,11 +174,14 @@ export function createCollectionClient({ table, storageKey, idField = 'id', fall
     async update(id, patch) {
       return withSupabaseFallback(
         async () => {
-          const rows = await supabaseRequest(selectByIdPath(id), {
+          const existingRows = await supabaseRequest(`/${table}?id=eq.${encodeURIComponent(id)}`)
+          const current = Array.isArray(existingRows) && existingRows[0] ? unwrapSupabaseRow(existingRows[0]) : { [idField]: id }
+          const next = { ...current, ...patch }
+          const rows = await supabaseRequest(`/${table}?id=eq.${encodeURIComponent(id)}`, {
             method: 'PATCH',
-            body: JSON.stringify(patch),
+            body: JSON.stringify({ data: next, updated_at: new Date().toISOString() }),
           })
-          return Array.isArray(rows) ? rows[0] || patch : rows || patch
+          return Array.isArray(rows) ? unwrapSupabaseRow(rows[0]) || next : next
         },
         () => {
           const current = localCollection(storageKey, fallback)
@@ -101,7 +196,7 @@ export function createCollectionClient({ table, storageKey, idField = 'id', fall
 
     async remove(id) {
       return withSupabaseFallback(
-        () => supabaseRequest(selectByIdPath(id), { method: 'DELETE', prefer: 'return=minimal' }),
+        () => supabaseRequest(`/${table}?id=eq.${encodeURIComponent(id)}`, { method: 'DELETE', prefer: 'return=minimal' }),
         () => {
           const next = localCollection(storageKey, fallback).filter((item) => getRecordId(item, idField) !== id)
           saveStorage(storageKey, next)
@@ -121,10 +216,10 @@ export function createCollectionClient({ table, storageKey, idField = 'id', fall
       if (!isSupabaseConfigured()) return list
 
       try {
-        await supabaseRequest(`/${table}`, {
+        await supabaseRequest(`/${table}?on_conflict=id`, {
           method: 'POST',
           headers: { Prefer: 'resolution=merge-duplicates,return=minimal' },
-          body: JSON.stringify(list),
+          body: JSON.stringify(list.map((record) => wrapSupabaseRecord(record, idField))),
         })
       } catch (error) {
         console.warn('No se pudo sincronizar con Supabase:', error.message)
@@ -162,7 +257,7 @@ export function createDocumentClient({ table, storageKey, id = 'general', fallba
       if (!isSupabaseConfigured()) return data
 
       try {
-        await supabaseRequest(`/${table}`, {
+        await supabaseRequest(`/${table}?on_conflict=id`, {
           method: 'POST',
           headers: { Prefer: 'resolution=merge-duplicates,return=minimal' },
           body: JSON.stringify({ id, data, updated_at: new Date().toISOString() }),

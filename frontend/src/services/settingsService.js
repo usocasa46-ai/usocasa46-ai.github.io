@@ -1,7 +1,7 @@
 import { createDocumentClient } from './dataClient.js'
 
 const client = createDocumentClient({
-  table: 'app_settings',
+  table: 'settings',
   storageKey: 'invefat_company_settings',
   id: 'company_settings',
   fallback: {},

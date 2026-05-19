@@ -1,7 +1,7 @@
 import { createCollectionClient } from './dataClient.js'
 
 const client = createCollectionClient({
-  table: 'sales_invoices',
+  table: 'invoices',
   storageKey: 'invefat_sales_invoices',
   idField: 'number',
   fallback: [],
