@@ -11,7 +11,7 @@ const loginMenu = [
   { label: 'Ayuda', options: ['Acerca del sistema', 'Soporte'] },
 ]
 
-export default function LoginScreen({ onLogin }) {
+export default function LoginScreen({ onLogin, notice = '' }) {
   const currentYear = new Date().getFullYear()
   const [formData, setFormData] = useState({
     username: '',
@@ -113,9 +113,9 @@ export default function LoginScreen({ onLogin }) {
             <p>Ingresa tus credenciales para acceder al sistema.</p>
           </div>
 
-          {error && (
+          {(notice || error) && (
             <div className="login-error">
-              {error}
+              {error || notice}
             </div>
           )}
 

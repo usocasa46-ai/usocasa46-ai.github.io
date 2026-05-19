@@ -1,6 +1,13 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import AppWorkspace from './AppWorkspace.jsx'
 import LoginScreen from './LoginScreen.jsx'
+import {
+  clearSession,
+  loadSession,
+  logoutByInactivity,
+  saveSession,
+  startInactivityTimer,
+} from '../security/sessionManager.js'
 
 const AUTH_VERSION = 2
 
@@ -43,11 +50,10 @@ function loadUsers() {
 
 function loadValidSession() {
   try {
-    const savedSession = localStorage.getItem('inveFatSession')
-    const parsedSession = savedSession ? JSON.parse(savedSession) : null
+    const parsedSession = loadSession()
 
     if (!parsedSession || parsedSession.authVersion !== AUTH_VERSION) {
-      localStorage.removeItem('inveFatSession')
+      clearSession()
       return null
     }
 
@@ -55,13 +61,13 @@ function loadValidSession() {
     const existingUser = users.find((user) => user.username === parsedSession.username && user.active)
 
     if (!existingUser) {
-      localStorage.removeItem('inveFatSession')
+      clearSession()
       return null
     }
 
     return parsedSession
   } catch {
-    localStorage.removeItem('inveFatSession')
+    clearSession()
     return null
   }
 }
@@ -69,13 +75,22 @@ function loadValidSession() {
 export default function AuthGate() {
   const [users, setUsers] = useState(() => loadUsers())
   const [session, setSession] = useState(() => loadValidSession())
+  const [loginNotice, setLoginNotice] = useState('')
+
+  useEffect(() => {
+    if (!session) return undefined
+
+    return startInactivityTimer(() => {
+      logoutByInactivity((reason) => handleLogout(reason))
+    })
+  }, [session])
 
   const persistUsers = (nextUsers) => {
     setUsers(nextUsers)
     saveUsers(nextUsers)
   }
 
-  const handleLogin = ({ username, password, remember }) => {
+  const handleLogin = ({ username, password }) => {
     const foundUser = users.find((user) => {
       return (
         user.username.toLowerCase() === username.toLowerCase() &&
@@ -100,18 +115,15 @@ export default function AuthGate() {
       loginAt: new Date().toISOString(),
     }
 
-    if (remember) {
-      localStorage.setItem('inveFatSession', JSON.stringify(nextSession))
-    } else {
-      localStorage.removeItem('inveFatSession')
-    }
-
+    saveSession(nextSession)
+    setLoginNotice('')
     setSession(nextSession)
     return { ok: true }
   }
 
-  const handleLogout = () => {
-    localStorage.removeItem('inveFatSession')
+  const handleLogout = (reason) => {
+    clearSession()
+    setLoginNotice(reason === 'inactivity' ? 'Sesion cerrada por inactividad' : '')
     setSession(null)
   }
 
@@ -190,7 +202,7 @@ export default function AuthGate() {
   }
 
   if (!session) {
-    return <LoginScreen onLogin={handleLogin} />
+    return <LoginScreen onLogin={handleLogin} notice={loginNotice} />
   }
 
   return (

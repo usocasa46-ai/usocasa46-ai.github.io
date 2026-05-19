@@ -1,4 +1,4 @@
-import { useMemo, useRef, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import AdvancedSidebar from './AdvancedSidebar.jsx'
 import TopActionBar from './TopActionBar.jsx'
 import { DEFAULT_PAGE_ID, erpModules, getModuleByPageId, getPageMeta } from '../config/modulesMap.js'
@@ -83,6 +83,7 @@ import WarehouseReturnsPage from '../pages/warehouse/WarehouseReturnsPage.jsx'
 import WarehouseRoutesPage from '../pages/warehouse/WarehouseRoutesPage.jsx'
 import WarehouseTransfersPage from '../pages/warehouse/WarehouseTransfersPage.jsx'
 import { getVisibleModules } from '../security/permissions.js'
+import { resetInactivityTimer, restoreLastActivePage, saveLastActivePage } from '../security/sessionManager.js'
 import './AppWorkspace.css'
 
 const pageComponents = {
@@ -174,7 +175,7 @@ export default function AppWorkspace({
   onDeleteUser,
   onReplaceUsers,
 }) {
-  const [currentPageId, setCurrentPageId] = useState(DEFAULT_PAGE_ID)
+  const [currentPageId, setCurrentPageId] = useState(() => getPageMeta(restoreLastActivePage(DEFAULT_PAGE_ID)).id)
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false)
   const [expandedModules, setExpandedModules] = useState([])
   const [pageWindowState, setPageWindowState] = useState('normal')
@@ -186,9 +187,14 @@ export default function AppWorkspace({
   const currentModule = useMemo(() => getModuleByPageId(currentPageId), [currentPageId])
   const visibleModules = useMemo(() => getVisibleModules(erpModules, session), [session])
 
+  useEffect(() => {
+    saveLastActivePage(currentPageId)
+  }, [currentPageId])
+
   const selectPage = (pageId) => {
     const meta = getPageMeta(pageId)
 
+    resetInactivityTimer()
     setCurrentPageId(meta.id)
     setPageWindowState('normal')
     setExpandedModules([])
@@ -205,6 +211,7 @@ export default function AppWorkspace({
   }
 
   const closePage = () => {
+    resetInactivityTimer()
     setCurrentPageId(DEFAULT_PAGE_ID)
     setPageWindowState('normal')
     setExpandedModules([])
