@@ -28,6 +28,7 @@ const emptyRecord = {
 
 const RNC_CSV_HEADER = 'RNC,RAZÓN SOCIAL,ACTIVIDAD ECONÓMICA,FECHA DE INICIO OPERACIONES,ESTADO,RÉGIMEN DE PAGO'
 const RNC_CSV_HEADER_COMPAT = 'RNC,RAZON SOCIAL,ACTIVIDAD ECONOMICA,FECHA DE INICIO OPERACIONES,ESTADO,REGIMEN DE PAGO'
+const RNC_CSV_EXAMPLE = '00300755329,"VIRGINIA SOLEDAD PIMENTEL RAMIREZ","EMPLEADOS (ASALARIADOS)","","SUSPENDIDO","NORMAL"'
 
 function downloadCsv(filename, content) {
   if (typeof document === 'undefined') return
@@ -93,7 +94,7 @@ export default function RncRegistryPage({ controls, onAction, searchValue = '', 
   const [updateDuplicates, setUpdateDuplicates] = useState(true)
   const [clearBeforeImport, setClearBeforeImport] = useState(false)
   const [selectedFile, setSelectedFile] = useState(null)
-  const [progress, setProgress] = useState({ processed: 0, valid: 0, errors: 0, skipped: 0, percent: 0, errorRows: [] })
+  const [progress, setProgress] = useState({ processed: 0, imported: 0, updated: 0, valid: 0, errors: 0, skipped: 0, percent: 0, errorRows: [] })
   const [message, setMessage] = useState('')
   const abortRef = useRef(null)
   const pageSize = 50
@@ -202,7 +203,7 @@ export default function RncRegistryPage({ controls, onAction, searchValue = '', 
       return
     }
     abortRef.current = new AbortController()
-    setProgress({ processed: 0, valid: 0, errors: 0, skipped: 0, percent: 0, errorRows: [] })
+    setProgress({ processed: 0, imported: 0, updated: 0, valid: 0, errors: 0, skipped: 0, percent: 0, errorRows: [] })
     try {
       const result = await rncService.importCsv(selectedFile, {
         updateDuplicates,
@@ -210,7 +211,7 @@ export default function RncRegistryPage({ controls, onAction, searchValue = '', 
         signal: abortRef.current.signal,
         onProgress: setProgress,
       })
-      notify(`Carga finalizada: ${result.valid} validos, ${result.errors} con error.`)
+      notify(`Carga finalizada: ${result.imported} importados, ${result.updated} actualizados, ${result.errors} con error.`)
       await loadStats()
       await loadRows(1)
     } catch (error) {
@@ -337,6 +338,8 @@ export default function RncRegistryPage({ controls, onAction, searchValue = '', 
               <p>Encabezado esperado:</p>
               <code>{RNC_CSV_HEADER}</code>
               <code>{RNC_CSV_HEADER_COMPAT}</code>
+              <p>Ejemplo de fila valida:</p>
+              <code>{RNC_CSV_EXAMPLE}</code>
               <label className="rnc-check"><input type="checkbox" checked={updateDuplicates} onChange={(event) => setUpdateDuplicates(event.target.checked)} /> Actualizar duplicados</label>
               <label className="rnc-check"><input type="checkbox" checked={clearBeforeImport} onChange={(event) => setClearBeforeImport(event.target.checked)} /> Limpiar base antes de importar</label>
               <div className="rnc-progress">
@@ -345,7 +348,8 @@ export default function RncRegistryPage({ controls, onAction, searchValue = '', 
               </div>
               <div className="rnc-import-summary">
                 <article><span>Procesadas</span><strong>{progress.processed}</strong></article>
-                <article><span>Validas</span><strong>{progress.valid}</strong></article>
+                <article><span>Importadas</span><strong>{progress.imported}</strong></article>
+                <article><span>Actualizadas</span><strong>{progress.updated}</strong></article>
                 <article><span>Errores</span><strong>{progress.errors}</strong></article>
                 <article><span>Omitidas</span><strong>{progress.skipped}</strong></article>
               </div>

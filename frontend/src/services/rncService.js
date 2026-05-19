@@ -359,7 +359,16 @@ export async function importCsv(file, options = {}) {
   const onProgress = typeof options.onProgress === 'function' ? options.onProgress : () => {}
   const signal = options.signal
   const batchSize = Number(options.batchSize) || 500
-  const summary = { processed: 0, valid: 0, errors: 0, skipped: 0, errorRows: [], percent: 0 }
+  const summary = {
+    processed: 0,
+    imported: 0,
+    updated: 0,
+    valid: 0,
+    errors: 0,
+    skipped: 0,
+    errorRows: [],
+    percent: 0,
+  }
   let headerMap = null
   let buffer = ''
   let loaded = 0
@@ -387,12 +396,15 @@ export async function importCsv(file, options = {}) {
       const record = recordFromCsvLine(line, headerMap)
       const error = validateRecord(record)
       if (error) throw new Error(error)
-      if (!updateDuplicates && await existsRnc(record.rnc)) {
+      const existed = await existsRnc(record.rnc)
+      if (!updateDuplicates && existed) {
         summary.skipped += 1
         return
       }
       batch.push(record)
       summary.valid += 1
+      if (existed) summary.updated += 1
+      else summary.imported += 1
       if (batch.length >= batchSize) await flushBatch()
     } catch (error) {
       summary.errors += 1
@@ -432,7 +444,14 @@ export async function importCsv(file, options = {}) {
   if (!headerMap) throw new Error('El archivo no contiene el encabezado requerido.')
   await flushBatch()
   summary.percent = 100
-  await putMeta({ lastImport: nowIso(), lastErrors: summary.errors, lastValid: summary.valid, lastProcessed: summary.processed })
+  await putMeta({
+    lastImport: nowIso(),
+    lastErrors: summary.errors,
+    lastValid: summary.valid,
+    lastProcessed: summary.processed,
+    lastImported: summary.imported,
+    lastUpdated: summary.updated,
+  })
   onProgress({ ...summary })
   return summary
 }

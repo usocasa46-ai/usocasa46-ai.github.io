@@ -160,6 +160,8 @@ export const erpModules = [
       { id: 'reports-customers', label: 'Reportes de clientes' },
       { id: 'reports-vendors', label: 'Reportes de proveedores' },
       { id: 'reports-users', label: 'Reportes de usuarios' },
+      { id: 'reports-dgii', label: 'Reportes DGII' },
+      { id: 'reports-custom', label: 'Reportes personalizados' },
     ],
   },
   {

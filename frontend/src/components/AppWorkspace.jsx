@@ -41,6 +41,18 @@ import SupplierCreditNotesPage from '../pages/purchases/SupplierCreditNotesPage.
 import SupplierInvoicesPage from '../pages/purchases/SupplierInvoicesPage.jsx'
 import SupplierQuotesPage from '../pages/purchases/SupplierQuotesPage.jsx'
 import SuppliersPage from '../pages/purchases/SuppliersPage.jsx'
+import {
+  CustomerReportsPage,
+  CustomReportsPage,
+  DgiiReportsPage,
+  FinancialReportsPage,
+  InventoryReportsPage,
+  PurchaseReportsPage,
+  SalesReportsPage,
+  SupplierReportsPage,
+  UserReportsPage,
+  WarehouseReportsPage,
+} from '../pages/reports/ReportsModulePages.jsx'
 import SalesCustomersPage from '../pages/sales/SalesCustomersPage.jsx'
 import SalesCreditNotesPage from '../pages/sales/SalesCreditNotesPage.jsx'
 import SalesHistoryPage from '../pages/sales/SalesHistoryPage.jsx'
@@ -133,6 +145,16 @@ const pageComponents = {
   'finance-ncf-sequences': NcfSequencesPage,
   'finance-rnc': RncRegistryPage,
   'finance-accounting-settings': AccountingSettingsPage,
+  'reports-sales': SalesReportsPage,
+  'reports-purchases': PurchaseReportsPage,
+  'reports-inventory': InventoryReportsPage,
+  'reports-warehouse': WarehouseReportsPage,
+  'reports-finance': FinancialReportsPage,
+  'reports-customers': CustomerReportsPage,
+  'reports-vendors': SupplierReportsPage,
+  'reports-users': UserReportsPage,
+  'reports-dgii': DgiiReportsPage,
+  'reports-custom': CustomReportsPage,
   'security-users': SecurityUsersPage,
   'security-roles': SecurityRolesPage,
   'security-permissions': SecurityPermissionsPage,
