@@ -84,6 +84,7 @@ import WarehouseRoutesPage from '../pages/warehouse/WarehouseRoutesPage.jsx'
 import WarehouseTransfersPage from '../pages/warehouse/WarehouseTransfersPage.jsx'
 import { getVisibleModules } from '../security/permissions.js'
 import { resetInactivityTimer, restoreLastActivePage, saveLastActivePage } from '../security/sessionManager.js'
+import { isModuleActiveForCompany } from '../services/companyStorage.js'
 import './AppWorkspace.css'
 
 const pageComponents = {
@@ -174,6 +175,7 @@ export default function AppWorkspace({
   onToggleUserStatus,
   onDeleteUser,
   onReplaceUsers,
+  onAuthorizeSupport,
 }) {
   const [currentPageId, setCurrentPageId] = useState(() => getPageMeta(restoreLastActivePage(DEFAULT_PAGE_ID)).id)
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false)
@@ -191,10 +193,21 @@ export default function AppWorkspace({
     saveLastActivePage(currentPageId)
   }, [currentPageId])
 
+  useEffect(() => {
+    if (currentPageId === DEFAULT_PAGE_ID || isModuleActiveForCompany(currentModule.id, session)) return
+    showNotice('Modulo no disponible en su licencia.')
+    setCurrentPageId(DEFAULT_PAGE_ID)
+  }, [currentModule.id, currentPageId, session])
+
   const selectPage = (pageId) => {
     const meta = getPageMeta(pageId)
+    const targetModule = getModuleByPageId(meta.id)
 
     resetInactivityTimer()
+    if (!isModuleActiveForCompany(targetModule.id, session)) {
+      showNotice('Modulo no disponible en su licencia.')
+      return
+    }
     setCurrentPageId(meta.id)
     setPageWindowState('normal')
     setExpandedModules([])
@@ -270,6 +283,13 @@ export default function AppWorkspace({
       shortcuts: () => showNotice('ESC cierra la pagina activa. Ctrl+P imprime desde el navegador.'),
       reports: openRelatedReport,
       config: () => selectPage('settings-general'),
+      'authorize-support': () => {
+        const hours = window.prompt('Autorizar soporte por cuantas horas? 1, 4 o 24', '1')
+        if (!hours) return
+        const motivo = window.prompt('Motivo de soporte autorizado', 'Soporte tecnico') || 'Soporte tecnico'
+        const result = onAuthorizeSupport?.({ hours: Number(hours), motivo })
+        showNotice(result?.ok === false ? result.message : 'Soporte autorizado para esta empresa.')
+      },
     }
 
     handlers[command]?.()

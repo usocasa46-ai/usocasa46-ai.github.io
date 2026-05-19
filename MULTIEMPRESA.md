@@ -20,6 +20,11 @@ Puede:
 - Activar o suspender empresas.
 - Crear un usuario administrador para una empresa.
 - Ver plan, estado, modulos activos y cantidad de usuarios.
+- Editar licencias.
+- Configurar planes.
+- Generar respaldos JSON por empresa.
+- Ver soporte autorizado.
+- Ver logs tecnicos y prueba de aislamiento por conteos.
 
 No puede ver productos, clientes, facturas, compras, contabilidad ni reportes privados de una empresa.
 
@@ -85,6 +90,28 @@ invefat_EMP002_products
 ```
 
 La capa `src/services/companyStorage.js` traduce claves conocidas del sistema a claves separadas por empresa.
+
+## Licencias y modulos
+
+Cada empresa tiene una licencia en `invefat_company_licenses`.
+
+Si la licencia queda `vencida` o `suspendida`, los usuarios de esa empresa no pueden iniciar sesion y veran:
+
+```text
+Licencia vencida o suspendida. Contacte al administrador del sistema.
+```
+
+Los modulos visibles en el sidebar se filtran por la licencia de la empresa.
+
+## Soporte autorizado
+
+Desde el usuario de empresa se puede autorizar soporte desde el menu de usuario. El permiso queda en:
+
+```text
+invefat_support_access
+```
+
+El Panel Super Admin muestra las autorizaciones vigentes sin abrir datos privados por defecto.
 
 ## Preparacion para Supabase
 

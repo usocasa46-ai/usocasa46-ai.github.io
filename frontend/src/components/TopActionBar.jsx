@@ -230,6 +230,9 @@ export default function TopActionBar({
               <button type="button" onClick={() => runAdminCommand('settings-general')}>
                 Configuracion
               </button>
+              <button type="button" onClick={() => runCommand('authorize-support')}>
+                Autorizar soporte
+              </button>
               <button type="button" className="is-danger" onClick={() => runAdminCommand('logout')}>
                 Cerrar sesion
               </button>

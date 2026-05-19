@@ -89,6 +89,30 @@
   margin: 16px 0;
 }
 
+.super-admin-tabs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin: 16px 0;
+}
+
+.super-admin-tabs button {
+  min-height: 34px;
+  border: 1px solid #d7e1eb;
+  border-radius: 999px;
+  background: #ffffff;
+  color: #28435e;
+  cursor: pointer;
+  padding: 7px 12px;
+  font-weight: 850;
+}
+
+.super-admin-tabs button.is-active {
+  border-color: #f97316;
+  background: #fff7ed;
+  color: #c2410c;
+}
+
 .super-admin-kpis article {
   padding: 15px;
 }
@@ -140,6 +164,81 @@
   overflow: auto;
   border: 1px solid #dde6ef;
   border-radius: 8px;
+}
+
+.super-admin-card-grid,
+.super-admin-plan-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(220px, 1fr));
+  gap: 12px;
+}
+
+.super-admin-card-grid article,
+.super-admin-plan-grid article {
+  display: grid;
+  gap: 8px;
+  border: 1px solid #d8e2ec;
+  border-radius: 10px;
+  background: #ffffff;
+  padding: 14px;
+}
+
+.super-admin-plan-grid article header {
+  display: flex;
+  justify-content: space-between;
+  gap: 10px;
+  align-items: center;
+}
+
+.super-admin-card-grid h3,
+.super-admin-plan-grid h3 {
+  margin: 0;
+}
+
+.super-admin-card-grid p,
+.super-admin-plan-grid p {
+  margin: 0;
+  color: #62768a;
+  font-size: 13px;
+}
+
+.super-admin-card-grid small,
+.super-admin-plan-grid small {
+  display: inline-flex;
+  width: fit-content;
+  border-radius: 999px;
+  background: #f1f5f9;
+  color: #475569;
+  padding: 4px 8px;
+  font-size: 11px;
+  font-weight: 850;
+}
+
+.super-admin-inline-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 4px;
+}
+
+.super-admin-inline-actions button,
+.super-admin-file-button {
+  min-height: 32px;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  border: 1px solid #d7e1eb;
+  border-radius: 8px;
+  background: #f8fafc;
+  color: #18334d;
+  cursor: pointer;
+  padding: 7px 9px;
+  font-size: 12px;
+  font-weight: 850;
+}
+
+.super-admin-file-button input {
+  display: none;
 }
 
 .super-admin-table {
@@ -261,6 +360,31 @@
   padding: 16px;
 }
 
+.super-admin-form .is-wide {
+  grid-column: 1 / -1;
+}
+
+.super-admin-checks {
+  grid-column: 1 / -1;
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 8px;
+  border: 1px solid #e4ebf2;
+  border-radius: 10px;
+  padding: 10px;
+}
+
+.super-admin-checks label {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  gap: 7px;
+}
+
+.super-admin-checks input {
+  min-height: auto;
+}
+
 .super-admin-form label {
   display: grid;
   gap: 6px;
@@ -288,6 +412,9 @@
 
   .super-admin-kpis,
   .super-admin-grid,
+  .super-admin-card-grid,
+  .super-admin-plan-grid,
+  .super-admin-checks,
   .super-admin-form {
     grid-template-columns: 1fr;
   }

@@ -1,5 +1,6 @@
 import { AlertTriangle, ArrowRight, PackageCheck, ReceiptText, ShoppingCart, TrendingUp } from 'lucide-react'
 import { quickAccessPages } from '../../config/modulesMap.js'
+import { isModuleActiveForCompany } from '../../services/companyStorage.js'
 import { buildLowStockGroups, getAlerts } from '../../utils/alertsEngine.js'
 import SystemDateTime from '../../components/SystemDateTime.jsx'
 import '../../components/AppWorkspace.css'
@@ -19,6 +20,7 @@ export default function DashboardPage({ session, onSelectPage }) {
       ? { ...kpi, value: String(lowStockCount), detail: 'stock bajo o agotado' }
       : kpi
   ))
+  const visibleQuickAccess = quickAccessPages.filter((item) => isModuleActiveForCompany(item.moduleId, session))
 
   return (
     <section className="erp-dashboard-page">
@@ -57,7 +59,7 @@ export default function DashboardPage({ session, onSelectPage }) {
         <section className="erp-panel">
           <h2>Accesos rapidos</h2>
           <div className="erp-quick-access-grid">
-            {quickAccessPages.map((item) => (
+            {visibleQuickAccess.map((item) => (
               <button type="button" key={item.id} onClick={() => onSelectPage(item.id)}>
                 <span>{item.label}</span>
                 <ArrowRight size={16} />

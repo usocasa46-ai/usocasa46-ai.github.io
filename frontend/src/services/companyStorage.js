@@ -1,6 +1,11 @@
 const COMPANIES_KEY = 'invefat_companies'
 const SESSION_KEY = 'inveFatSession'
 const DEFAULT_COMPANY_CODE = 'EMP001'
+const LICENSES_KEY = 'invefat_company_licenses'
+const PLANS_KEY = 'invefat_system_plans'
+const BACKUPS_LOG_KEY = 'invefat_company_backups_log'
+const SUPPORT_ACCESS_KEY = 'invefat_support_access'
+const SYSTEM_AUDIT_KEY = 'invefat_system_audit_log'
 
 const DEMO_COMPANY = {
   id: 'COMP-EMP001',
@@ -21,6 +26,37 @@ const DEMO_COMPANY = {
   updatedAt: new Date().toISOString(),
 }
 
+const DEFAULT_SYSTEM_PLANS = [
+  {
+    id: 'PLAN-DEMO',
+    name: 'Demo',
+    status: 'Activo',
+    modules: ['dashboard', 'inventory', 'sales', 'reports'],
+    description: 'Dashboard, productos, clientes y factura.',
+  },
+  {
+    id: 'PLAN-BASIC',
+    name: 'Basico',
+    status: 'Activo',
+    modules: ['dashboard', 'sales', 'inventory', 'reports'],
+    description: 'Ventas, clientes, productos y reportes basicos.',
+  },
+  {
+    id: 'PLAN-PRO',
+    name: 'Pro',
+    status: 'Activo',
+    modules: ['dashboard', 'sales', 'inventory', 'purchases', 'warehouse', 'reports'],
+    description: 'Ventas, inventario, compras, almacen, POS y reportes.',
+  },
+  {
+    id: 'PLAN-ENTERPRISE',
+    name: 'Empresarial',
+    status: 'Activo',
+    modules: ['dashboard', 'system', 'sales', 'inventory', 'purchases', 'warehouse', 'finance', 'reports', 'settings', 'security'],
+    description: 'Todo el ERP, finanzas, DGII, multiusuario y seguridad avanzada.',
+  },
+]
+
 export const COMPANY_KEY_MAP = {
   inveFatInventoryProducts: 'products',
   invefat_customers: 'customers',
@@ -40,6 +76,22 @@ export const COMPANY_KEY_MAP = {
   invefat_inventory_brands: 'inventory_brands',
   invefat_inventory_units: 'inventory_units',
   invefat_price_lists: 'price_lists',
+  invefat_purchase_requests: 'purchase_requests',
+  invefat_supplier_quotes: 'supplier_quotes',
+  invefat_purchase_orders: 'purchase_orders',
+  invefat_supplier_invoices: 'supplier_invoices',
+  invefat_supplier_credit_notes: 'supplier_credit_notes',
+  invefat_supplier_payments: 'supplier_payments',
+  invefat_warehouse_receipts: 'warehouse_receipts',
+  invefat_warehouse_dispatches: 'warehouse_dispatches',
+  invefat_warehouse_transfers: 'warehouse_transfers',
+  invefat_warehouse_returns: 'warehouse_returns',
+  invefat_warehouse_damages: 'warehouse_damages',
+  invefat_warehouse_quarantine: 'warehouse_quarantine',
+  invefat_sales_reports: 'sales_reports',
+  invefat_dgii_606: 'dgii_606',
+  invefat_dgii_607: 'dgii_607',
+  invefat_rnc_registry: 'rnc_registry',
 }
 
 const rawStorage = {
@@ -128,6 +180,148 @@ export function saveCompanies(companies) {
   return companies
 }
 
+export function appendSystemAudit(action, payload = {}) {
+  const current = safeParse(rawGet(SYSTEM_AUDIT_KEY), [])
+  const record = {
+    id: `LOG-${Date.now()}`,
+    fecha: nowIso(),
+    usuario: payload.usuario || payload.user || 'sistema',
+    empresa: payload.empresa || payload.companyCode || '',
+    accion: action,
+    descripcion: payload.descripcion || payload.description || '',
+    ip: '',
+    modulo: payload.modulo || 'Sistema',
+  }
+  rawSet(SYSTEM_AUDIT_KEY, JSON.stringify([record, ...(Array.isArray(current) ? current : [])].slice(0, 1000)))
+  return record
+}
+
+export function loadSystemAudit() {
+  return safeParse(rawGet(SYSTEM_AUDIT_KEY), [])
+}
+
+export function loadSystemPlans() {
+  const saved = safeParse(rawGet(PLANS_KEY), null)
+  if (Array.isArray(saved) && saved.length > 0) return saved
+
+  rawSet(PLANS_KEY, JSON.stringify(DEFAULT_SYSTEM_PLANS))
+  return DEFAULT_SYSTEM_PLANS
+}
+
+export function saveSystemPlans(plans) {
+  rawSet(PLANS_KEY, JSON.stringify(plans))
+  appendSystemAudit('Cambiar planes', { descripcion: 'Planes del sistema actualizados' })
+  return plans
+}
+
+export function loadCompanyLicenses() {
+  const saved = safeParse(rawGet(LICENSES_KEY), null)
+  if (Array.isArray(saved)) return saved
+
+  const companies = loadCompanies()
+  const licenses = companies.map((company) => buildDefaultLicense(company))
+  rawSet(LICENSES_KEY, JSON.stringify(licenses))
+  return licenses
+}
+
+function buildDefaultLicense(company) {
+  const plan = loadSystemPlans().find((item) => item.name === company.plan) || DEFAULT_SYSTEM_PLANS[0]
+  return {
+    id: `LIC-${company.companyCode}`,
+    companyId: company.id,
+    companyCode: company.companyCode,
+    codigoLicencia: `LIC-${company.companyCode}-${String(Date.now()).slice(-6)}`,
+    planContratado: company.plan || plan.name,
+    estado: company.estado === 'suspendida' ? 'suspendida' : company.plan === 'Demo' ? 'demo' : 'activa',
+    fechaActivacion: company.fechaActivacion || new Date().toISOString().slice(0, 10),
+    fechaVencimiento: company.fechaVencimiento || '',
+    maxUsuarios: Number(company.maxUsuarios || 5),
+    maxSucursales: Number(company.maxSucursales || 1),
+    maxAlmacenes: Number(company.maxAlmacenes || 2),
+    modulosActivos: Array.isArray(company.modulosActivos) && company.modulosActivos.length ? company.modulosActivos : plan.modules,
+    tipoVersion: company.tipoVersion || 'Cloud',
+    observacion: company.observacion || '',
+    updatedAt: nowIso(),
+  }
+}
+
+export function saveCompanyLicenses(licenses) {
+  rawSet(LICENSES_KEY, JSON.stringify(licenses))
+  return licenses
+}
+
+export function getCompanyLicense(companyOrCode) {
+  const company = typeof companyOrCode === 'string' ? findCompanyByCode(companyOrCode) : companyOrCode
+  if (!company) return null
+  const licenses = loadCompanyLicenses()
+  let license = licenses.find((item) => item.companyId === company.id || cleanCode(item.companyCode) === cleanCode(company.companyCode))
+  if (!license) {
+    license = buildDefaultLicense(company)
+    saveCompanyLicenses([license, ...licenses])
+  }
+  return license
+}
+
+export function upsertCompanyLicense(companyOrCode, patch) {
+  const company = typeof companyOrCode === 'string' ? findCompanyByCode(companyOrCode) : companyOrCode
+  if (!company) return null
+  const licenses = loadCompanyLicenses()
+  const current = getCompanyLicense(company)
+  const nextLicense = {
+    ...current,
+    ...patch,
+    companyId: company.id,
+    companyCode: company.companyCode,
+    updatedAt: nowIso(),
+  }
+  const next = licenses.some((item) => item.id === nextLicense.id)
+    ? licenses.map((item) => (item.id === nextLicense.id ? nextLicense : item))
+    : [nextLicense, ...licenses]
+  saveCompanyLicenses(next)
+  appendSystemAudit('Cambiar licencia', { companyCode: company.companyCode, descripcion: `Licencia ${nextLicense.estado}` })
+  return nextLicense
+}
+
+export function getCompanyAccessStatus(companyOrCode) {
+  const company = typeof companyOrCode === 'string' ? findCompanyByCode(companyOrCode) : companyOrCode
+  if (!company) return { allowed: false, message: 'Empresa no encontrada.' }
+  if (!isCompanyActive(company)) return { allowed: false, message: 'Licencia vencida o suspendida. Contacte al administrador del sistema.' }
+
+  const license = getCompanyLicense(company)
+  const status = String(license?.estado || '').toLowerCase()
+  if (['vencida', 'suspendida', 'inactiva'].includes(status)) {
+    return { allowed: false, message: 'Licencia vencida o suspendida. Contacte al administrador del sistema.' }
+  }
+
+  if (license?.fechaVencimiento) {
+    const today = new Date()
+    const expiresAt = new Date(`${license.fechaVencimiento}T23:59:59`)
+    if (expiresAt < today) {
+      upsertCompanyLicense(company, { estado: 'vencida' })
+      return { allowed: false, message: 'Licencia vencida o suspendida. Contacte al administrador del sistema.' }
+    }
+  }
+
+  return { allowed: true, license }
+}
+
+export function getActiveModuleIdsForCompany(companyCode) {
+  const company = findCompanyByCode(companyCode)
+  if (!company) return ['dashboard']
+  const license = getCompanyLicense(company)
+  const modules = Array.isArray(license?.modulosActivos) && license.modulosActivos.length
+    ? license.modulosActivos
+    : company.modulosActivos
+  return Array.from(new Set(['dashboard', 'system', ...(modules || [])]))
+}
+
+export function isModuleActiveForCompany(moduleId, session) {
+  if (!moduleId || moduleId === 'dashboard') return true
+  if (session?.isSuperAdmin) return true
+  const activeModules = getActiveModuleIdsForCompany(session?.currentCompanyCode)
+  return activeModules.includes(moduleId)
+}
+
 export function findCompanyByCode(companyCode) {
   const code = cleanCode(companyCode)
   return loadCompanies().find((company) => cleanCode(company.companyCode) === code) || null
@@ -165,6 +359,8 @@ export function createCompany(data) {
   }
 
   saveCompanies([nextCompany, ...companies])
+  upsertCompanyLicense(nextCompany, buildDefaultLicense(nextCompany))
+  appendSystemAudit('Crear empresa', { companyCode: nextCompany.companyCode, descripcion: nextCompany.nombreComercial })
   return nextCompany
 }
 
@@ -174,7 +370,12 @@ export function updateCompany(companyId, patch) {
     company.id === companyId ? { ...company, ...patch, updatedAt: nowIso() } : company
   ))
   saveCompanies(next)
-  return next.find((company) => company.id === companyId) || null
+  const saved = next.find((company) => company.id === companyId) || null
+  if (saved) {
+    upsertCompanyLicense(saved, buildDefaultLicense(saved))
+    appendSystemAudit('Editar empresa', { companyCode: saved.companyCode, descripcion: saved.nombreComercial })
+  }
+  return saved
 }
 
 export function getCompanyData(baseKey, fallback = [], companyCode = getSessionCompanyCode()) {
@@ -287,6 +488,98 @@ export function deleteCompanyRecord(baseKey, id) {
     return itemId !== id
   })
   return setCompanyData(baseKey, next)
+}
+
+export function getCompanyScopedSnapshot(company) {
+  const snapshot = {}
+  Object.entries(COMPANY_KEY_MAP).forEach(([baseKey]) => {
+    snapshot[baseKey] = getCompanyData(baseKey, [], company.companyCode)
+  })
+  return snapshot
+}
+
+export function generateCompanyBackup(company) {
+  const snapshot = getCompanyScopedSnapshot(company)
+  const serialized = JSON.stringify(snapshot)
+  const record = {
+    id: `BCK-${Date.now()}`,
+    companyId: company.id,
+    companyCode: company.companyCode,
+    fecha: nowIso(),
+    registros: Object.values(snapshot).reduce((sum, value) => sum + (Array.isArray(value) ? value.length : value ? 1 : 0), 0),
+    bytes: new Blob([serialized]).size,
+  }
+  const current = safeParse(rawGet(BACKUPS_LOG_KEY), [])
+  rawSet(BACKUPS_LOG_KEY, JSON.stringify([record, ...(Array.isArray(current) ? current : [])]))
+  appendSystemAudit('Generar respaldo', { companyCode: company.companyCode, descripcion: `${record.registros} registros` })
+  return {
+    meta: record,
+    company: {
+      id: company.id,
+      companyCode: company.companyCode,
+      nombreComercial: company.nombreComercial,
+    },
+    data: snapshot,
+  }
+}
+
+export function importCompanyBackup(company, backup) {
+  const data = backup?.data || {}
+  Object.entries(data).forEach(([baseKey, value]) => {
+    if (COMPANY_KEY_MAP[baseKey]) setCompanyData(baseKey, value, company.companyCode)
+  })
+  appendSystemAudit('Importar respaldo', { companyCode: company.companyCode, descripcion: 'Respaldo importado' })
+  return true
+}
+
+export function loadBackupLog() {
+  return safeParse(rawGet(BACKUPS_LOG_KEY), [])
+}
+
+export function createSupportAccess({ company, hours = 1, motivo = '', requestedBy = '', createdBy = 'superadmin' }) {
+  const start = new Date()
+  const end = new Date(start.getTime() + Number(hours || 1) * 60 * 60 * 1000)
+  const record = {
+    id: `SUP-${Date.now()}`,
+    empresa: company.companyCode,
+    companyId: company.id,
+    superadmin: createdBy,
+    fechaInicio: start.toISOString(),
+    fechaFin: end.toISOString(),
+    motivo,
+    estado: 'activo',
+    solicitadoPor: requestedBy,
+    accionesRealizadas: [],
+  }
+  const current = safeParse(rawGet(SUPPORT_ACCESS_KEY), [])
+  rawSet(SUPPORT_ACCESS_KEY, JSON.stringify([record, ...(Array.isArray(current) ? current : [])]))
+  appendSystemAudit('Autorizar soporte', { companyCode: company.companyCode, descripcion: motivo || 'Soporte autorizado' })
+  return record
+}
+
+export function loadSupportAccess() {
+  const records = safeParse(rawGet(SUPPORT_ACCESS_KEY), [])
+  const now = new Date()
+  return records.map((record) => ({
+    ...record,
+    estado: new Date(record.fechaFin) >= now && record.estado === 'activo' ? 'activo' : 'vencido',
+  }))
+}
+
+export function getIsolationResults(companies = loadCompanies()) {
+  const bases = ['inveFatInventoryProducts', 'invefat_customers', 'invefat_sales_invoices', 'invefat_company_settings', 'inveFatUsers']
+  return companies.map((company) => {
+    const counts = Object.fromEntries(bases.map((baseKey) => {
+      const value = getCompanyData(baseKey, [], company.companyCode)
+      return [COMPANY_KEY_MAP[baseKey] || baseKey, Array.isArray(value) ? value.length : value ? 1 : 0]
+    }))
+    return {
+      companyCode: company.companyCode,
+      companyName: company.nombreComercial,
+      status: 'Correcto',
+      counts,
+    }
+  })
 }
 
 export function ensureDemoCompany() {

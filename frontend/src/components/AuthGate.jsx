@@ -11,13 +11,18 @@ import {
 } from '../security/sessionManager.js'
 import {
   createCompany,
+  createSupportAccess,
   ensureDemoCompany,
   findCompanyByCode,
+  getCompanyAccessStatus,
   installCompanyStorageScope,
   isCompanyActive,
   loadCompanies,
+  loadSystemPlans,
   loadCompanyUsers,
+  saveSystemPlans,
   saveCompanyUsers,
+  upsertCompanyLicense,
   updateCompany,
 } from '../services/companyStorage.js'
 
@@ -71,6 +76,7 @@ function loadValidSession() {
 
 export default function AuthGate() {
   const [companies, setCompanies] = useState(() => loadCompanies())
+  const [plans, setPlans] = useState(() => loadSystemPlans())
   const [session, setSession] = useState(() => loadValidSession())
   const [users, setUsers] = useState(() => {
     const company = findCompanyByCode(loadValidSession()?.currentCompanyCode)
@@ -139,6 +145,8 @@ export default function AuthGate() {
     const company = findCompanyByCode(cleanCompanyCode)
     if (!company) return { ok: false, message: 'Codigo de empresa no encontrado.' }
     if (!isCompanyActive(company)) return { ok: false, message: 'La empresa no esta activa.' }
+    const accessStatus = getCompanyAccessStatus(company)
+    if (!accessStatus.allowed) return { ok: false, message: accessStatus.message }
 
     const companyUsers = loadCompanyUsers(company)
     const foundUser = companyUsers.find((user) => (
@@ -282,6 +290,33 @@ export default function AuthGate() {
     refreshCompanies()
   }
 
+  const handleSavePlans = (nextPlans) => {
+    const saved = saveSystemPlans(nextPlans)
+    setPlans(saved)
+    return saved
+  }
+
+  const handleUpdateCompanyLicense = (companyId, patch) => {
+    const company = companies.find((item) => item.id === companyId)
+    if (!company) return null
+    const license = upsertCompanyLicense(company, patch)
+    refreshCompanies()
+    return license
+  }
+
+  const handleAuthorizeSupport = ({ hours, motivo }) => {
+    const company = findCompanyByCode(session?.currentCompanyCode)
+    if (!company) return { ok: false, message: 'Empresa no encontrada.' }
+    createSupportAccess({
+      company,
+      hours,
+      motivo,
+      requestedBy: session.username,
+      createdBy: 'empresa',
+    })
+    return { ok: true }
+  }
+
   if (!session) {
     return <LoginScreen onLogin={handleLogin} notice={loginNotice} />
   }
@@ -291,8 +326,11 @@ export default function AuthGate() {
       <SuperAdminPanel
         session={session}
         companies={companies}
+        plans={plans}
         onLogout={handleLogout}
         onSaveCompany={handleSaveCompany}
+        onSavePlans={handleSavePlans}
+        onUpdateCompanyLicense={handleUpdateCompanyLicense}
         onCreateCompanyAdmin={handleCreateCompanyAdmin}
         onToggleCompanyStatus={handleToggleCompanyStatus}
       />
@@ -308,6 +346,7 @@ export default function AuthGate() {
       onToggleUserStatus={toggleUserStatus}
       onDeleteUser={deleteUser}
       onReplaceUsers={persistUsers}
+      onAuthorizeSupport={handleAuthorizeSupport}
     />
   )
 }

@@ -1,4 +1,5 @@
 import { DEFAULT_PAGE_ID, erpModules, pageRegistry } from '../config/modulesMap.js'
+import { isModuleActiveForCompany } from '../services/companyStorage.js'
 import { securityService } from '../services/securityService.js'
 import { usersService } from '../services/usersService.js'
 
@@ -417,7 +418,7 @@ export function savePermissions(permissions) {
 export function getCurrentUser() {
   if (!canUseStorage()) return null
 
-  const session = safeParse(localStorage.getItem(SECURITY_STORAGE.session), null)
+  const session = safeParse(sessionStorage.getItem(SECURITY_STORAGE.session), null)
   if (!session) return null
 
   const users = loadUsers()
@@ -467,6 +468,7 @@ export function userCanModule(moduleId, action = 'view') {
 
 export function getVisibleModules(modules = erpModules, user = getCurrentUser()) {
   return modules
+    .filter((module) => isModuleActiveForCompany(module.id, user))
     .map((module) => {
       if (module.type === 'single') return module
 
