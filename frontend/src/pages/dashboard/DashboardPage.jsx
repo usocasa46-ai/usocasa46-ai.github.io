@@ -1,6 +1,7 @@
 import { AlertTriangle, ArrowRight, PackageCheck, ReceiptText, ShoppingCart, TrendingUp } from 'lucide-react'
 import { quickAccessPages } from '../../config/modulesMap.js'
 import { buildLowStockGroups, getAlerts } from '../../utils/alertsEngine.js'
+import SystemDateTime from '../../components/SystemDateTime.jsx'
 import '../../components/AppWorkspace.css'
 
 const kpis = [
@@ -27,10 +28,13 @@ export default function DashboardPage({ session, onSelectPage }) {
           <h1>INVE-FAT SYSTEM</h1>
           <p>Resumen corto para operar ventas, compras, inventario y almacen sin saturar la pantalla.</p>
         </div>
-        <aside>
-          <strong>{session?.fullName || 'Usuario activo'}</strong>
-          <small>{session?.role || 'Sesion activa'}</small>
-        </aside>
+        <div className="erp-dashboard-hero-side">
+          <SystemDateTime />
+          <aside>
+            <strong>{session?.fullName || 'Usuario activo'}</strong>
+            <small>{session?.role || 'Sesion activa'}</small>
+          </aside>
+        </div>
       </header>
 
       <div className="erp-dashboard-kpis">

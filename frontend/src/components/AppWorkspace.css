@@ -309,7 +309,7 @@
   box-shadow: 0 18px 46px rgba(17, 42, 70, 0.07);
 }
 
-.erp-dashboard-hero span {
+.erp-dashboard-hero > div:first-child > span {
   display: inline-flex;
   min-height: 24px;
   align-items: center;
@@ -335,6 +335,14 @@
   line-height: 1.45;
 }
 
+.erp-dashboard-hero-side {
+  min-width: 260px;
+  display: grid;
+  align-content: center;
+  justify-items: end;
+  gap: 10px;
+}
+
 .erp-dashboard-hero aside {
   min-width: 230px;
   display: flex;
@@ -352,6 +360,15 @@
 .erp-dashboard-hero aside small {
   margin-top: 5px;
   color: #66788b;
+}
+
+.erp-dashboard-hero-side .system-date-time {
+  min-height: 32px;
+  border-radius: 9px;
+  background: #fff8f1;
+  border-color: #f3dfc7;
+  color: #24435f;
+  box-shadow: none;
 }
 
 .erp-dashboard-kpis {
@@ -1424,6 +1441,16 @@
     flex-direction: column;
   }
 
+  .erp-dashboard-hero-side {
+    min-width: 0;
+    justify-items: stretch;
+  }
+
+  .erp-dashboard-hero-side .system-date-time {
+    width: 100%;
+    justify-content: flex-start;
+  }
+
   .erp-dashboard-hero aside {
     border-left: 0;
     border-top: 1px solid #e1e9f2;
@@ -1497,6 +1524,12 @@ body.theme-dark .erp-admin-profile.is-open,
 body.theme-dark .erp-page-actions button:hover {
   background: #1b344c;
   color: #ffffff;
+}
+
+body.theme-dark .erp-dashboard-hero-side .system-date-time {
+  background: var(--panel-soft);
+  border-color: var(--border-color);
+  color: var(--text-main);
 }
 
 body.theme-dark .erp-top-dropdown,
