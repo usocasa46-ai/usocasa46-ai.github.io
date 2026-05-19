@@ -14,6 +14,7 @@ const loginMenu = [
 export default function LoginScreen({ onLogin, notice = '' }) {
   const currentYear = new Date().getFullYear()
   const [formData, setFormData] = useState({
+    companyCode: 'EMP001',
     username: '',
     password: '',
     remember: true,
@@ -31,8 +32,8 @@ export default function LoginScreen({ onLogin, notice = '' }) {
   const handleSubmit = (event) => {
     event.preventDefault()
 
-    if (!formData.username.trim() || !formData.password.trim()) {
-      setError('Debes escribir usuario y contrasena.')
+    if (!formData.companyCode.trim() || !formData.username.trim() || !formData.password.trim()) {
+      setError('Debes escribir codigo de empresa, usuario y contrasena.')
       return
     }
 
@@ -42,6 +43,7 @@ export default function LoginScreen({ onLogin, notice = '' }) {
     }
 
     const result = onLogin({
+      companyCode: formData.companyCode.trim(),
       username: formData.username.trim(),
       password: formData.password.trim(),
       remember: formData.remember,
@@ -57,7 +59,7 @@ export default function LoginScreen({ onLogin, notice = '' }) {
 
   const handleMenuAction = (option) => {
     if (option === 'Limpiar formulario') {
-      setFormData({ username: '', password: '', remember: true })
+      setFormData({ companyCode: 'EMP001', username: '', password: '', remember: true })
       setError('')
       return
     }
@@ -102,7 +104,7 @@ export default function LoginScreen({ onLogin, notice = '' }) {
 
           <div className="login-status-card">
             <strong>Acceso seguro</strong>
-            <span>Solo usuarios creados por el Administrador Principal.</span>
+            <span>Ingresa con codigo de empresa, usuario y contrasena.</span>
           </div>
         </div>
 
@@ -118,6 +120,16 @@ export default function LoginScreen({ onLogin, notice = '' }) {
               {error || notice}
             </div>
           )}
+
+          <label>
+            Codigo de empresa
+            <input
+              value={formData.companyCode}
+              onChange={(event) => updateField('companyCode', event.target.value.toUpperCase())}
+              placeholder="EMP001 o SYSTEM"
+              autoComplete="organization"
+            />
+          </label>
 
           <label>
             Usuario

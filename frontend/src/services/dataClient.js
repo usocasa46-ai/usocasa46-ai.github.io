@@ -20,6 +20,23 @@ function getRecordId(record, idField) {
   return record?.[idField] || record?.id || record?.code || record?.number || record?.username || ''
 }
 
+function getSessionCompanyId() {
+  try {
+    const session = sessionStorage.getItem('inveFatSession')
+    const parsed = session ? JSON.parse(session) : null
+    if (!parsed || parsed.isSuperAdmin || parsed.currentCompanyId === 'SYSTEM') return ''
+    return parsed.currentCompanyId || ''
+  } catch {
+    return ''
+  }
+}
+
+function withCompanyFilter(path) {
+  const companyId = getSessionCompanyId()
+  if (!companyId) return path
+  return `${path}${path.includes('?') ? '&' : '?'}company_id=eq.${encodeURIComponent(companyId)}`
+}
+
 function unwrapSupabaseRow(row) {
   if (row && typeof row === 'object' && 'data' in row) {
     return { id: row.id, ...(row.data || {}) }
@@ -36,6 +53,7 @@ function wrapSupabaseRecord(record, idField = 'id') {
 
   return {
     id: String(id),
+    company_id: getSessionCompanyId() || null,
     data: record,
     updated_at: new Date().toISOString(),
   }
@@ -60,7 +78,7 @@ async function withSupabaseFallback(operation, fallback) {
 export async function getRecords(tableName, localStorageKey) {
   return withSupabaseFallback(
     async () => {
-      const rows = await supabaseRequest(`/${tableName}?select=*&order=updated_at.desc`)
+      const rows = await supabaseRequest(withCompanyFilter(`/${tableName}?select=*&order=updated_at.desc`))
       return Array.isArray(rows) ? rows.map(unwrapSupabaseRow) : []
     },
     () => localCollection(localStorageKey, []),
@@ -93,10 +111,10 @@ export async function createRecord(tableName, localStorageKey, data) {
 export async function updateRecord(tableName, localStorageKey, id, data) {
   return withSupabaseFallback(
     async () => {
-      const existingRows = await supabaseRequest(`/${tableName}?id=eq.${encodeURIComponent(id)}`)
+      const existingRows = await supabaseRequest(withCompanyFilter(`/${tableName}?id=eq.${encodeURIComponent(id)}`))
       const current = Array.isArray(existingRows) && existingRows[0] ? unwrapSupabaseRow(existingRows[0]) : { id }
       const next = { ...current, ...data }
-      const rows = await supabaseRequest(`/${tableName}?id=eq.${encodeURIComponent(id)}`, {
+      const rows = await supabaseRequest(withCompanyFilter(`/${tableName}?id=eq.${encodeURIComponent(id)}`), {
         method: 'PATCH',
         body: JSON.stringify({ data: next, updated_at: new Date().toISOString() }),
       })
@@ -113,7 +131,7 @@ export async function updateRecord(tableName, localStorageKey, id, data) {
 
 export async function deleteRecord(tableName, localStorageKey, id) {
   return withSupabaseFallback(
-    () => supabaseRequest(`/${tableName}?id=eq.${encodeURIComponent(id)}`, { method: 'DELETE', prefer: 'return=minimal' }),
+    () => supabaseRequest(withCompanyFilter(`/${tableName}?id=eq.${encodeURIComponent(id)}`), { method: 'DELETE', prefer: 'return=minimal' }),
     () => {
       const next = localCollection(localStorageKey, []).filter((item) => getRecordId(item, 'id') !== id)
       saveStorage(localStorageKey, next)
@@ -132,7 +150,7 @@ export function createCollectionClient({ table, storageKey, idField = 'id', fall
     async getAll() {
       return withSupabaseFallback(
         async () => {
-          const rows = await supabaseRequest(`/${table}?select=*&order=updated_at.desc`)
+          const rows = await supabaseRequest(withCompanyFilter(`/${table}?select=*&order=updated_at.desc`))
           return Array.isArray(rows) ? rows.map(unwrapSupabaseRow) : []
         },
         () => localCollection(storageKey, fallback),
@@ -142,7 +160,7 @@ export function createCollectionClient({ table, storageKey, idField = 'id', fall
     async getById(id) {
       return withSupabaseFallback(
         async () => {
-          const rows = await supabaseRequest(`/${table}?id=eq.${encodeURIComponent(id)}`)
+          const rows = await supabaseRequest(withCompanyFilter(`/${table}?id=eq.${encodeURIComponent(id)}`))
           return Array.isArray(rows) ? unwrapSupabaseRow(rows[0]) || null : null
         },
         () => localCollection(storageKey, fallback).find((record) => getRecordId(record, idField) === id) || null,
@@ -174,10 +192,10 @@ export function createCollectionClient({ table, storageKey, idField = 'id', fall
     async update(id, patch) {
       return withSupabaseFallback(
         async () => {
-          const existingRows = await supabaseRequest(`/${table}?id=eq.${encodeURIComponent(id)}`)
+          const existingRows = await supabaseRequest(withCompanyFilter(`/${table}?id=eq.${encodeURIComponent(id)}`))
           const current = Array.isArray(existingRows) && existingRows[0] ? unwrapSupabaseRow(existingRows[0]) : { [idField]: id }
           const next = { ...current, ...patch }
-          const rows = await supabaseRequest(`/${table}?id=eq.${encodeURIComponent(id)}`, {
+          const rows = await supabaseRequest(withCompanyFilter(`/${table}?id=eq.${encodeURIComponent(id)}`), {
             method: 'PATCH',
             body: JSON.stringify({ data: next, updated_at: new Date().toISOString() }),
           })
@@ -196,7 +214,7 @@ export function createCollectionClient({ table, storageKey, idField = 'id', fall
 
     async remove(id) {
       return withSupabaseFallback(
-        () => supabaseRequest(`/${table}?id=eq.${encodeURIComponent(id)}`, { method: 'DELETE', prefer: 'return=minimal' }),
+        () => supabaseRequest(withCompanyFilter(`/${table}?id=eq.${encodeURIComponent(id)}`), { method: 'DELETE', prefer: 'return=minimal' }),
         () => {
           const next = localCollection(storageKey, fallback).filter((item) => getRecordId(item, idField) !== id)
           saveStorage(storageKey, next)
@@ -240,7 +258,7 @@ export function createDocumentClient({ table, storageKey, id = 'general', fallba
     async getById() {
       return withSupabaseFallback(
         async () => {
-          const rows = await supabaseRequest(`/${table}?id=eq.${encodeURIComponent(id)}`)
+          const rows = await supabaseRequest(withCompanyFilter(`/${table}?id=eq.${encodeURIComponent(id)}`))
           return Array.isArray(rows) && rows[0]?.data ? rows[0].data : fallback
         },
         () => safeParseStorage(storageKey, fallback),
@@ -260,7 +278,7 @@ export function createDocumentClient({ table, storageKey, id = 'general', fallba
         await supabaseRequest(`/${table}?on_conflict=id`, {
           method: 'POST',
           headers: { Prefer: 'resolution=merge-duplicates,return=minimal' },
-          body: JSON.stringify({ id, data, updated_at: new Date().toISOString() }),
+          body: JSON.stringify({ id, company_id: getSessionCompanyId() || null, data, updated_at: new Date().toISOString() }),
         })
       } catch (error) {
         console.warn('No se pudo guardar documento en Supabase:', error.message)
@@ -272,7 +290,7 @@ export function createDocumentClient({ table, storageKey, id = 'general', fallba
     async remove() {
       localStorage.removeItem(storageKey)
       return withSupabaseFallback(
-        () => supabaseRequest(`/${table}?id=eq.${encodeURIComponent(id)}`, { method: 'DELETE', prefer: 'return=minimal' }),
+        () => supabaseRequest(withCompanyFilter(`/${table}?id=eq.${encodeURIComponent(id)}`), { method: 'DELETE', prefer: 'return=minimal' }),
         () => true,
       )
     },

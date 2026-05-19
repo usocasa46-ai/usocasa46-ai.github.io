@@ -3,6 +3,7 @@
 
 create table if not exists public.products (
   id text primary key,
+  company_id text,
   data jsonb not null default '{}'::jsonb,
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now()
@@ -10,6 +11,7 @@ create table if not exists public.products (
 
 create table if not exists public.customers (
   id text primary key,
+  company_id text,
   data jsonb not null default '{}'::jsonb,
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now()
@@ -17,6 +19,7 @@ create table if not exists public.customers (
 
 create table if not exists public.invoices (
   id text primary key,
+  company_id text,
   data jsonb not null default '{}'::jsonb,
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now()
@@ -24,6 +27,7 @@ create table if not exists public.invoices (
 
 create table if not exists public.quotes (
   id text primary key,
+  company_id text,
   data jsonb not null default '{}'::jsonb,
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now()
@@ -31,10 +35,17 @@ create table if not exists public.quotes (
 
 create table if not exists public.settings (
   id text primary key,
+  company_id text,
   data jsonb not null default '{}'::jsonb,
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now()
 );
+
+alter table public.products add column if not exists company_id text;
+alter table public.customers add column if not exists company_id text;
+alter table public.invoices add column if not exists company_id text;
+alter table public.quotes add column if not exists company_id text;
+alter table public.settings add column if not exists company_id text;
 
 alter table public.products enable row level security;
 alter table public.customers enable row level security;
