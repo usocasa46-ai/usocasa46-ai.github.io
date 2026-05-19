@@ -7,6 +7,7 @@ import {
 } from 'lucide-react'
 import { useMemo, useState } from 'react'
 import ModulePageLayout from '../shared/ModulePageLayout.jsx'
+import { exportToExcel } from '../../utils/exportToExcel.js'
 import './ReportsModulePages.css'
 
 function canUseStorage() {
@@ -43,19 +44,6 @@ function dateValue(row) {
 
 function documentValue(row) {
   return row.document || row.number || row.numero || row.ncf || row.code || row.id || 'N/D'
-}
-
-function exportCsv(filename, rows, columns) {
-  if (typeof document === 'undefined') return
-  const header = columns.map((column) => column.label).join(',')
-  const body = rows.map((row) => columns.map((column) => `"${String(column.render ? column.render(row, true) : row[column.key] ?? '').replaceAll('"', '""')}"`).join(','))
-  const blob = new Blob([[header, ...body].join('\n')], { type: 'text/csv;charset=utf-8' })
-  const url = URL.createObjectURL(blob)
-  const link = document.createElement('a')
-  link.href = url
-  link.download = filename
-  link.click()
-  URL.revokeObjectURL(url)
 }
 
 function normalizeSalesRows() {
@@ -310,61 +298,61 @@ const reportDefinitions = {
     title: 'Reportes de ventas',
     description: 'Facturas, POS, cotizaciones, devoluciones, notas de credito y cobros.',
     rows: normalizeSalesRows,
-    file: 'reportes-ventas.csv',
+    file: 'Reporte de ventas.xlsx',
   },
   purchases: {
     title: 'Reportes de compras',
     description: 'Ordenes, recepciones, facturas de proveedor y pagos.',
     rows: normalizePurchaseRows,
-    file: 'reportes-compras.csv',
+    file: 'Reporte de compras.xlsx',
   },
   inventory: {
     title: 'Reportes de inventario',
     description: 'Productos, stock, kardex, movimientos y ajustes.',
     rows: normalizeInventoryRows,
-    file: 'reportes-inventario.csv',
+    file: 'Reporte de inventario.xlsx',
   },
   warehouse: {
     title: 'Reportes de almacen',
     description: 'Recepciones, despachos, transferencias, devoluciones y cuarentena.',
     rows: normalizeWarehouseRows,
-    file: 'reportes-almacen.csv',
+    file: 'Reporte de almacen.xlsx',
   },
   finance: {
     title: 'Reportes financieros',
     description: 'Cuentas por cobrar, cuentas por pagar, cobros, pagos, bancos y caja.',
     rows: normalizeFinanceRows,
-    file: 'reportes-financieros.csv',
+    file: 'Reporte financiero.xlsx',
   },
   customers: {
     title: 'Reportes de clientes',
     description: 'Clientes, balances y actividad comercial.',
     rows: normalizeCustomerRows,
-    file: 'reportes-clientes.csv',
+    file: 'Reporte de clientes.xlsx',
   },
   suppliers: {
     title: 'Reportes de proveedores',
     description: 'Proveedores, balances y documentos de compra.',
     rows: normalizeSupplierRows,
-    file: 'reportes-proveedores.csv',
+    file: 'Reporte de proveedores.xlsx',
   },
   users: {
     title: 'Reportes de usuarios',
     description: 'Usuarios, roles y auditoria disponible.',
     rows: normalizeUserRows,
-    file: 'reportes-usuarios.csv',
+    file: 'Reporte de usuarios.xlsx',
   },
   dgii: {
     title: 'Reportes DGII',
     description: '606, 607, NCF usados, secuencias disponibles y errores fiscales.',
     rows: normalizeDgiiRows,
-    file: 'reportes-dgii.csv',
+    file: 'Reporte DGII.xlsx',
   },
   custom: {
     title: 'Reportes personalizados',
     description: 'Vista base para combinar datos de modulos y crear reportes propios.',
     rows: normalizeCustomRows,
-    file: 'reportes-personalizados.csv',
+    file: 'Reporte personalizado.xlsx',
   },
 }
 
@@ -425,7 +413,19 @@ function ReportPage({ type = 'sales', controls, searchValue = '', onSearchChange
       onRestore={controls?.onRestore}
       onMaximize={controls?.onMaximize}
       actions={[
-        { id: 'export', label: 'Exportar', icon: Download, onClick: () => exportCsv(definition.file, filtered, columns) },
+        {
+          id: 'export',
+          label: 'Exportar Excel',
+          icon: Download,
+          onClick: () => exportToExcel({
+            filename: definition.file,
+            sheetName: definition.title,
+            title: definition.title,
+            rows: filtered,
+            columns,
+            totals: [{ label: 'Total del reporte', value: total }],
+          }),
+        },
         { id: 'print', label: 'Imprimir', icon: Printer, onClick: () => window.print() },
         { id: 'clear', label: 'Limpiar filtros', icon: RefreshCcw, onClick: clearFilters },
         { id: 'exit', label: 'Salir', icon: X, onClick: controls?.onClose },
