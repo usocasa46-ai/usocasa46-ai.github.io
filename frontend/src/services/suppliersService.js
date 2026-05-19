@@ -1,13 +1,13 @@
 import { createCollectionClient } from './dataClient.js'
 
 const client = createCollectionClient({
-  table: 'company_users',
-  storageKey: 'inveFatUsers',
-  idField: 'username',
+  table: 'suppliers',
+  storageKey: 'invefat_suppliers',
+  idField: 'code',
   fallback: [],
 })
 
-export const usersService = {
+export const suppliersService = {
   getAll: () => client.getAll(),
   getById: (id) => client.getById(id),
   create: (record) => client.create(record),

@@ -17,6 +17,23 @@ function normalizePath(path = '') {
   return String(path || '').startsWith('/') ? path : `/${path}`
 }
 
+function getSessionHeaders() {
+  if (typeof sessionStorage === 'undefined') return {}
+
+  try {
+    const session = JSON.parse(sessionStorage.getItem('inveFatSession') || 'null')
+    if (!session) return {}
+
+    return {
+      'x-company-id': session.currentCompanyId || '',
+      'x-company-code': session.currentCompanyCode || '',
+      'x-user-role': session.isSuperAdmin ? 'superadmin' : session.currentRole || '',
+    }
+  } catch {
+    return {}
+  }
+}
+
 export async function supabaseRequest(path, options = {}) {
   if (!isSupabaseConfigured()) {
     throw new Error('Supabase no configurado. Usando localStorage como respaldo.')
@@ -29,6 +46,7 @@ export async function supabaseRequest(path, options = {}) {
       Authorization: `Bearer ${supabaseAnonKey}`,
       'Content-Type': 'application/json',
       Prefer: options.prefer || 'return=representation',
+      ...getSessionHeaders(),
       ...(options.headers || {}),
     },
   })
