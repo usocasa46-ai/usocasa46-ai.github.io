@@ -374,6 +374,24 @@
   padding: 10px;
 }
 
+.super-admin-check-actions {
+  grid-column: 1 / -1;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.super-admin-check-actions button {
+  min-height: 30px;
+  border: 1px solid #d7e1eb;
+  border-radius: 8px;
+  background: #fff7ed;
+  color: #c2410c;
+  cursor: pointer;
+  padding: 6px 10px;
+  font-weight: 850;
+}
+
 .super-admin-checks label {
   display: flex;
   flex-direction: row;

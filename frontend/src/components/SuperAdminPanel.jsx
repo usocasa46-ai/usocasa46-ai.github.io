@@ -17,6 +17,7 @@ import {
   generateCompanyBackup,
   getCompanyLicense,
   getIsolationResults,
+  ALL_COMPANY_MODULES,
   importCompanyBackup,
   isCompanyActive,
   loadBackupLog,
@@ -28,18 +29,7 @@ import {
 } from '../services/companyStorage.js'
 import './SuperAdminPanel.css'
 
-const moduleOptions = [
-  'dashboard',
-  'system',
-  'sales',
-  'inventory',
-  'purchases',
-  'warehouse',
-  'finance',
-  'reports',
-  'settings',
-  'security',
-]
+const moduleOptions = ALL_COMPANY_MODULES
 
 const sections = [
   ['empresas', 'Empresas'],
@@ -70,7 +60,7 @@ const emptyCompany = {
   maxSucursales: 1,
   maxAlmacenes: 2,
   tipoVersion: 'Cloud',
-  modulosActivos: ['dashboard', 'inventory', 'sales', 'reports'],
+  modulosActivos: ALL_COMPANY_MODULES,
 }
 
 function downloadJson(filename, payload) {
@@ -592,6 +582,13 @@ function LicenseModal({ draft, setDraft, onSave, plans }) {
           <label>Max almacenes<input type="number" min="1" value={draft.maxAlmacenes} onChange={(event) => setDraft({ ...draft, maxAlmacenes: event.target.value })} /></label>
           <label>Observacion<input value={draft.observacion || ''} onChange={(event) => setDraft({ ...draft, observacion: event.target.value })} /></label>
           <div className="super-admin-checks">
+            <div className="super-admin-check-actions">
+              <button type="button" onClick={() => setDraft({ ...draft, modulosActivos: ALL_COMPANY_MODULES })}>Activar todos los modulos para esta empresa</button>
+              <button type="button" onClick={() => {
+                const plan = plans.find((item) => item.name === draft.planContratado)
+                setDraft({ ...draft, modulosActivos: plan?.modules || ALL_COMPANY_MODULES })
+              }}>Restaurar modulos por defecto</button>
+            </div>
             {moduleOptions.map((moduleId) => <label key={moduleId}><input type="checkbox" checked={(draft.modulosActivos || []).includes(moduleId)} onChange={() => setDraft({ ...draft, modulosActivos: toggleModule(draft.modulosActivos, moduleId) })} />{moduleId}</label>)}
           </div>
         </div>
@@ -611,6 +608,10 @@ function PlanModal({ draft, setDraft, onSave }) {
           <label>Estado<select value={draft.status} onChange={(event) => setDraft({ ...draft, status: event.target.value })}><option>Activo</option><option>Inactivo</option></select></label>
           <label className="is-wide">Descripcion<input value={draft.description || ''} onChange={(event) => setDraft({ ...draft, description: event.target.value })} /></label>
           <div className="super-admin-checks">
+            <div className="super-admin-check-actions">
+              <button type="button" onClick={() => setDraft({ ...draft, modules: ALL_COMPANY_MODULES })}>Activar todos los modulos</button>
+              <button type="button" onClick={() => setDraft({ ...draft, modules: ['dashboard'] })}>Restaurar modulos por defecto</button>
+            </div>
             {moduleOptions.map((moduleId) => <label key={moduleId}><input type="checkbox" checked={(draft.modules || []).includes(moduleId)} onChange={() => setDraft({ ...draft, modules: toggleModule(draft.modules, moduleId) })} />{moduleId}</label>)}
           </div>
         </div>
