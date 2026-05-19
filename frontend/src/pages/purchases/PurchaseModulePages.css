@@ -338,6 +338,13 @@
   color: #815015;
 }
 
+.purchase-message.is-info {
+  border-color: #d7e8fb;
+  border-left-color: #4e87bc;
+  background: #f4f9ff;
+  color: #24435f;
+}
+
 .purchase-modal-backdrop {
   position: fixed;
   inset: 0;

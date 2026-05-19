@@ -13,6 +13,7 @@ import {
 import { useEffect, useMemo, useState } from 'react'
 import ModulePageLayout from '../shared/ModulePageLayout.jsx'
 import { customersService } from '../../services/customersService.js'
+import { normalizeRnc, rncService } from '../../services/rncService.js'
 import './SalesCustomersPage.css'
 
 const CUSTOMERS_KEY = 'invefat_customers'
@@ -40,6 +41,9 @@ const defaultCustomer = {
   preferredReceiptType: 'Consumidor final',
   authorizedDiscount: 0,
   internalNote: '',
+  economicActivity: '',
+  taxStatus: '',
+  taxRegimen: '',
   showFiscalIdOnInvoice: true,
   requiresFiscalReceipt: false,
   invoiceEmail: '',
@@ -82,6 +86,9 @@ function normalizeCustomer(customer) {
     creditDays: toNumber(customer.creditDays || customer.diasCredito),
     creditLimit: toNumber(customer.creditLimit || customer.limiteCredito),
     authorizedDiscount: toNumber(customer.authorizedDiscount || customer.descuentoAutorizado),
+    economicActivity: customer.economicActivity || customer.actividadEconomica || '',
+    taxStatus: customer.taxStatus || customer.estadoRnc || '',
+    taxRegimen: customer.taxRegimen || customer.regimenPago || '',
     balance: toNumber(customer.balance),
     status: customer.status || customer.estado || 'Activo',
   }
@@ -126,6 +133,7 @@ export default function SalesCustomersPage({ controls, onAction, searchValue = '
   })
   const [activeModal, setActiveModal] = useState('')
   const [message, setMessage] = useState('')
+  const [rncLookupNote, setRncLookupNote] = useState('')
 
   useEffect(() => {
     let isActive = true
@@ -227,6 +235,32 @@ export default function SalesCustomersPage({ controls, onAction, searchValue = '
       ...current,
       [field]: value,
     }))
+  }
+
+  const updateFiscalId = (value) => {
+    setForm((current) => ({ ...current, fiscalId: value }))
+    const rnc = normalizeRnc(value)
+    if (rnc.length < 9) {
+      setRncLookupNote('')
+      return
+    }
+
+    void rncService.getByRnc(rnc).then((record) => {
+      if (!record) {
+        setRncLookupNote('RNC no encontrado en la base.')
+        return
+      }
+      setForm((current) => ({
+        ...current,
+        fiscalId: record.rnc,
+        legalName: record.razonSocial,
+        tradeName: current.tradeName || record.razonSocial,
+        economicActivity: record.actividadEconomica,
+        taxStatus: record.estado,
+        taxRegimen: record.regimenPago,
+      }))
+      setRncLookupNote(`RNC encontrado: ${record.razonSocial}`)
+    })
   }
 
   const startNewCustomer = () => {
@@ -465,7 +499,7 @@ export default function SalesCustomersPage({ controls, onAction, searchValue = '
                     <label>Tipo de cliente<select value={form.type} onChange={(event) => updateForm('type', event.target.value)}><option>Persona</option><option>Empresa</option></select></label>
                     <label>Nombre comercial<input value={form.tradeName} onChange={(event) => updateForm('tradeName', event.target.value)} /></label>
                     <label>Razon social<input value={form.legalName} onChange={(event) => updateForm('legalName', event.target.value)} /></label>
-                    <label>RNC / Cedula / Identificacion<input value={form.fiscalId} onChange={(event) => updateForm('fiscalId', event.target.value)} /></label>
+                    <label>RNC / Cedula / Identificacion<input value={form.fiscalId} onChange={(event) => updateFiscalId(event.target.value)} /></label>
                     <label>Telefono<input value={form.phone} onChange={(event) => updateForm('phone', event.target.value)} /></label>
                     <label>WhatsApp<input value={form.whatsapp} onChange={(event) => updateForm('whatsapp', event.target.value)} /></label>
                     <label>Correo electronico<input value={form.email} onChange={(event) => updateForm('email', event.target.value)} /></label>
@@ -474,6 +508,7 @@ export default function SalesCustomersPage({ controls, onAction, searchValue = '
                     <label>Provincia<input value={form.province} onChange={(event) => updateForm('province', event.target.value)} /></label>
                     <label>Pais<input value={form.country} onChange={(event) => updateForm('country', event.target.value)} /></label>
                     <label>Estado<select value={form.status} onChange={(event) => updateForm('status', event.target.value)}><option>Activo</option><option>Inactivo</option></select></label>
+                    {rncLookupNote && <p className="customers-rnc-note">{rncLookupNote}</p>}
                   </div>
                 </section>
 

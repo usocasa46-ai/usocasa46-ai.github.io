@@ -19,6 +19,7 @@ import { useEffect, useMemo, useState } from 'react'
 import ModulePageLayout from '../shared/ModulePageLayout.jsx'
 import { invoicesService } from '../../services/invoicesService.js'
 import { productsService } from '../../services/productsService.js'
+import { normalizeRnc, rncService } from '../../services/rncService.js'
 import { createSalesInvoiceEntry, readArray as readAccountingArray, ACCOUNTING_KEYS } from '../../utils/accountingEntries.js'
 import { createPdfMetadata, downloadSalesDocumentPdf } from '../../utils/pdf/salesDocumentPdf.js'
 import { consumeNextNcf, generateNextNcf, markNcfAsUsed, peekNextNcf, previewNextNcf } from '../../utils/ncfGenerator.js'
@@ -395,6 +396,7 @@ export default function SalesPosPage({ controls, onAction, searchValue = '', onS
   const [lines, setLines] = useState([])
   const [payment, setPayment] = useState({ method: 'Efectivo', received: '', card: '', transfer: '', reference: '', bank: '' })
   const [fiscalReceipt, setFiscalReceipt] = useState(defaultFiscalReceipt)
+  const [rncLookupNote, setRncLookupNote] = useState('')
   const [message, setMessage] = useState('')
   const [completedInvoice, setCompletedInvoice] = useState(null)
   const [showSuspended, setShowSuspended] = useState(false)
@@ -442,6 +444,7 @@ export default function SalesPosPage({ controls, onAction, searchValue = '', onS
     setCustomerQuery('')
     setProductQuery('')
     setFiscalReceipt(defaultFiscalReceipt)
+    setRncLookupNote('')
     setCompletedInvoice(null)
   }
 
@@ -457,8 +460,36 @@ export default function SalesPosPage({ controls, onAction, searchValue = '', onS
 
   const toggleFiscalReceipt = (enabled) => {
     setFiscalReceipt((current) => {
-      if (!enabled) return { ...defaultFiscalReceipt, enabled: false }
+      if (!enabled) {
+        setRncLookupNote('')
+        return { ...defaultFiscalReceipt, enabled: false }
+      }
       return mergeFiscalCustomer({ ...current, enabled: true, receiptType: current.receiptType || 'Credito fiscal' }, customer)
+    })
+  }
+
+  const updateFiscalRnc = (value) => {
+    setFiscalReceipt((current) => ({ ...current, fiscalId: value }))
+    const rnc = normalizeRnc(value)
+    if (rnc.length < 9) {
+      setRncLookupNote('')
+      return
+    }
+
+    void rncService.getByRnc(rnc).then((record) => {
+      if (!record) {
+        setRncLookupNote('RNC no encontrado en la base.')
+        return
+      }
+      setFiscalReceipt((current) => ({
+        ...current,
+        fiscalId: record.rnc,
+        name: record.razonSocial,
+        fiscalActivity: record.actividadEconomica,
+        fiscalStatus: record.estado,
+        fiscalRegimen: record.regimenPago,
+      }))
+      setRncLookupNote(`RNC encontrado: ${record.razonSocial}`)
     })
   }
 
@@ -1016,7 +1047,7 @@ export default function SalesPosPage({ controls, onAction, searchValue = '', onS
                 <div className="pos-fiscal-grid">
                   <label>
                     RNC cliente
-                    <input value={fiscalReceipt.fiscalId} onChange={(event) => setFiscalReceipt((current) => ({ ...current, fiscalId: event.target.value }))} placeholder="RNC obligatorio" />
+                    <input value={fiscalReceipt.fiscalId} onChange={(event) => updateFiscalRnc(event.target.value)} placeholder="RNC obligatorio" />
                   </label>
                   <label>
                     Nombre / razon social
@@ -1049,6 +1080,7 @@ export default function SalesPosPage({ controls, onAction, searchValue = '', onS
                     <input value={fiscalReceipt.address} onChange={(event) => setFiscalReceipt((current) => ({ ...current, address: event.target.value }))} />
                   </label>
                   {fiscalPreview.error && <div className="pos-fiscal-warning">{fiscalPreview.error}</div>}
+                  {rncLookupNote && <div className="pos-fiscal-warning">{rncLookupNote}</div>}
                 </div>
               )}
             </div>

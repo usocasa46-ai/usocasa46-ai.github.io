@@ -16,6 +16,7 @@ import {
   X,
 } from 'lucide-react'
 import ModulePageLayout from '../shared/ModulePageLayout.jsx'
+import { normalizeRnc, rncService } from '../../services/rncService.js'
 import './PurchaseModulePages.css'
 
 const PRODUCTS_KEY = 'inveFatInventoryProducts'
@@ -231,6 +232,9 @@ function normalizeSupplier(record) {
     country: String(record.country || 'Republica Dominicana').trim(),
     contact: String(record.contact || '').trim(),
     paymentCondition: record.paymentCondition || 'Contado',
+    economicActivity: String(record.economicActivity || record.actividadEconomica || '').trim(),
+    taxStatus: String(record.taxStatus || record.estadoRnc || '').trim(),
+    taxRegimen: String(record.taxRegimen || record.regimenPago || '').trim(),
     creditDays: toNumber(record.creditDays),
     creditLimit: toNumber(record.creditLimit),
     category: String(record.category || 'General').trim(),
@@ -465,6 +469,7 @@ function SupplierCatalogPage({ controls, onAction, searchValue = '', onSearchCha
   const [draft, setDraft] = useState(null)
   const [infoModal, setInfoModal] = useState('')
   const [message, setMessage] = useState('')
+  const [rncLookupNote, setRncLookupNote] = useState('')
   const selected = records.find((record) => record.code === selectedCode)
 
   const saveRecords = (nextRecords) => {
@@ -479,28 +484,62 @@ function SupplierCatalogPage({ controls, onAction, searchValue = '', onSearchCha
     return matchesText && matchesStatus
   })
 
-  const newSupplier = () => setDraft({
-    code: nextCode(records, 'SUP'),
-    type: 'Empresa',
-    commercialName: '',
-    legalName: '',
-    fiscalId: '',
-    phone: '',
-    whatsapp: '',
-    email: '',
-    address: '',
-    city: '',
-    province: '',
-    country: 'Republica Dominicana',
-    contact: '',
-    paymentCondition: 'Contado',
-    creditDays: 0,
-    creditLimit: 0,
-    category: 'General',
-    status: 'Activo',
-    note: '',
-    balance: 0,
-  })
+  const newSupplier = () => {
+    setRncLookupNote('')
+    setDraft({
+      code: nextCode(records, 'SUP'),
+      type: 'Empresa',
+      commercialName: '',
+      legalName: '',
+      fiscalId: '',
+      phone: '',
+      whatsapp: '',
+      email: '',
+      address: '',
+      city: '',
+      province: '',
+      country: 'Republica Dominicana',
+      contact: '',
+      paymentCondition: 'Contado',
+      economicActivity: '',
+      taxStatus: '',
+      taxRegimen: '',
+      creditDays: 0,
+      creditLimit: 0,
+      category: 'General',
+      status: 'Activo',
+      note: '',
+      balance: 0,
+    })
+  }
+
+  const updateSupplierDraft = (name, value) => {
+    setDraft((current) => ({ ...current, [name]: value }))
+    if (name !== 'fiscalId') return
+
+    const rnc = normalizeRnc(value)
+    if (rnc.length < 9) {
+      setRncLookupNote('')
+      return
+    }
+
+    void rncService.getByRnc(rnc).then((record) => {
+      if (!record) {
+        setRncLookupNote('RNC no encontrado en la base.')
+        return
+      }
+      setDraft((current) => ({
+        ...current,
+        fiscalId: record.rnc,
+        legalName: record.razonSocial,
+        commercialName: current.commercialName || record.razonSocial,
+        economicActivity: record.actividadEconomica,
+        taxStatus: record.estado,
+        taxRegimen: record.regimenPago,
+      }))
+      setRncLookupNote(`RNC encontrado: ${record.razonSocial}`)
+    })
+  }
 
   const saveDraft = () => {
     const normalized = normalizeSupplier(draft)
@@ -588,6 +627,7 @@ function SupplierCatalogPage({ controls, onAction, searchValue = '', onSearchCha
 
         {draft && (
           <Modal title="Proveedor" subtitle={draft.code} onClose={() => setDraft(null)} onSave={saveDraft} wide>
+            {rncLookupNote && <div className="purchase-message is-info">{rncLookupNote}</div>}
             <div className="purchase-form-grid">
               {[
                 { name: 'code', label: 'Codigo proveedor' },
@@ -609,7 +649,7 @@ function SupplierCatalogPage({ controls, onAction, searchValue = '', onSearchCha
                 { name: 'category', label: 'Categoria proveedor' },
                 { name: 'status', label: 'Estado', type: 'select', options: ['Activo', 'Inactivo'] },
                 { name: 'note', label: 'Nota interna', type: 'textarea', span: 'full' },
-              ].map((field) => <FieldControl key={field.name} field={field} value={draft[field.name]} onChange={(name, value) => setDraft((current) => ({ ...current, [name]: value }))} />)}
+              ].map((field) => <FieldControl key={field.name} field={field} value={draft[field.name]} onChange={updateSupplierDraft} />)}
             </div>
           </Modal>
         )}

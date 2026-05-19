@@ -17,6 +17,7 @@ import IncomeStatementPage from '../pages/accounting/IncomeStatementPage.jsx'
 import JournalEntriesPage from '../pages/accounting/JournalEntriesPage.jsx'
 import NcfSequencesPage from '../pages/accounting/NcfSequencesPage.jsx'
 import PettyCashPage from '../pages/accounting/PettyCashPage.jsx'
+import RncRegistryPage from '../pages/accounting/RncRegistryPage.jsx'
 import DashboardPage from '../pages/dashboard/DashboardPage.jsx'
 import InventoryAdjustmentsPage from '../pages/inventory/InventoryAdjustmentsPage.jsx'
 import InventoryBarcodesPage from '../pages/inventory/InventoryBarcodesPage.jsx'
@@ -130,6 +131,7 @@ const pageComponents = {
   'finance-dgii-606': Dgii606Page,
   'finance-dgii-607': Dgii607Page,
   'finance-ncf-sequences': NcfSequencesPage,
+  'finance-rnc': RncRegistryPage,
   'finance-accounting-settings': AccountingSettingsPage,
   'security-users': SecurityUsersPage,
   'security-roles': SecurityRolesPage,

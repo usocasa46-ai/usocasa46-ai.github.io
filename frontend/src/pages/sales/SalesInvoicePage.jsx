@@ -18,6 +18,7 @@ import { customersService } from '../../services/customersService.js'
 import { invoicesService } from '../../services/invoicesService.js'
 import { productsService } from '../../services/productsService.js'
 import { settingsService } from '../../services/settingsService.js'
+import { normalizeRnc, rncService } from '../../services/rncService.js'
 import {
   createPdfMetadata,
   downloadSalesDocumentPdf,
@@ -411,6 +412,7 @@ export default function SalesInvoicePage({ controls, onAction, searchValue = '',
   })
   const [productQuery, setProductQuery] = useState('')
   const [customerQuery, setCustomerQuery] = useState('')
+  const [rncLookupNote, setRncLookupNote] = useState('')
   const [selectedProductCode, setSelectedProductCode] = useState('')
   const [message, setMessage] = useState('')
   const [activeModal, setActiveModal] = useState('')
@@ -570,6 +572,32 @@ export default function SalesInvoicePage({ controls, onAction, searchValue = '',
     setCustomerQuery(`${customer.code} - ${customer.name} - ${customer.fiscalId || 'sin RNC'}`)
   }
 
+  const applyRncLookupToInvoice = async (value) => {
+    const rnc = normalizeRnc(value)
+    if (rnc.length < 9) {
+      setRncLookupNote('')
+      return
+    }
+
+    const record = await rncService.getByRnc(rnc)
+    if (!record) {
+      setRncLookupNote('RNC no encontrado en la base.')
+      return
+    }
+
+    setInvoice((current) => ({
+      ...current,
+      customerCode: current.customerCode || `RNC-${record.rnc}`,
+      customer: record.razonSocial,
+      fiscalId: record.rnc,
+      fiscalActivity: record.actividadEconomica,
+      fiscalStatus: record.estado,
+      fiscalRegimen: record.regimenPago,
+    }))
+    setCustomerQuery(`${record.rnc} - ${record.razonSocial}`)
+    setRncLookupNote(`RNC encontrado: ${record.razonSocial}`)
+  }
+
   const updateCustomerQuery = (value) => {
     setCustomerQuery(value)
     const normalized = value.trim().toLowerCase()
@@ -577,7 +605,13 @@ export default function SalesInvoicePage({ controls, onAction, searchValue = '',
       customer.code.toLowerCase() === normalized || String(customer.fiscalId || '').toLowerCase() === normalized
     ))
 
-    if (match) selectCustomer(match.code)
+    if (match) {
+      selectCustomer(match.code)
+      setRncLookupNote('')
+      return
+    }
+
+    void applyRncLookupToInvoice(value)
   }
 
   const useCustomerQueryAsCashClient = () => {
@@ -1181,6 +1215,7 @@ export default function SalesInvoicePage({ controls, onAction, searchValue = '',
                   {registeredCustomerCount === 0 && (
                     <p className="sales-empty-note">No hay clientes registrados. Puede usar cliente de contado o crear clientes desde Ventas &gt; Clientes.</p>
                   )}
+                  {rncLookupNote && <p className="sales-empty-note">{rncLookupNote}</p>}
 
                   <div className="sales-client-summary">
                     <article><span>Nombre</span><strong>{invoice.customer || 'Pendiente'}</strong></article>

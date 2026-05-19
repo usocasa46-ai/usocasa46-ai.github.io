@@ -51,6 +51,7 @@ import {
   saveNcfSequences,
   validateNcfSequence,
 } from '../../utils/ncfGenerator.js'
+import { enrichDgiiRecordsWithRnc } from '../../services/rncService.js'
 import './AccountingModulePages.css'
 
 function cleanText(value) {
@@ -87,7 +88,7 @@ function exportCsv(filename, rows) {
 function statusClass(status = '') {
   const clean = cleanText(status)
   if (clean.includes('anulad') || clean.includes('inactiv') || clean.includes('agotad') || clean.includes('error') || clean.includes('venc')) return 'is-danger'
-  if (clean.includes('borrador') || clean.includes('pendiente') || clean.includes('parcial')) return 'is-warning'
+  if (clean.includes('borrador') || clean.includes('pendiente') || clean.includes('parcial') || clean.includes('advert')) return 'is-warning'
   if (clean.includes('contabil') || clean.includes('activo') || clean.includes('pagad') || clean.includes('listo') || clean.includes('concili')) return 'is-success'
   return 'is-info'
 }
@@ -867,8 +868,9 @@ function DgiiPage({ controls, searchValue, onSearchChange, type }) {
   const [records, setRecords] = useState(() => readArray(storageKey))
   const [draft, setDraft] = useState(null)
 
-  const generate = () => {
-    const next = is606 ? buildDgii606(period) : buildDgii607(period)
+  const generate = async () => {
+    const base = is606 ? buildDgii606(period) : buildDgii607(period)
+    const next = await enrichDgiiRecordsWithRnc(base, type)
     setRecords(next)
     if (is606) saveDgii606(next)
     else saveDgii607(next)
