@@ -26,9 +26,21 @@ const emptyRecord = {
   source: 'manual',
 }
 
-function exportCsv(filename, rows) {
+const RNC_CSV_HEADER = 'RNC,RAZÓN SOCIAL,ACTIVIDAD ECONÓMICA,FECHA DE INICIO OPERACIONES,ESTADO,RÉGIMEN DE PAGO'
+const RNC_CSV_HEADER_COMPAT = 'RNC,RAZON SOCIAL,ACTIVIDAD ECONOMICA,FECHA DE INICIO OPERACIONES,ESTADO,REGIMEN DE PAGO'
+
+function downloadCsv(filename, content) {
   if (typeof document === 'undefined') return
-  const header = 'RNC,RAZON SOCIAL,ACTIVIDAD ECONOMICA,FECHA DE INICIO OPERACIONES,ESTADO,REGIMEN DE PAGO'
+  const blob = new Blob([content], { type: 'text/csv;charset=utf-8' })
+  const url = URL.createObjectURL(blob)
+  const link = document.createElement('a')
+  link.href = url
+  link.download = filename
+  link.click()
+  URL.revokeObjectURL(url)
+}
+
+function exportCsv(filename, rows) {
   const csvRows = rows.map((row) => [
     row.rnc,
     row.razonSocial,
@@ -37,13 +49,7 @@ function exportCsv(filename, rows) {
     row.estado,
     row.regimenPago,
   ].map((value) => `"${String(value ?? '').replaceAll('"', '""')}"`).join(','))
-  const blob = new Blob([[header, ...csvRows].join('\n')], { type: 'text/csv;charset=utf-8' })
-  const url = URL.createObjectURL(blob)
-  const link = document.createElement('a')
-  link.href = url
-  link.download = filename
-  link.click()
-  URL.revokeObjectURL(url)
+  downloadCsv(filename, [RNC_CSV_HEADER, ...csvRows].join('\n'))
 }
 
 function RncModal({ title, children, onClose, footer }) {
@@ -186,6 +192,10 @@ export default function RncRegistryPage({ controls, onAction, searchValue = '', 
     exportCsv('invefat-rnc-registry.csv', allRows)
   }
 
+  const exportTemplate = () => {
+    downloadCsv('plantilla-rnc-invefat.csv', `${RNC_CSV_HEADER}\n`)
+  }
+
   const importSelectedCsv = async () => {
     if (!selectedFile) {
       notify('Seleccione un archivo CSV.')
@@ -260,7 +270,7 @@ export default function RncRegistryPage({ controls, onAction, searchValue = '', 
             <strong>Consulta de contribuyentes</strong>
           </div>
           <div className="rnc-filter-grid">
-            <label>Buscar por RNC o razon social<input value={filters.query} onChange={(event) => updateFilter('query', event.target.value)} placeholder="RNC, razon social o nombre" /></label>
+            <label>Buscar por RNC o razon social<input value={filters.query} onChange={(event) => updateFilter('query', event.target.value)} placeholder="RNC / razon social / nombre" /></label>
             <label>Actividad economica<input value={filters.actividadEconomica} onChange={(event) => updateFilter('actividadEconomica', event.target.value)} placeholder="Actividad economica" /></label>
             <label>Estado<select value={filters.estado} onChange={(event) => updateFilter('estado', event.target.value)}>{statusOptions.map((option) => <option key={option}>{option}</option>)}</select></label>
             <label>Regimen de pago<select value={filters.regimenPago} onChange={(event) => updateFilter('regimenPago', event.target.value)}>{regimenOptions.map((option) => <option key={option}>{option}</option>)}</select></label>
@@ -316,6 +326,7 @@ export default function RncRegistryPage({ controls, onAction, searchValue = '', 
             footer={(
               <>
                 <button type="button" onClick={() => abortRef.current?.abort()} disabled={!abortRef.current}>Cancelar carga</button>
+                <button type="button" onClick={exportTemplate}>Plantilla CSV</button>
                 <button type="button" onClick={() => setUploadOpen(false)}>Cerrar</button>
                 <button type="button" className="accounting-primary-button" onClick={importSelectedCsv}><FileUp size={15} /> Importar</button>
               </>
@@ -324,8 +335,8 @@ export default function RncRegistryPage({ controls, onAction, searchValue = '', 
             <div className="rnc-import-box">
               <label>Archivo CSV<input type="file" accept=".csv,text/csv" onChange={(event) => setSelectedFile(event.target.files?.[0] || null)} /></label>
               <p>Encabezado esperado:</p>
-              <code>RNC, RAZON SOCIAL, ACTIVIDAD ECONOMICA, FECHA DE INICIO OPERACIONES, ESTADO, REGIMEN DE PAGO</code>
-              <code>RNC, RAZÓN SOCIAL, ACTIVIDAD ECONÓMICA, FECHA DE INICIO OPERACIONES, ESTADO, RÉGIMEN DE PAGO</code>
+              <code>{RNC_CSV_HEADER}</code>
+              <code>{RNC_CSV_HEADER_COMPAT}</code>
               <label className="rnc-check"><input type="checkbox" checked={updateDuplicates} onChange={(event) => setUpdateDuplicates(event.target.checked)} /> Actualizar duplicados</label>
               <label className="rnc-check"><input type="checkbox" checked={clearBeforeImport} onChange={(event) => setClearBeforeImport(event.target.checked)} /> Limpiar base antes de importar</label>
               <div className="rnc-progress">
