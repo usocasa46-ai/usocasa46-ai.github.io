@@ -34,6 +34,10 @@
   min-width: 1240px;
 }
 
+.accounting-table.accounting-ncf-table {
+  min-width: 1320px;
+}
+
 .accounting-table th,
 .accounting-table td {
   padding: 11px 12px;
@@ -191,6 +195,80 @@
   text-align: center !important;
   color: #66788b;
   font-weight: 800;
+}
+
+.accounting-ncf-alerts {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.accounting-ncf-alerts article {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 10px;
+  border: 1px solid #f2d4bd;
+  border-left: 4px solid #f1872d;
+  border-radius: 10px;
+  background: #fff8f1;
+  color: #8a4c12;
+  padding: 10px 12px;
+}
+
+.accounting-ncf-alerts article.is-critica {
+  border-color: #f1c1bd;
+  border-left-color: #c83f36;
+  background: #fff5f3;
+  color: #9f3029;
+}
+
+.accounting-ncf-alerts article strong {
+  color: inherit;
+  font-weight: 950;
+}
+
+.accounting-ncf-alerts article span {
+  min-width: 0;
+  font-size: 13px;
+  font-weight: 800;
+}
+
+.accounting-ncf-alerts article button {
+  min-height: 31px;
+  border: 1px solid currentColor;
+  border-radius: 8px;
+  background: transparent;
+  color: inherit;
+  cursor: pointer;
+  padding: 5px 9px;
+  font-weight: 900;
+}
+
+.accounting-ncf-usage {
+  width: 130px;
+  height: 24px;
+  position: relative;
+  overflow: hidden;
+  border: 1px solid #d7e1ec;
+  border-radius: 999px;
+  background: #f5f8fb;
+}
+
+.accounting-ncf-usage span {
+  position: absolute;
+  inset: 0 auto 0 0;
+  background: linear-gradient(90deg, #5e93c5, #f1872d);
+}
+
+.accounting-ncf-usage strong {
+  position: relative;
+  z-index: 1;
+  display: grid;
+  place-items: center;
+  height: 100%;
+  color: #10243a;
+  font-size: 11px;
 }
 
 .accounting-modal-backdrop {

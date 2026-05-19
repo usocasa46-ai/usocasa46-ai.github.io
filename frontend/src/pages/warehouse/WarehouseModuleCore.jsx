@@ -219,6 +219,7 @@ function readProducts() {
     description: String(product.description || '').trim(),
     unit: String(product.unit || 'Unidad').trim(),
     barcode: String(product.barcode || '').trim(),
+    image: product.image || product.imageUrl || product.productImage || product.imagen || product.photo || '',
     cost: toNumber(product.cost),
     price: toNumber(product.price),
     stock: toNumber(product.stock),
@@ -1156,12 +1157,17 @@ function ProductLinesTable({ lines, products, mode, updateLine, removeLine, read
         </tr>
       </thead>
       <tbody>
-        {lines.map((line) => (
+        {lines.map((line) => {
+          const product = products.find((item) => item.code === line.productCode)
+          return (
           <tr key={line.id}>
             <td>
-              <select className="warehouse-line-input" value={line.productCode} onChange={(event) => updateLine(line.id, 'productCode', event.target.value)} disabled={readOnly}>
-                {productOptions(products).map((option) => <option key={option.value} value={option.value}>{option.label}</option>)}
-              </select>
+              <div className="warehouse-product-mini">
+                {product?.image ? <img src={product.image} alt={product.name} /> : <span>{String(line.productName || product?.name || 'P').slice(0, 1)}</span>}
+                <select className="warehouse-line-input" value={line.productCode} onChange={(event) => updateLine(line.id, 'productCode', event.target.value)} disabled={readOnly}>
+                  {productOptions(products).map((option) => <option key={option.value} value={option.value}>{option.label}</option>)}
+                </select>
+              </div>
             </td>
             <td>{line.unit}</td>
             {mode === 'receiving' && <td><input className="warehouse-line-input" type="number" value={line.orderedQuantity} onChange={(event) => updateLine(line.id, 'orderedQuantity', event.target.value)} disabled={readOnly} /></td>}
@@ -1178,7 +1184,7 @@ function ProductLinesTable({ lines, products, mode, updateLine, removeLine, read
             <td><StatusBadge value={line.lineStatus || 'Pendiente'} /></td>
             {!readOnly && <td><button type="button" className="warehouse-small-button" onClick={() => removeLine(line.id)}>Eliminar</button></td>}
           </tr>
-        ))}
+        )})}
         {lines.length === 0 && <tr><td colSpan={mode === 'receiving' ? 12 : 11} className="warehouse-empty-state">No hay productos en el detalle.</td></tr>}
       </tbody>
     </table>

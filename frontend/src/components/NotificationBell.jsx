@@ -17,6 +17,10 @@ const pageByAlert = {
   'Recepcion parcial': 'warehouse-receiving',
   'Factura pendiente de pago': 'purchase-payables',
   'Cliente con balance pendiente': 'sales-receivables',
+  'NCF por agotarse': 'finance-ncf-sequences',
+  'NCF agotado': 'finance-ncf-sequences',
+  'NCF por vencer': 'finance-ncf-sequences',
+  'NCF vencido': 'finance-ncf-sequences',
 }
 
 function readNotifications() {

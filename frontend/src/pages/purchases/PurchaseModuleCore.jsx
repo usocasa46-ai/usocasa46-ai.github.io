@@ -165,6 +165,7 @@ function readProducts() {
     category: String(product.category || '').trim(),
     unit: String(product.unit || 'Unidad').trim(),
     barcode: String(product.barcode || '').trim(),
+    image: product.image || product.imageUrl || product.productImage || product.imagen || product.photo || '',
     cost: toNumber(product.cost),
     price: toNumber(product.price),
     stock: toNumber(product.stock),
@@ -977,7 +978,12 @@ function DocumentPage({
                           return (
                             <tr key={product.code} className={lowStock ? 'is-low-stock' : ''}>
                               <td>{product.code}</td>
-                              <td><strong>{product.name}</strong><small>{product.supplierName || draft.supplier}</small></td>
+                              <td>
+                                <div className="purchase-product-mini">
+                                  {product.image ? <img src={product.image} alt={product.name} /> : <span>{String(product.name || 'P').slice(0, 1)}</span>}
+                                  <div><strong>{product.name}</strong><small>{product.supplierName || draft.supplier}</small></div>
+                                </div>
+                              </td>
                               <td>{product.category || 'N/D'}</td>
                               <td>{formatNumber(product.stock)}</td>
                               <td>{formatNumber(product.minStock)}</td>

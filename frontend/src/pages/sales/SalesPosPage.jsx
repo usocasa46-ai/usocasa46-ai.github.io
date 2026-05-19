@@ -21,7 +21,7 @@ import { invoicesService } from '../../services/invoicesService.js'
 import { productsService } from '../../services/productsService.js'
 import { createSalesInvoiceEntry, readArray as readAccountingArray, ACCOUNTING_KEYS } from '../../utils/accountingEntries.js'
 import { createPdfMetadata, downloadSalesDocumentPdf } from '../../utils/pdf/salesDocumentPdf.js'
-import { consumeNextNcf, NCF_SEQUENCES_KEY, peekNextNcf } from '../../utils/ncfGenerator.js'
+import { consumeNextNcf, generateNextNcf, markNcfAsUsed, peekNextNcf, previewNextNcf } from '../../utils/ncfGenerator.js'
 import { openThermalTicket } from '../../utils/posThermalPrint.js'
 import './SalesPosPage.css'
 
@@ -274,64 +274,7 @@ function nextInvoiceNumber(settings, invoices) {
 function nextNcf(settings, invoices, receiptType) {
   if (!settings.fiscal?.useNcf) return ''
   const type = receiptType || settings.fiscal.defaultReceiptType || settings.fiscal.ncfPrefix || 'Consumidor final'
-  const sequenceNcf = peekNextNcf(type)
-  if (sequenceNcf) return sequenceNcf
-
-  const prefix = settings.fiscal.ncfPrefix || 'B02'
-  const length = Number(settings.fiscal.ncfLength) || 8
-  const configuredNext = Number(settings.fiscal.nextNcf) || 1
-  const maxExisting = invoices.reduce((max, invoice) => {
-    const parsed = Number.parseInt(String(invoice.ncf || '').replace(prefix, ''), 10)
-    return Number.isFinite(parsed) ? Math.max(max, parsed) : max
-  }, 0)
-  return `${prefix}${String(Math.max(configuredNext, maxExisting + 1)).padStart(length, '0')}`
-}
-
-function sequenceMatches(sequence, receiptType) {
-  const cleanType = cleanText(receiptType)
-  return (
-    cleanText(sequence.type).includes(cleanType) ||
-    cleanText(sequence.prefix) === cleanType ||
-    cleanText(sequence.name).includes(cleanType)
-  )
-}
-
-function findConfiguredNcfSequence(receiptType) {
-  const sequences = readArray(NCF_SEQUENCES_KEY)
-  return sequences.find((sequence) => sequence.status !== 'Inactivo' && sequenceMatches(sequence, receiptType))
-}
-
-function previewConfiguredNcf(receiptType) {
-  const sequence = findConfiguredNcfSequence(receiptType)
-  if (!sequence) return { ncf: '', validUntil: '', sequence: null, error: 'No hay secuencia NCF configurada para este tipo de comprobante.' }
-
-  const next = Math.max(toNumber(sequence.nextNumber), toNumber(sequence.from) || 1)
-  if (toNumber(sequence.to) > 0 && next > toNumber(sequence.to)) {
-    return { ncf: '', validUntil: sequence.validUntil || '', sequence, error: 'La secuencia NCF seleccionada no tiene numeros disponibles.' }
-  }
-
-  return {
-    ncf: `${sequence.prefix}${String(next).padStart(8, '0')}`,
-    validUntil: sequence.validUntil || '',
-    sequence,
-    error: '',
-  }
-}
-
-function consumeConfiguredNcf(receiptType) {
-  const sequences = readArray(NCF_SEQUENCES_KEY)
-  const sequence = findConfiguredNcfSequence(receiptType)
-  if (!sequence) return { ncf: '', validUntil: '', error: 'No hay secuencia NCF configurada para este tipo de comprobante.' }
-
-  const next = Math.max(toNumber(sequence.nextNumber), toNumber(sequence.from) || 1)
-  if (toNumber(sequence.to) > 0 && next > toNumber(sequence.to)) {
-    return { ncf: '', validUntil: sequence.validUntil || '', error: 'La secuencia NCF seleccionada no tiene numeros disponibles.' }
-  }
-
-  const ncf = `${sequence.prefix}${String(next).padStart(8, '0')}`
-  const updated = sequences.map((item) => item.id === sequence.id ? { ...item, nextNumber: next + 1, updatedAt: new Date().toISOString() } : item)
-  writeStorage(NCF_SEQUENCES_KEY, updated)
-  return { ncf, validUntil: sequence.validUntil || '', error: '' }
+  return peekNextNcf(type) || ''
 }
 
 function mergeFiscalCustomer(current, selectedCustomer) {
@@ -468,8 +411,8 @@ export default function SalesPosPage({ controls, onAction, searchValue = '', onS
   const totals = useMemo(() => calculateTotals(lines, payment), [lines, payment])
   const categories = useMemo(() => ['Todas', ...Array.from(new Set(products.map((product) => product.category).filter(Boolean))).sort()], [products])
   const fiscalPreview = useMemo(() => (
-    fiscalReceipt.enabled ? previewConfiguredNcf(fiscalReceipt.receiptType) : { ncf: '', validUntil: '', error: '' }
-  ), [fiscalReceipt.enabled, fiscalReceipt.receiptType])
+    fiscalReceipt.enabled ? previewNextNcf(fiscalReceipt.receiptType, branch.code) : { ncf: '', validUntil: '', error: '' }
+  ), [branch.code, fiscalReceipt.enabled, fiscalReceipt.receiptType])
 
   const filteredProducts = useMemo(() => {
     const query = cleanText(`${searchValue || ''} ${productQuery}`.trim())
@@ -687,7 +630,13 @@ export default function SalesPosPage({ controls, onAction, searchValue = '', onS
     let ncfValidUntil = settings.fiscal?.ncfValidUntil || ''
 
     if (isFiscalReceipt) {
-      const consumed = consumeConfiguredNcf(receiptType)
+      const consumed = generateNextNcf(receiptType, branch.code, {
+        documentType: 'Factura POS',
+        moduloOrigen: 'Ventas > Punto de venta',
+        clienteProveedor: fiscalReceipt.name,
+        total: calculateTotals(lines, payment).total,
+        usuario: session?.fullName || session?.username || 'Caja',
+      })
       if (!consumed.ncf) {
         notify(consumed.error || 'No hay secuencia NCF configurada para este tipo de comprobante.')
         return
@@ -768,6 +717,15 @@ export default function SalesPosPage({ controls, onAction, searchValue = '', onS
     saveReport(savedInvoice, invoiceTotals)
     saveCashMovement(savedInvoice, invoiceTotals)
     savePosSale(savedInvoice)
+    if (savedInvoice.ncf) {
+      markNcfAsUsed(savedInvoice.ncf, savedInvoice.number, 'Factura POS', {
+        tipoComprobante: savedInvoice.tipoComprobante || savedInvoice.receiptType,
+        clienteProveedor: savedInvoice.customer,
+        total: savedInvoice.totals.total,
+        usuario: savedInvoice.seller,
+        moduloOrigen: 'Ventas > Punto de venta',
+      })
+    }
     const existingAccountingEntry = readAccountingArray(ACCOUNTING_KEYS.entries).some((entry) => entry.sourceDocument === savedInvoice.number && entry.sourceModule === 'Ventas')
     if (!existingAccountingEntry) createSalesInvoiceEntry(savedInvoice)
     setCompletedInvoice(savedInvoice)

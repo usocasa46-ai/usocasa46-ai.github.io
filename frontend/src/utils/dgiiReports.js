@@ -81,8 +81,16 @@ export function buildDgii607(period = periodFromDate()) {
     .map((item) => {
       const fiscalId = item.fiscalId || item.customerFiscalId || item.customerDocument || ''
       const ncf = item.ncf || ''
+      const receiptType = item.tipoComprobante || item.receiptType || ncf.slice(0, 3) || ''
+      const isFiscalInvoice = Boolean(item.comprobanteFiscal || ncf || receiptType.includes('B01') || receiptType.includes('Credito fiscal'))
+      const requiresCustomerRnc = String(ncf).startsWith('B01') || String(receiptType).includes('Credito fiscal') || item.comprobanteFiscal
       const total = invoiceTotal(item) || toNumber(item.amount)
       const tax = invoiceTax(item)
+      const errores = [
+        isFiscalInvoice && !ncf ? 'Falta NCF emitido' : '',
+        requiresCustomerRnc && !fiscalId ? 'Falta RNC cliente' : '',
+      ].filter(Boolean)
+
       return {
         id: `607-${item.number || ncf}`,
         periodo: period,
@@ -103,12 +111,9 @@ export function buildDgii607(period = periodFromDate()) {
         otrosImpuestos: toNumber(item.otherTaxes),
         propinaLegal: toNumber(item.legalTip),
         formaPago: item.paymentMethod || 'Contado',
-        estado: ncf && fiscalId ? 'Listo' : 'Con errores',
+        estado: item.state === 'Anulada' || item.status === 'Anulada' ? 'Anulada' : errores.length ? 'Con errores' : 'Listo',
         fuente: item.source,
-        errores: [
-          !ncf ? 'Falta NCF emitido' : '',
-          !fiscalId ? 'Falta RNC cliente' : '',
-        ].filter(Boolean),
+        errores,
       }
     })
 }

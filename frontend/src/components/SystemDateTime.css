@@ -1,0 +1,40 @@
+.system-date-time {
+  min-height: 34px;
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  border: 1px solid #d7e1ec;
+  border-radius: 8px;
+  background: #f8fafc;
+  color: #36526f;
+  padding: 0 10px;
+  font-size: 12px;
+  font-weight: 850;
+  white-space: nowrap;
+}
+
+.system-date-time svg {
+  color: #f1872d;
+  flex: 0 0 auto;
+}
+
+body.theme-dark .system-date-time {
+  background: var(--panel-soft);
+  border-color: var(--border-color);
+  color: var(--text-main);
+}
+
+@media (max-width: 1120px) {
+  .system-date-time span {
+    max-width: 190px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+}
+
+@media (max-width: 720px) {
+  .system-date-time {
+    width: 100%;
+    justify-content: center;
+  }
+}

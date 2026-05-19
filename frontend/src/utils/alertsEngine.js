@@ -1,3 +1,5 @@
+import { getNcfWarnings } from './ncfGenerator.js'
+
 export const ALERTS_KEY = 'invefat_alerts'
 export const PENDING_PURCHASE_ORDER_KEY = 'invefat_pending_purchase_order_from_alert'
 
@@ -151,6 +153,22 @@ export function generateAlertsSnapshot() {
   const cycleCounts = readStorageArray(CYCLE_COUNTS_KEY)
   const createdAt = nowIso()
   const alerts = []
+
+  getNcfWarnings().forEach((warning) => {
+    alerts.push({
+      id: makeId(['ncf', warning.kind, warning.sequence.id]),
+      fecha: createdAt,
+      tipo: warning.kind === 'por-agotarse' ? 'NCF por agotarse' : warning.kind === 'agotada' ? 'NCF agotado' : warning.kind === 'vencida' ? 'NCF vencido' : 'NCF por vencer',
+      modulo: 'Finanzas',
+      submodulo: 'Comprobantes fiscales / NCF',
+      titulo: warning.sequence.type,
+      descripcion: warning.message,
+      prioridad: warning.priority,
+      referencia: warning.sequence.id,
+      accionSugerida: 'Ver secuencia',
+      pageId: 'finance-ncf-sequences',
+    })
+  })
 
   products.forEach((product) => {
     if (isOutOfStock(product)) {

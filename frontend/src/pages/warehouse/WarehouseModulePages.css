@@ -210,6 +210,36 @@
   font-size: 12px;
 }
 
+.warehouse-product-mini {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 240px;
+}
+
+.warehouse-product-mini img,
+.warehouse-product-mini > span {
+  flex: 0 0 34px;
+  width: 34px;
+  height: 34px;
+  border: 1px solid #dce5ef;
+  border-radius: 8px;
+  background: #eef4fa;
+}
+
+.warehouse-product-mini img {
+  object-fit: cover;
+}
+
+.warehouse-product-mini > span {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: #24435f;
+  font-size: 13px;
+  font-weight: 900;
+}
+
 .warehouse-table-actions {
   display: flex;
   align-items: center;

@@ -208,6 +208,31 @@
   font-size: 12px;
 }
 
+.inventory-product-mini {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  min-width: 200px;
+}
+
+.inventory-product-mini img,
+.inventory-product-mini > span {
+  width: 38px;
+  height: 38px;
+  flex: 0 0 auto;
+  border: 1px solid #dce5ef;
+  border-radius: 9px;
+  background: #eef4fa;
+  color: #56718b;
+  object-fit: cover;
+}
+
+.inventory-product-mini > span {
+  display: inline-grid;
+  place-items: center;
+  font-weight: 900;
+}
+
 .inventory-table-actions {
   display: flex;
   align-items: center;

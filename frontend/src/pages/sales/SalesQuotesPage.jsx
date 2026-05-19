@@ -168,6 +168,7 @@ function normalizeProduct(product) {
     tax: rawTax === undefined || rawTax === null || rawTax === '' ? null : toNumber(rawTax),
     stock: toNumber(product.stock),
     status: product.status || product.estado || 'Activo',
+    image: product.image || product.imageUrl || product.productImage || product.imagen || product.photo || '',
   }
 }
 
@@ -624,6 +625,7 @@ export default function SalesQuotesPage({ controls, onAction, searchValue = '', 
             description: selectedProduct.description,
             unit: selectedProduct.unit,
             barcode: selectedProduct.barcode,
+            image: selectedProduct.image,
             stock: selectedProduct.stock,
             quantity: 1,
             price: selectedProduct.price,
@@ -1153,7 +1155,12 @@ export default function SalesQuotesPage({ controls, onAction, searchValue = '', 
                         {quote.lines.map((line) => (
                           <tr key={line.id}>
                             <td>{line.code}</td>
-                            <td><strong>{line.name}</strong><small>{line.description || 'Sin descripcion adicional'}</small></td>
+                            <td>
+                              <div className="sales-product-cell">
+                                {line.image ? <img src={line.image} alt={line.name} /> : <span>{String(line.name || 'P').slice(0, 1)}</span>}
+                                <div><strong>{line.name}</strong><small>{line.description || 'Sin descripcion adicional'}</small></div>
+                              </div>
+                            </td>
                             <td>{line.unit}</td>
                             <td>{formatNumber(line.stock, 0)}</td>
                             <td><input type="number" min="0" step="0.01" value={line.quantity} onChange={(event) => updateLine(line.id, 'quantity', event.target.value)} /></td>

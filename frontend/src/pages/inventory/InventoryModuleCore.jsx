@@ -111,6 +111,7 @@ function readProducts() {
     brand: String(product.brand || '').trim(),
     unit: String(product.unit || 'Unidad').trim(),
     barcode: String(product.barcode || '').trim(),
+    image: product.image || product.imageUrl || product.productImage || product.imagen || product.photo || '',
     cost: toNumber(product.cost),
     price: toNumber(product.price),
     tax: String(product.tax || '').trim(),
@@ -1091,7 +1092,12 @@ export function InventoryStockPage({ controls, searchValue = '', onSearchChange 
                 return (
                   <tr key={product.code} className={selectedCode === product.code ? 'is-selected' : ''} onClick={() => setSelectedCode(product.code)}>
                     <td>{product.code}</td>
-                    <td><strong>{product.name}</strong><small>{product.barcode || 'Sin codigo de barra'}</small></td>
+                    <td>
+                      <div className="inventory-product-mini">
+                        {product.image ? <img src={product.image} alt={product.name} /> : <span>{String(product.name || 'P').slice(0, 1)}</span>}
+                        <div><strong>{product.name}</strong><small>{product.barcode || 'Sin codigo de barra'}</small></div>
+                      </div>
+                    </td>
                     <td>{product.category || 'N/D'}</td>
                     <td>{product.unit}</td>
                     <td>{formatNumber(product.stock)}</td>

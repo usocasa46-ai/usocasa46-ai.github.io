@@ -25,7 +25,7 @@ import {
   printSalesDocumentPdf,
 } from '../../utils/pdf/salesDocumentPdf.js'
 import { ACCOUNTING_KEYS, createSalesInvoiceEntry, readArray as readAccountingArray } from '../../utils/accountingEntries.js'
-import { consumeNextNcf, peekNextNcf } from '../../utils/ncfGenerator.js'
+import { generateNextNcf, markNcfAsUsed, peekNextNcf } from '../../utils/ncfGenerator.js'
 import './SalesInvoicePage.css'
 
 const INVOICES_KEY = 'invefat_sales_invoices'
@@ -169,6 +169,7 @@ function normalizeProduct(product) {
     tax: rawTax === undefined || rawTax === null || rawTax === '' ? null : toNumber(rawTax),
     stock: toNumber(product.stock),
     status: product.status || product.estado || 'Activo',
+    image: product.image || product.imageUrl || product.productImage || product.imagen || product.photo || '',
   }
 }
 
@@ -281,20 +282,7 @@ function nextInvoiceNumber(settings, invoices) {
 
 function nextNcf(settings, invoices) {
   if (!settings.fiscal?.useNcf) return ''
-
-  const sequenceNcf = peekNextNcf(settings.fiscal.defaultReceiptType || settings.fiscal.ncfPrefix)
-  if (sequenceNcf) return sequenceNcf
-
-  const prefix = settings.fiscal.ncfPrefix || 'B02'
-  const length = Number(settings.fiscal.ncfLength) || 8
-  const configuredNext = Number(settings.fiscal.nextNcf) || 1
-  const maxExisting = invoices.reduce((max, invoice) => {
-    const numberPart = String(invoice.ncf || '').replace(prefix, '')
-    const parsed = Number.parseInt(numberPart, 10)
-    return Number.isFinite(parsed) ? Math.max(max, parsed) : max
-  }, 0)
-
-  return `${prefix}${String(Math.max(configuredNext, maxExisting + 1)).padStart(length, '0')}`
+  return peekNextNcf(settings.fiscal.defaultReceiptType || settings.fiscal.ncfPrefix) || ''
 }
 
 function defaultBranch(settings) {
@@ -691,6 +679,7 @@ export default function SalesInvoicePage({ controls, onAction, searchValue = '',
             description: selectedProduct.description,
             unit: selectedProduct.unit,
             barcode: selectedProduct.barcode,
+            image: selectedProduct.image,
             stock: selectedProduct.stock,
             quantity,
             price: selectedProduct.price,
@@ -849,13 +838,26 @@ export default function SalesInvoicePage({ controls, onAction, searchValue = '',
       ncfValidUntil: invoice.ncfValidUntil || settings.fiscal?.ncfValidUntil || '',
     }
 
-    if (settings.fiscal?.useNcf) {
+    if (settings.fiscal?.useNcf || fiscalInvoice.receiptType !== 'Consumidor final') {
       const nextSequenceNcf = peekNextNcf(fiscalInvoice.receiptType || settings.fiscal.defaultReceiptType)
       if (!invoice.ncf || fiscalInvoice.ncf === nextSequenceNcf) {
-        const consumed = consumeNextNcf(fiscalInvoice.receiptType || settings.fiscal.defaultReceiptType)
+        const consumed = generateNextNcf(fiscalInvoice.receiptType || settings.fiscal.defaultReceiptType, fiscalInvoice.branch, {
+          documentId: fiscalInvoice.number,
+          documentType: 'Factura',
+          moduloOrigen: 'Ventas > Factura',
+          clienteProveedor: fiscalInvoice.customer,
+          total: nextTotals.total,
+          usuario: fiscalInvoice.seller,
+        })
         if (consumed.ncf) {
           fiscalInvoice.ncf = consumed.ncf
           fiscalInvoice.ncfValidUntil = fiscalInvoice.ncfValidUntil || consumed.validUntil
+          fiscalInvoice.ncfValidoHasta = fiscalInvoice.ncfValidUntil
+          fiscalInvoice.tipoComprobante = fiscalInvoice.receiptType
+          fiscalInvoice.comprobanteFiscal = fiscalInvoice.receiptType !== 'Consumidor final'
+        } else if (fiscalInvoice.receiptType !== 'Consumidor final') {
+          notify(consumed.error || 'No hay secuencia NCF disponible para esta factura.')
+          return
         }
       }
     }
@@ -881,6 +883,15 @@ export default function SalesInvoicePage({ controls, onAction, searchValue = '',
     setInvoices(nextInvoices)
     saveInvoices(nextInvoices)
     saveReport(savedInvoice, nextTotals)
+    if (savedInvoice.ncf) {
+      markNcfAsUsed(savedInvoice.ncf, savedInvoice.number, 'Factura', {
+        tipoComprobante: savedInvoice.tipoComprobante || savedInvoice.receiptType,
+        clienteProveedor: savedInvoice.customer,
+        total: savedInvoice.totals.total,
+        usuario: savedInvoice.seller,
+        moduloOrigen: 'Ventas > Factura',
+      })
+    }
     const existingAccountingEntry = readAccountingArray(ACCOUNTING_KEYS.entries).some((entry) => entry.sourceDocument === savedInvoice.number && entry.sourceModule === 'Ventas')
     if (!existingAccountingEntry && savedInvoice.state !== 'Anulada') {
       createSalesInvoiceEntry(savedInvoice)
@@ -1346,8 +1357,13 @@ export default function SalesInvoicePage({ controls, onAction, searchValue = '',
                           <tr key={line.id}>
                             <td>{line.code}</td>
                             <td>
-                              <strong>{line.name}</strong>
-                              <small>{line.description || 'Sin descripcion adicional'}</small>
+                              <div className="sales-product-cell">
+                                {line.image ? <img src={line.image} alt={line.name} /> : <span>{String(line.name || 'P').slice(0, 1)}</span>}
+                                <div>
+                                  <strong>{line.name}</strong>
+                                  <small>{line.description || 'Sin descripcion adicional'}</small>
+                                </div>
+                              </div>
                             </td>
                             <td>{line.unit}</td>
                             <td>{line.barcode || 'N/D'}</td>

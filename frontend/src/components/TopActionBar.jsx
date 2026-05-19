@@ -14,6 +14,7 @@ import {
 } from 'lucide-react'
 import useTheme from '../hooks/useTheme.js'
 import NotificationBell from './NotificationBell.jsx'
+import SystemDateTime from './SystemDateTime.jsx'
 import './AppWorkspace.css'
 
 const menuGroups = [
@@ -197,6 +198,8 @@ export default function TopActionBar({
         </button>
 
         <NotificationBell onNavigate={onNavigate} />
+
+        <SystemDateTime />
 
         <div className="erp-admin-menu-wrap">
           <button

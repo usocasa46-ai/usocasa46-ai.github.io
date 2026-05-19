@@ -39,7 +39,18 @@ import {
   writeStorage,
 } from '../../utils/accountingEntries.js'
 import { buildDgii606, buildDgii607, currentPeriod, DGII_606_KEY, DGII_607_KEY, saveDgii606, saveDgii607 } from '../../utils/dgiiReports.js'
-import { createNcfSequence, defaultNcfSequences, getNcfSequences, NCF_SEQUENCES_KEY, saveNcfSequences } from '../../utils/ncfGenerator.js'
+import {
+  createNcfSequence,
+  defaultNcfSequences,
+  getNcfSequences,
+  getNcfWarnings,
+  getUsedNcfs,
+  ncfReceiptTypes,
+  NCF_SEQUENCES_KEY,
+  previewNextNcf,
+  saveNcfSequences,
+  validateNcfSequence,
+} from '../../utils/ncfGenerator.js'
 import './AccountingModulePages.css'
 
 function cleanText(value) {
@@ -75,7 +86,7 @@ function exportCsv(filename, rows) {
 
 function statusClass(status = '') {
   const clean = cleanText(status)
-  if (clean.includes('anulad') || clean.includes('inactivo') || clean.includes('error') || clean.includes('venc')) return 'is-danger'
+  if (clean.includes('anulad') || clean.includes('inactiv') || clean.includes('agotad') || clean.includes('error') || clean.includes('venc')) return 'is-danger'
   if (clean.includes('borrador') || clean.includes('pendiente') || clean.includes('parcial')) return 'is-warning'
   if (clean.includes('contabil') || clean.includes('activo') || clean.includes('pagad') || clean.includes('listo') || clean.includes('concili')) return 'is-success'
   return 'is-info'
@@ -931,17 +942,43 @@ export function Dgii607Page(props) {
 
 export function NcfSequencesPage({ controls, onAction, searchValue, onSearchChange }) {
   const [records, setRecords] = useState(() => getNcfSequences())
+  const [usedRecords] = useState(() => getUsedNcfs())
   const [selectedId, setSelectedId] = useState('')
   const [draft, setDraft] = useState(null)
   const selected = records.find((record) => record.id === selectedId)
-  const filtered = records.filter((record) => !searchValue || [record.type, record.prefix, record.status].some((value) => cleanText(value).includes(cleanText(searchValue))))
+  const warnings = getNcfWarnings()
+  const filtered = records.filter((record) => !searchValue || [record.type, record.prefix, record.status, record.branchCode].some((value) => cleanText(value).includes(cleanText(searchValue))))
+  const sequenceUsage = (record) => {
+    const used = Math.max(toNumber(record.nextNumber) - toNumber(record.from), 0)
+    const total = Math.max(toNumber(record.to) - toNumber(record.from) + 1, 1)
+    const available = Math.max(toNumber(record.to) - toNumber(record.nextNumber) + 1, 0)
+    return { used, total, available, percent: Math.min(100, Math.round((used / total) * 100)) }
+  }
 
   const saveDraft = () => {
     if (!draft.type || !draft.prefix) {
       onAction?.('Tipo y serie son obligatorios.')
       return
     }
+
     const normalized = createNcfSequence(records, draft)
+    const validation = validateNcfSequence(normalized)
+    if (!validation.valid) {
+      onAction?.(validation.errors[0])
+      return
+    }
+
+    const duplicateActive = records.some((record) => (
+      record.id !== normalized.id &&
+      record.status === 'Activo' &&
+      record.prefix === normalized.prefix &&
+      cleanText(record.branchCode) === cleanText(normalized.branchCode)
+    ))
+    if (duplicateActive) {
+      onAction?.('Ya existe una secuencia activa para ese tipo y sucursal.')
+      return
+    }
+
     const next = records.some((record) => record.id === normalized.id)
       ? records.map((record) => record.id === normalized.id ? normalized : record)
       : [normalized, ...records]
@@ -962,37 +999,75 @@ export function NcfSequencesPage({ controls, onAction, searchValue, onSearchChan
       actions={[
         { id: 'new', label: 'Crear secuencia', icon: FilePlus2, variant: 'primary', onClick: () => setDraft(createNcfSequence(records, { validUntil: today() })) },
         { id: 'edit', label: 'Editar', icon: Edit3, disabled: !selected, onClick: () => setDraft(selected) },
-        { id: 'inactive', label: 'Inactivar', icon: Ban, disabled: !selected, onClick: () => { const next = records.map((record) => record.id === selected.id ? { ...record, status: 'Inactivo' } : record); setRecords(next); saveNcfSequences(next) } },
+        { id: 'inactive', label: 'Inactivar', icon: Ban, disabled: !selected, onClick: () => { const next = records.map((record) => record.id === selected.id ? { ...record, status: 'Inactiva' } : record); setRecords(next); saveNcfSequences(next) } },
         { id: 'export', label: 'Exportar', icon: Download, onClick: () => exportJson('ncf-secuencias.json', records) },
       ]}
       cards={[
         { label: 'Secuencias', value: records.length },
         { label: 'Activas', value: records.filter((item) => item.status === 'Activo').length },
-        { label: 'Por defecto', value: records.find((item) => item.default)?.prefix || 'N/D' },
-        { label: 'Tipos base', value: defaultNcfSequences.length },
+        { label: 'Alertas NCF', value: warnings.length },
+        { label: 'NCF usados', value: usedRecords.length },
       ]}
     >
+      {warnings.length > 0 && (
+        <section className="accounting-ncf-alerts">
+          {warnings.slice(0, 4).map((warning) => (
+            <article key={`${warning.kind}-${warning.sequence.id}`} className={`is-${warning.priority}`}>
+              <strong>{warning.sequence.prefix}</strong>
+              <span>{warning.message}</span>
+              <button type="button" onClick={() => { setSelectedId(warning.sequence.id); setDraft(warning.sequence) }}>Ver secuencia</button>
+            </article>
+          ))}
+        </section>
+      )}
       <section className="accounting-panel">
         <div className="accounting-table-wrap">
-          <table className="accounting-table">
-            <thead><tr><th>Tipo</th><th>Serie</th><th>Desde</th><th>Hasta</th><th>Proximo</th><th>Valido hasta</th><th>Defecto</th><th>Estado</th><th>Acciones</th></tr></thead>
+          <table className="accounting-table accounting-ncf-table">
+            <thead><tr><th>Tipo</th><th>Serie</th><th>Rango</th><th>Proximo NCF</th><th>Disponibles</th><th>Uso</th><th>Valido hasta</th><th>Uso docs</th><th>Estado</th><th>Acciones</th></tr></thead>
             <tbody>
-              {filtered.map((record) => <tr key={record.id} className={selectedId === record.id ? 'is-selected' : ''} onClick={() => setSelectedId(record.id)}><td>{record.type}</td><td><strong>{record.prefix}</strong></td><td>{record.from}</td><td>{record.to}</td><td>{record.nextNumber}</td><td>{record.validUntil}</td><td>{record.default ? 'Si' : 'No'}</td><td><Badge value={record.status} /></td><td><TableActions onEdit={() => setDraft(record)} onVoid={() => { const next = records.map((item) => item.id === record.id ? { ...item, status: 'Inactivo' } : item); setRecords(next); saveNcfSequences(next) }} /></td></tr>)}
+              {filtered.map((record) => {
+                const usage = sequenceUsage(record)
+                const preview = previewNextNcf(record.type, record.branchCode)
+                return (
+                  <tr key={record.id} className={selectedId === record.id ? 'is-selected' : ''} onClick={() => setSelectedId(record.id)}>
+                    <td><strong>{record.type}</strong><small>{record.description || 'Sin descripcion'}{record.branchCode ? ` | ${record.branchCode}` : ''}</small></td>
+                    <td><strong>{record.prefix}</strong><small>{record.default ? 'Predeterminada' : 'Secuencia'}</small></td>
+                    <td>{String(record.from).padStart(record.length, '0')} - {String(record.to).padStart(record.length, '0')}</td>
+                    <td><strong>{preview.ncf || 'No disponible'}</strong><small>{preview.error}</small></td>
+                    <td>{usage.available.toLocaleString('es-DO')}</td>
+                    <td><div className="accounting-ncf-usage"><span style={{ width: `${usage.percent}%` }} /><strong>{usage.percent}%</strong></div></td>
+                    <td>{record.validUntil || 'Sin vencimiento'}</td>
+                    <td>{[record.useInvoice ? 'Factura' : '', record.usePos ? 'POS' : '', record.useCreditNote ? 'NC' : ''].filter(Boolean).join(' / ') || 'N/D'}</td>
+                    <td><Badge value={record.status} /></td>
+                    <td><TableActions onEdit={() => setDraft(record)} onVoid={() => { const next = records.map((item) => item.id === record.id ? { ...item, status: 'Inactiva' } : item); setRecords(next); saveNcfSequences(next) }} /></td>
+                  </tr>
+                )
+              })}
+              {filtered.length === 0 && <tr><td colSpan="10" className="accounting-empty">No hay secuencias NCF para mostrar.</td></tr>}
             </tbody>
           </table>
         </div>
       </section>
       {draft && (
-        <Modal title="Secuencia NCF" subtitle={draft.prefix} onClose={() => setDraft(null)} onSave={saveDraft}>
+        <Modal title="Secuencia NCF" subtitle={draft.prefix} onClose={() => setDraft(null)} onSave={saveDraft} wide>
           <div className="accounting-form-grid">
-            <Field label="Tipo de comprobante" type="select" options={['B01 Credito fiscal', 'B02 Consumidor final', 'B14 Regimen especial', 'B15 Gubernamental', 'B04 Nota de credito', 'B03 Nota de debito']} value={draft.type} onChange={(value) => setDraft((current) => ({ ...current, type: value, prefix: value.split(' ')[0] }))} />
-            <Field label="Serie" value={draft.prefix} onChange={(value) => setDraft((current) => ({ ...current, prefix: value }))} />
-            <Field label="Desde" type="number" value={draft.from} onChange={(value) => setDraft((current) => ({ ...current, from: value }))} />
-            <Field label="Hasta" type="number" value={draft.to} onChange={(value) => setDraft((current) => ({ ...current, to: value }))} />
+            <Field label="Tipo de comprobante" type="select" options={ncfReceiptTypes} value={draft.type} onChange={(value) => setDraft((current) => ({ ...current, type: value, prefix: value.split(' ')[0], description: value.replace(value.split(' ')[0], '').trim() }))} />
+            <Field label="Descripcion" value={draft.description} onChange={(value) => setDraft((current) => ({ ...current, description: value }))} />
+            <Field label="Serie" value={draft.series || 'B'} onChange={(value) => setDraft((current) => ({ ...current, series: value }))} />
+            <Field label="Prefijo" value={draft.prefix} onChange={(value) => setDraft((current) => ({ ...current, prefix: value }))} />
+            <Field label="Numero inicial" type="number" value={draft.from} onChange={(value) => setDraft((current) => ({ ...current, from: value }))} />
+            <Field label="Numero final" type="number" value={draft.to} onChange={(value) => setDraft((current) => ({ ...current, to: value }))} />
             <Field label="Proximo numero" type="number" value={draft.nextNumber} onChange={(value) => setDraft((current) => ({ ...current, nextNumber: value }))} />
+            <Field label="Longitud" type="number" value={draft.length || 8} onChange={(value) => setDraft((current) => ({ ...current, length: value }))} />
+            <Field label="Fecha autorizacion" type="date" value={draft.authorizedAt} onChange={(value) => setDraft((current) => ({ ...current, authorizedAt: value }))} />
             <Field label="Valido hasta" type="date" value={draft.validUntil} onChange={(value) => setDraft((current) => ({ ...current, validUntil: value }))} />
             <Field label="Por defecto" type="select" options={['No', 'Si']} value={draft.default ? 'Si' : 'No'} onChange={(value) => setDraft((current) => ({ ...current, default: value === 'Si' }))} />
-            <Field label="Estado" type="select" options={['Activo', 'Inactivo']} value={draft.status} onChange={(value) => setDraft((current) => ({ ...current, status: value }))} />
+            <Field label="Usar en Factura" type="select" options={['No', 'Si']} value={draft.useInvoice ? 'Si' : 'No'} onChange={(value) => setDraft((current) => ({ ...current, useInvoice: value === 'Si' }))} />
+            <Field label="Usar en POS" type="select" options={['No', 'Si']} value={draft.usePos ? 'Si' : 'No'} onChange={(value) => setDraft((current) => ({ ...current, usePos: value === 'Si' }))} />
+            <Field label="Usar en Nota de credito" type="select" options={['No', 'Si']} value={draft.useCreditNote ? 'Si' : 'No'} onChange={(value) => setDraft((current) => ({ ...current, useCreditNote: value === 'Si' }))} />
+            <Field label="Sucursal asignada" value={draft.branchCode} onChange={(value) => setDraft((current) => ({ ...current, branchCode: value }))} />
+            <Field label="Estado" type="select" options={['Activo', 'Inactiva', 'Agotada', 'Vencida']} value={draft.status} onChange={(value) => setDraft((current) => ({ ...current, status: value }))} />
+            <Field label="Observaciones" type="textarea" span value={draft.notes} onChange={(value) => setDraft((current) => ({ ...current, notes: value }))} />
           </div>
         </Modal>
       )}

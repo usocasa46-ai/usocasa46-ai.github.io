@@ -136,6 +136,7 @@ function normalizeProduct(product) {
     brand: String(product.brand || '').trim(),
     unit: String(product.unit || 'Unidad').trim(),
     barcode: String(product.barcode || '').trim(),
+    image: product.image || product.imageUrl || product.productImage || product.imagen || product.photo || '',
     cost: normalizeNumber(product.cost),
     price: normalizeNumber(product.price),
     tax: String(product.tax || 'ITBIS 18%').trim(),
@@ -191,6 +192,7 @@ function createEmptyProduct(products) {
     brand: '',
     unit: 'Unidad',
     barcode: '',
+    image: '',
     cost: '',
     price: '',
     tax: 'ITBIS 18%',
@@ -650,6 +652,27 @@ export default function InventoryProductsPage({ controls, onAction, searchValue 
     }))
   }
 
+  const updateProductImage = (file) => {
+    if (!file) return
+    const allowedTypes = ['image/jpeg', 'image/png', 'image/webp']
+    if (!allowedTypes.includes(file.type)) {
+      notify('Imagen no valida. Use JPG, PNG o WEBP.')
+      return
+    }
+    if (file.size > 1200 * 1024) {
+      notify('La imagen supera 1.2 MB. Use una imagen mas ligera.')
+      return
+    }
+
+    const reader = new FileReader()
+    reader.onload = () => {
+      updateForm('image', reader.result || '')
+      notify('Imagen cargada en el formulario.')
+    }
+    reader.onerror = () => notify('No se pudo cargar la imagen.')
+    reader.readAsDataURL(file)
+  }
+
   const updateMovementFilter = (field, value) => {
     setMovementFilters((current) => ({
       ...current,
@@ -1082,6 +1105,22 @@ export default function InventoryProductsPage({ controls, onAction, searchValue 
                     Codigo de barra
                     <input value={formData.barcode} onChange={(event) => updateForm('barcode', event.target.value)} />
                   </label>
+                  <div className="inventory-image-field inventory-span-2">
+                    <div className="inventory-image-preview">
+                      {formData.image ? <img src={formData.image} alt={formData.name || 'Producto'} /> : <PackageSearch size={34} />}
+                    </div>
+                    <div>
+                      <strong>Imagen del producto</strong>
+                      <span>JPG, PNG o WEBP. Se guarda localmente para POS, factura e inventario.</span>
+                      <div className="inventory-image-actions">
+                        <label>
+                          Cargar imagen
+                          <input type="file" accept="image/jpeg,image/png,image/webp" onChange={(event) => updateProductImage(event.target.files?.[0])} />
+                        </label>
+                        {formData.image && <button type="button" onClick={() => updateForm('image', '')}>Quitar imagen</button>}
+                      </div>
+                    </div>
+                  </div>
                   <label>
                     Proveedor principal
                     <select value={formData.supplierCode || formData.supplierName || ''} onChange={(event) => updateForm('supplierCode', event.target.value)}>
@@ -1374,8 +1413,13 @@ export default function InventoryProductsPage({ controls, onAction, searchValue 
                   >
                     <td>{product.code}</td>
                     <td>
-                      <strong>{product.name}</strong>
-                      <small>{[product.brand || 'Sin marca', product.supplierName || 'Sin proveedor'].join(' | ')}</small>
+                      <div className="inventory-product-cell">
+                        {product.image ? <img src={product.image} alt={product.name} /> : <span>{String(product.name || 'P').slice(0, 1)}</span>}
+                        <div>
+                          <strong>{product.name}</strong>
+                          <small>{[product.brand || 'Sin marca', product.supplierName || 'Sin proveedor'].join(' | ')}</small>
+                        </div>
+                      </div>
                     </td>
                     <td>{product.category || 'Sin categoria'}</td>
                     <td>{product.unit}</td>
