@@ -79,6 +79,19 @@ function formatBytes(bytes = 0) {
   return `${(bytes / 1024 / 1024).toFixed(2)} MB`
 }
 
+function formatDateTime(value) {
+  if (!value) return 'N/D'
+  const date = new Date(value)
+  if (Number.isNaN(date.getTime())) return 'N/D'
+  return date.toLocaleString('es-DO', {
+    day: '2-digit',
+    month: '2-digit',
+    year: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit',
+  })
+}
+
 function toggleModule(list = [], moduleId) {
   return list.includes(moduleId)
     ? list.filter((item) => item !== moduleId)
@@ -111,6 +124,77 @@ export default function SuperAdminPanel({
   const supportAccess = useMemo(() => loadSupportAccess(), [refreshKey])
   const auditLog = useMemo(() => loadSystemAudit(), [refreshKey])
   const isolation = useMemo(() => getIsolationResults(companies), [companies, refreshKey])
+  const diagnostics = useMemo(() => {
+    const warnings = []
+    const errors = []
+    const companyIds = new Set(companies.map((company) => company.id))
+    const companyCodes = new Set()
+
+    companies.forEach((company) => {
+      const code = String(company.companyCode || '').trim().toUpperCase()
+      if (!code) {
+        errors.push(`Empresa sin codigo interno: ${company.nombreComercial || company.id}`)
+      } else if (companyCodes.has(code)) {
+        errors.push(`Codigo de empresa duplicado: ${code}`)
+      }
+      if (code) companyCodes.add(code)
+
+      const license = licenses.find((item) => item.companyId === company.id)
+      if (!license) {
+        warnings.push(`${code || company.nombreComercial}: sin licencia registrada.`)
+      } else {
+        const modules = Array.isArray(license.modulosActivos) ? license.modulosActivos : []
+        if (!modules.length) errors.push(`${code}: licencia sin modulos activos.`)
+        if (['vencida', 'suspendida'].includes(String(license.estado || '').toLowerCase())) {
+          warnings.push(`${code}: licencia ${license.estado}.`)
+        }
+      }
+
+      const users = loadCompanyUsers(company)
+      const seenUsers = new Set()
+      users.forEach((user) => {
+        const username = String(user.username || '').trim().toLowerCase()
+        if (!username) return
+        if (seenUsers.has(username)) errors.push(`${code}: usuario duplicado dentro de la empresa (${user.username}).`)
+        seenUsers.add(username)
+      })
+    })
+
+    licenses.forEach((license) => {
+      if (!license.companyId || !companyIds.has(license.companyId)) {
+        errors.push(`Licencia sin empresa valida: ${license.codigoLicencia || license.id}`)
+      }
+    })
+
+    plans.forEach((plan) => {
+      if (!Array.isArray(plan.modules) || plan.modules.length === 0) {
+        errors.push(`Plan sin modulos activos: ${plan.name || plan.id}`)
+      }
+    })
+
+    const isolationByCompany = new Map(isolation.map((item) => [item.companyCode, item]))
+    const rows = companies.map((company) => {
+      const license = licenses.find((item) => item.companyId === company.id)
+      const modules = license?.modulosActivos || company.modulosActivos || []
+      const lastBackup = backups.find((backup) => backup.companyId === company.id)
+      return {
+        company,
+        usersCount: loadCompanyUsers(company).length,
+        licenseStatus: license?.estado || 'sin licencia',
+        activeModulesCount: Array.isArray(modules) ? modules.length : 0,
+        modulesTotal: ALL_COMPANY_MODULES.length,
+        lastBackup,
+        isolation: isolationByCompany.get(company.companyCode)?.status || 'Sin prueba',
+      }
+    })
+
+    return {
+      rows,
+      warnings,
+      errors,
+      status: errors.length ? 'Revisar' : warnings.length ? 'Con advertencias' : 'Correcto',
+    }
+  }, [companies, licenses, backups, plans, isolation, refreshKey])
 
   const filteredCompanies = useMemo(() => {
     const clean = query.trim().toLowerCase()
@@ -162,7 +246,14 @@ export default function SuperAdminPanel({
   }
 
   const saveLicense = () => {
-    if (!licenseDraft?.companyId) return
+    if (!licenseDraft?.companyId) {
+      setNotice('La licencia debe estar asociada a una empresa.')
+      return
+    }
+    if (!Array.isArray(licenseDraft.modulosActivos) || licenseDraft.modulosActivos.length === 0) {
+      setNotice('La licencia debe tener al menos un modulo activo.')
+      return
+    }
     onUpdateCompanyLicense?.(licenseDraft.companyId, licenseDraft)
     setLicenseDraft(null)
     setNotice('Licencia actualizada.')
@@ -172,6 +263,10 @@ export default function SuperAdminPanel({
   const savePlan = () => {
     if (!planDraft?.name) {
       setNotice('Completa el nombre del plan.')
+      return
+    }
+    if (!Array.isArray(planDraft.modules) || planDraft.modules.length === 0) {
+      setNotice('El plan debe tener al menos un modulo activo.')
       return
     }
 
@@ -421,6 +516,77 @@ export default function SuperAdminPanel({
     </section>
   )
 
+  const renderDiagnostics = () => (
+    <section className="super-admin-panel">
+      <div className="super-admin-toolbar">
+        <div>
+          <h2>Estado del sistema / Diagnostico</h2>
+          <p>Revision de licencias, modulos, usuarios y aislamiento sin mostrar datos privados.</p>
+        </div>
+      </div>
+
+      <div className="super-admin-grid">
+        <article>
+          <h3>Estado general</h3>
+          <p>{diagnostics.status}</p>
+        </article>
+        <article>
+          <h3>Empresas</h3>
+          <p>{companies.length} registradas.</p>
+        </article>
+        <article>
+          <h3>Auditoria</h3>
+          <p>{auditLog.length} eventos registrados.</p>
+        </article>
+        <article>
+          <h3>Advertencias</h3>
+          <p>{diagnostics.warnings.length} detectadas.</p>
+        </article>
+        <article>
+          <h3>Errores</h3>
+          <p>{diagnostics.errors.length} detectados.</p>
+        </article>
+        <article>
+          <h3>Modulos disponibles</h3>
+          <p>{ALL_COMPANY_MODULES.length} en el sistema.</p>
+        </article>
+      </div>
+
+      <div className="super-admin-table-wrap super-admin-diagnostic-table">
+        <table className="super-admin-table">
+          <thead>
+            <tr><th>Empresa</th><th>Usuarios</th><th>Licencia</th><th>Modulos activos</th><th>Ultimo respaldo</th><th>Aislamiento</th></tr>
+          </thead>
+          <tbody>
+            {diagnostics.rows.map((row) => (
+              <tr key={row.company.id}>
+                <td>{row.company.companyCode}</td>
+                <td>{row.usersCount}</td>
+                <td><span className={`super-admin-status ${['activa', 'demo'].includes(String(row.licenseStatus).toLowerCase()) ? 'is-active' : 'is-paused'}`}>{row.licenseStatus}</span></td>
+                <td>{row.activeModulesCount} / {row.modulesTotal}</td>
+                <td>{formatDateTime(row.lastBackup?.fecha)}</td>
+                <td>{row.isolation}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+
+      <div className="super-admin-diagnostic-lists">
+        <article>
+          <h3>Advertencias</h3>
+          {diagnostics.warnings.length === 0 && <p>No hay advertencias.</p>}
+          {diagnostics.warnings.map((item) => <small key={item}>{item}</small>)}
+        </article>
+        <article>
+          <h3>Errores detectados</h3>
+          {diagnostics.errors.length === 0 && <p>No hay errores criticos.</p>}
+          {diagnostics.errors.map((item) => <small key={item}>{item}</small>)}
+        </article>
+      </div>
+    </section>
+  )
+
   const renderCurrentSection = () => {
     if (activeSection === 'licencias') return renderLicenses()
     if (activeSection === 'planes') return renderPlans()
@@ -430,15 +596,7 @@ export default function SuperAdminPanel({
     if (activeSection === 'soporte') return renderSupport()
     if (activeSection === 'logs') return renderLogs()
     if (activeSection === 'aislamiento') return renderIsolation()
-    if (activeSection === 'estado') {
-      return (
-        <section className="super-admin-grid">
-          <article><h3>Estado del sistema</h3><p>Modo localStorage multiempresa activo.</p></article>
-          <article><h3>Empresas</h3><p>{companies.length} registradas.</p></article>
-          <article><h3>Auditoria</h3><p>{auditLog.length} eventos registrados.</p></article>
-        </section>
-      )
-    }
+    if (activeSection === 'estado') return renderDiagnostics()
     return renderCompanies()
   }
 

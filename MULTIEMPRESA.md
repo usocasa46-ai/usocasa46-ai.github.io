@@ -72,6 +72,20 @@ Contrasena: admin123
 9. Crear `Producto B`.
 10. Volver a EMP001 y confirmar que solo aparece `Producto A`.
 
+## Validacion rapida del estado del sistema
+
+Desde el Panel del Sistema entra a **Estado del sistema** para revisar:
+
+- Cantidad de empresas.
+- Cantidad de usuarios por empresa.
+- Estado de licencias.
+- Modulos activos por empresa.
+- Ultimo respaldo por empresa.
+- Resultado de aislamiento multiempresa por conteos.
+- Advertencias o errores de configuracion.
+
+La pantalla de diagnostico no muestra productos, clientes, facturas ni datos privados.
+
 ## Separacion de datos
 
 La sesion guarda:

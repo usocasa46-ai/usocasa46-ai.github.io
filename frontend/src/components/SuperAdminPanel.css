@@ -302,6 +302,40 @@
   margin: 0 0 8px;
 }
 
+.super-admin-diagnostic-table {
+  margin-top: 12px;
+}
+
+.super-admin-diagnostic-lists {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(240px, 1fr));
+  gap: 12px;
+  margin-top: 12px;
+}
+
+.super-admin-diagnostic-lists article {
+  display: grid;
+  gap: 8px;
+  border: 1px solid #d8e2ec;
+  border-radius: 10px;
+  background: #ffffff;
+  padding: 14px;
+}
+
+.super-admin-diagnostic-lists h3,
+.super-admin-diagnostic-lists p {
+  margin: 0;
+}
+
+.super-admin-diagnostic-lists small {
+  display: block;
+  border-radius: 8px;
+  background: #f8fafc;
+  color: #475569;
+  padding: 7px 9px;
+  font-weight: 800;
+}
+
 .super-admin-modal {
   position: fixed;
   inset: 0;
@@ -430,6 +464,7 @@
 
   .super-admin-kpis,
   .super-admin-grid,
+  .super-admin-diagnostic-lists,
   .super-admin-card-grid,
   .super-admin-plan-grid,
   .super-admin-checks,
