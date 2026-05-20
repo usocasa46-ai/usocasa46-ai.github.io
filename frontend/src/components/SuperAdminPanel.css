@@ -398,6 +398,38 @@
   grid-column: 1 / -1;
 }
 
+.super-admin-admin-fieldset {
+  grid-column: 1 / -1;
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 12px;
+  margin: 4px 0 0;
+  border: 1px solid #e4ebf2;
+  border-radius: 10px;
+  padding: 12px;
+}
+
+.super-admin-admin-fieldset legend {
+  color: #f97316;
+  font-size: 12px;
+  font-weight: 950;
+  padding: 0 6px;
+  text-transform: uppercase;
+}
+
+.super-admin-generate-key {
+  grid-column: 1 / -1;
+  min-height: 36px;
+  width: fit-content;
+  border: 1px solid #f97316;
+  border-radius: 8px;
+  background: #fff7ed;
+  color: #c2410c;
+  cursor: pointer;
+  padding: 8px 12px;
+  font-weight: 900;
+}
+
 .super-admin-checks {
   grid-column: 1 / -1;
   display: grid;
@@ -454,6 +486,49 @@
   font: inherit;
 }
 
+.super-admin-access-summary {
+  display: grid;
+  gap: 12px;
+  overflow: auto;
+  padding: 16px;
+}
+
+.super-admin-access-summary p,
+.super-admin-access-summary small {
+  margin: 0;
+  color: #62768a;
+  line-height: 1.45;
+}
+
+.super-admin-access-summary dl {
+  display: grid;
+  gap: 8px;
+  margin: 0;
+}
+
+.super-admin-access-summary dl div {
+  display: grid;
+  grid-template-columns: minmax(140px, 0.42fr) minmax(0, 1fr);
+  gap: 10px;
+  border: 1px solid #e4ebf2;
+  border-radius: 9px;
+  background: #f8fafc;
+  padding: 9px 10px;
+}
+
+.super-admin-access-summary dt {
+  color: #60758a;
+  font-size: 12px;
+  font-weight: 900;
+}
+
+.super-admin-access-summary dd {
+  margin: 0;
+  color: #13283d;
+  font-weight: 850;
+  overflow-wrap: anywhere;
+}
+
 @media (max-width: 900px) {
   .super-admin-header,
   .super-admin-toolbar,
@@ -468,7 +543,12 @@
   .super-admin-card-grid,
   .super-admin-plan-grid,
   .super-admin-checks,
+  .super-admin-admin-fieldset,
   .super-admin-form {
+    grid-template-columns: 1fr;
+  }
+
+  .super-admin-access-summary dl div {
     grid-template-columns: 1fr;
   }
 }

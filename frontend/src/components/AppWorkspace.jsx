@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import AdvancedSidebar from './AdvancedSidebar.jsx'
 import TopActionBar from './TopActionBar.jsx'
+import CompanyWelcomeModal from './onboarding/CompanyWelcomeModal.jsx'
 import { DEFAULT_PAGE_ID, erpModules, getModuleByPageId, getPageMeta } from '../config/modulesMap.js'
 import AlertsCenterPage from '../pages/alerts/AlertsCenterPage.jsx'
 import AccountingSettingsPage from '../pages/accounting/AccountingSettingsPage.jsx'
@@ -84,7 +85,12 @@ import WarehouseRoutesPage from '../pages/warehouse/WarehouseRoutesPage.jsx'
 import WarehouseTransfersPage from '../pages/warehouse/WarehouseTransfersPage.jsx'
 import { getVisibleModules } from '../security/permissions.js'
 import { resetInactivityTimer, restoreLastActivePage, saveLastActivePage } from '../security/sessionManager.js'
-import { isModuleActiveForCompany } from '../services/companyStorage.js'
+import {
+  appendSystemAudit,
+  findCompanyByCode,
+  isModuleActiveForCompany,
+  updateCompany,
+} from '../services/companyStorage.js'
 import './AppWorkspace.css'
 
 const pageComponents = {
@@ -167,6 +173,29 @@ const pageComponents = {
   'settings-general': SettingsGeneralPage,
 }
 
+const onboardingChecklistItems = [
+  'Completar datos de empresa',
+  'Subir logo',
+  'Configurar NCF',
+  'Crear almacen principal',
+  'Crear usuarios',
+  'Crear productos',
+  'Crear clientes',
+  'Probar una factura',
+]
+
+function ensureOnboardingChecklist(companyCode) {
+  if (!companyCode) return
+  const key = `invefat_${companyCode}_onboarding_checklist`
+  if (localStorage.getItem(key)) return
+
+  localStorage.setItem(key, JSON.stringify(onboardingChecklistItems.map((item) => ({
+    id: item.toLowerCase().replace(/\s+/g, '-'),
+    label: item,
+    estado: 'pendiente',
+  }))))
+}
+
 export default function AppWorkspace({
   session,
   users = [],
@@ -183,11 +212,18 @@ export default function AppWorkspace({
   const [pageWindowState, setPageWindowState] = useState('normal')
   const [pageSearches, setPageSearches] = useState({})
   const [notice, setNotice] = useState('')
+  const [showWelcome, setShowWelcome] = useState(false)
   const noticeTimer = useRef(null)
 
   const currentPage = useMemo(() => getPageMeta(currentPageId), [currentPageId])
   const currentModule = useMemo(() => getModuleByPageId(currentPageId), [currentPageId])
   const visibleModules = useMemo(() => getVisibleModules(erpModules, session), [session])
+  const currentCompany = useMemo(() => findCompanyByCode(session?.currentCompanyCode), [session])
+
+  useEffect(() => {
+    if (!currentCompany || session?.isSuperAdmin) return
+    setShowWelcome(Boolean(currentCompany.firstLoginPending || currentCompany.onboardingCompleted === false))
+  }, [currentCompany, session])
 
   useEffect(() => {
     saveLastActivePage(currentPageId)
@@ -255,6 +291,27 @@ export default function AppWorkspace({
     }
 
     selectPage(reportPageByModule[currentModule.id] || 'reports-sales')
+  }
+
+  const completeOnboarding = ({ skipped = false, configure = false } = {}) => {
+    if (!currentCompany) return
+
+    ensureOnboardingChecklist(currentCompany.companyCode)
+    updateCompany(currentCompany.id, {
+      firstLoginPending: false,
+      onboardingCompleted: !skipped && !configure,
+      onboardingCompletedAt: !skipped && !configure ? new Date().toISOString() : currentCompany.onboardingCompletedAt,
+      onboardingSkippedAt: skipped ? new Date().toISOString() : currentCompany.onboardingSkippedAt,
+    })
+
+    appendSystemAudit(configure ? 'Configurar empresa desde bienvenida' : skipped ? 'Omitir recorrido' : 'Completar recorrido', {
+      companyCode: currentCompany.companyCode,
+      usuario: session.username,
+      descripcion: configure ? 'Usuario eligio configurar empresa ahora.' : skipped ? 'Usuario omitio el recorrido inicial.' : 'Usuario completo el recorrido inicial.',
+    })
+
+    setShowWelcome(false)
+    if (configure) selectPage('settings-general')
   }
 
   const runTopCommand = (command) => {
@@ -388,6 +445,17 @@ export default function AppWorkspace({
         {currentPageId === DEFAULT_PAGE_ID ? (
           <DashboardPage session={session} users={users} onSelectPage={selectPage} />
         ) : renderWorkspacePage()}
+        {showWelcome && currentCompany && (
+          <CompanyWelcomeModal
+            company={currentCompany}
+            session={session}
+            modules={visibleModules}
+            mustChangePassword={session.mustChangePassword}
+            onConfigure={() => completeOnboarding({ configure: true })}
+            onFinish={() => completeOnboarding()}
+            onSkip={() => completeOnboarding({ skipped: true })}
+          />
+        )}
       </main>
     </div>
   )

@@ -31,6 +31,28 @@ const DEMO_COMPANY = {
   updatedAt: new Date().toISOString(),
 }
 
+const CLEAN_COMPANY_DEFAULTS = {
+  inveFatInventoryProducts: [],
+  invefat_customers: [],
+  invefat_sales_invoices: [],
+  invefat_sales_quotes: [],
+  invefat_suppliers: [],
+  invefat_company_settings: {},
+  inveFatUsers: [],
+  inveFatRoles: [],
+  invefat_roles: [],
+  invefat_permissions: [],
+  invefat_ncf_sequences: [],
+  invefat_ncf_used: [],
+  invefat_warehouses: [],
+  invefat_inventory_movements: [],
+  invefat_purchase_orders: [],
+  invefat_supplier_invoices: [],
+  invefat_warehouse_receipts: [],
+  invefat_dgii_606: [],
+  invefat_dgii_607: [],
+}
+
 const DEFAULT_SYSTEM_PLANS = [
   {
     id: 'PLAN-DEMO',
@@ -402,14 +424,28 @@ export function createCompany(data) {
       ? ALL_COMPANY_MODULES
       : normalizeModuleList(data.modulosActivos || DEMO_COMPANY.modulosActivos),
     maxUsuarios: Number(data.maxUsuarios || 5),
+    firstLoginPending: data.firstLoginPending !== false,
+    onboardingCompleted: Boolean(data.onboardingCompleted),
+    createdBy: data.createdBy || 'superadmin',
     createdAt: nowIso(),
     updatedAt: nowIso(),
   }
 
   saveCompanies([nextCompany, ...companies])
+  initializeCleanCompanyData(nextCompany)
   upsertCompanyLicense(nextCompany, buildDefaultLicense(nextCompany))
   appendSystemAudit('Crear empresa', { companyCode: nextCompany.companyCode, descripcion: nextCompany.nombreComercial })
   return nextCompany
+}
+
+export function initializeCleanCompanyData(company) {
+  if (!company || cleanCode(company.companyCode) === DEFAULT_COMPANY_CODE) return false
+
+  Object.entries(CLEAN_COMPANY_DEFAULTS).forEach(([baseKey, value]) => {
+    setCompanyData(baseKey, value, company.companyCode)
+  })
+
+  return true
 }
 
 export function updateCompany(companyId, patch) {
@@ -472,6 +508,9 @@ export function normalizeCompanyUser(user, company) {
     role: user.role || user.rol || 'Usuario',
     active: user.active !== false && user.estado !== 'Inactivo',
     isMainAdmin: Boolean(user.isMainAdmin),
+    email: user.email || user.correo || '',
+    phone: user.phone || user.telefono || '',
+    mustChangePassword: Boolean(user.mustChangePassword),
     createdAt: user.createdAt || nowIso(),
   }
 }

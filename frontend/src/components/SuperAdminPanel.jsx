@@ -1,6 +1,7 @@
 import {
   Ban,
   CheckCircle2,
+  Copy,
   DatabaseBackup,
   Download,
   FileUp,
@@ -8,10 +9,12 @@ import {
   LogOut,
   Pencil,
   Plus,
+  Printer,
   ShieldCheck,
   UserPlus,
 } from 'lucide-react'
 import { useMemo, useState } from 'react'
+import { erpModules } from '../config/modulesMap.js'
 import {
   createSupportAccess,
   generateCompanyBackup,
@@ -61,7 +64,17 @@ const emptyCompany = {
   maxAlmacenes: 2,
   tipoVersion: 'Cloud',
   modulosActivos: ALL_COMPANY_MODULES,
+  admin: {
+    fullName: '',
+    username: 'admin',
+    email: '',
+    phone: '',
+    password: '',
+    confirmPassword: '',
+  },
 }
+
+const moduleLabelById = Object.fromEntries(erpModules.map((module) => [module.id, module.label]))
 
 function downloadJson(filename, payload) {
   const blob = new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json;charset=utf-8' })
@@ -98,6 +111,27 @@ function toggleModule(list = [], moduleId) {
     : [...list, moduleId]
 }
 
+function generateSecurePassword() {
+  const number = Math.floor(10000 + Math.random() * 89999)
+  return `Admin-${number}`
+}
+
+function copyText(value) {
+  if (navigator.clipboard?.writeText) {
+    return navigator.clipboard.writeText(value)
+  }
+
+  const textarea = document.createElement('textarea')
+  textarea.value = value
+  textarea.style.position = 'fixed'
+  textarea.style.opacity = '0'
+  document.body.appendChild(textarea)
+  textarea.select()
+  document.execCommand('copy')
+  document.body.removeChild(textarea)
+  return Promise.resolve()
+}
+
 export default function SuperAdminPanel({
   session,
   companies = [],
@@ -116,6 +150,7 @@ export default function SuperAdminPanel({
   const [licenseDraft, setLicenseDraft] = useState(null)
   const [planDraft, setPlanDraft] = useState(null)
   const [supportDraft, setSupportDraft] = useState(null)
+  const [accessSummary, setAccessSummary] = useState(null)
   const [notice, setNotice] = useState('')
   const [refreshKey, setRefreshKey] = useState(0)
 
@@ -219,7 +254,24 @@ export default function SuperAdminPanel({
         return
       }
 
-      onSaveCompany?.(companyDraft)
+      if (!companyDraft.id) {
+        const admin = companyDraft.admin || {}
+        if (!admin.fullName || !admin.username || !admin.password) {
+          setNotice('Completa la seccion Administrador de la empresa.')
+          return
+        }
+        if (admin.password !== admin.confirmPassword) {
+          setNotice('La contrasena inicial y la confirmacion no coinciden.')
+          return
+        }
+      }
+
+      const result = onSaveCompany?.(companyDraft)
+      if (result?.ok === false) {
+        setNotice(result.message)
+        return
+      }
+      if (result?.accessSummary) setAccessSummary(result.accessSummary)
       setCompanyDraft(null)
       setNotice('Empresa guardada correctamente.')
       refresh()
@@ -634,6 +686,7 @@ export default function SuperAdminPanel({
       {adminDraft && <AdminModal draft={adminDraft} setDraft={setAdminDraft} onSave={saveAdmin} />}
       {licenseDraft && <LicenseModal draft={licenseDraft} setDraft={setLicenseDraft} onSave={saveLicense} plans={plans} />}
       {planDraft && <PlanModal draft={planDraft} setDraft={setPlanDraft} onSave={savePlan} />}
+      {accessSummary && <AccessSummaryModal summary={accessSummary} setSummary={setAccessSummary} setNotice={setNotice} />}
       {supportDraft && (
         <SupportModal
           draft={supportDraft}
@@ -680,6 +733,28 @@ function CompanyTable({ companies, onEdit, onAdmin, onToggle, onLicense, onBacku
 }
 
 function CompanyModal({ draft, setDraft, onSave }) {
+  const updateAdmin = (field, value) => {
+    setDraft({
+      ...draft,
+      admin: {
+        ...(draft.admin || {}),
+        [field]: value,
+      },
+    })
+  }
+
+  const generatePassword = () => {
+    const password = generateSecurePassword()
+    setDraft({
+      ...draft,
+      admin: {
+        ...(draft.admin || {}),
+        password,
+        confirmPassword: password,
+      },
+    })
+  }
+
   return (
     <div className="super-admin-modal" role="dialog" aria-modal="true">
       <div className="super-admin-card">
@@ -697,8 +772,105 @@ function CompanyModal({ draft, setDraft, onSave }) {
           <label>Fecha activacion<input type="date" value={draft.fechaActivacion} onChange={(event) => setDraft({ ...draft, fechaActivacion: event.target.value })} /></label>
           <label>Fecha vencimiento<input type="date" value={draft.fechaVencimiento} onChange={(event) => setDraft({ ...draft, fechaVencimiento: event.target.value })} /></label>
           <label>Maximo usuarios<input type="number" min="1" value={draft.maxUsuarios} onChange={(event) => setDraft({ ...draft, maxUsuarios: event.target.value })} /></label>
+          {!draft.id && (
+            <fieldset className="super-admin-admin-fieldset">
+              <legend>Administrador de la empresa</legend>
+              <label>Nombre del administrador<input value={draft.admin?.fullName || ''} onChange={(event) => updateAdmin('fullName', event.target.value)} /></label>
+              <label>Usuario administrador<input value={draft.admin?.username || ''} onChange={(event) => updateAdmin('username', event.target.value)} /></label>
+              <label>Correo<input type="email" value={draft.admin?.email || ''} onChange={(event) => updateAdmin('email', event.target.value)} /></label>
+              <label>Telefono<input value={draft.admin?.phone || ''} onChange={(event) => updateAdmin('phone', event.target.value)} /></label>
+              <label>Contrasena inicial<input type="text" value={draft.admin?.password || ''} onChange={(event) => updateAdmin('password', event.target.value)} /></label>
+              <label>Confirmar contrasena<input type="text" value={draft.admin?.confirmPassword || ''} onChange={(event) => updateAdmin('confirmPassword', event.target.value)} /></label>
+              <button type="button" className="super-admin-generate-key" onClick={generatePassword}>Generar clave segura</button>
+            </fieldset>
+          )}
         </div>
         <footer><button type="button" onClick={() => setDraft(null)}>Cancelar</button><button type="button" className="is-primary" onClick={onSave}>Guardar</button></footer>
+      </div>
+    </div>
+  )
+}
+
+function AccessSummaryModal({ summary, setSummary, setNotice }) {
+  const credentialsText = [
+    'INVE-FAT SYSTEM',
+    'Credenciales de acceso',
+    '',
+    `Codigo empresa: ${summary.companyCode}`,
+    `Empresa: ${summary.companyName}`,
+    `Usuario: ${summary.username}`,
+    `Contrasena temporal: ${summary.password}`,
+    `Plan: ${summary.plan}`,
+    `Fecha activacion: ${summary.fechaActivacion || 'N/D'}`,
+    `Fecha vencimiento: ${summary.fechaVencimiento || 'Sin fecha'}`,
+    '',
+    'Por seguridad, cambie su contrasena en el primer inicio de sesion.',
+  ].join('\n')
+
+  const handleCopy = () => {
+    copyText(credentialsText).then(() => setNotice?.('Credenciales copiadas.'))
+  }
+
+  const handlePrint = () => {
+    const printWindow = window.open('', '_blank', 'width=720,height=820')
+    if (!printWindow) return
+    printWindow.document.write(`
+      <html>
+        <head>
+          <title>Credenciales de acceso</title>
+          <style>
+            body { font-family: Arial, sans-serif; padding: 32px; color: #10243a; }
+            h1 { margin: 0 0 8px; }
+            .card { border: 1px solid #d7e1eb; border-radius: 12px; padding: 22px; }
+            p { margin: 8px 0; font-size: 15px; }
+            strong { display: inline-block; min-width: 170px; }
+            .note { margin-top: 20px; padding: 12px; background: #fff7ed; border-radius: 8px; color: #9a3412; }
+          </style>
+        </head>
+        <body>
+          <div class="card">
+            <h1>INVE-FAT SYSTEM</h1>
+            <h2>Credenciales de acceso</h2>
+            <p><strong>Codigo empresa:</strong> ${summary.companyCode}</p>
+            <p><strong>Empresa:</strong> ${summary.companyName}</p>
+            <p><strong>Usuario:</strong> ${summary.username}</p>
+            <p><strong>Contrasena temporal:</strong> ${summary.password}</p>
+            <p><strong>Plan:</strong> ${summary.plan}</p>
+            <p><strong>Activacion:</strong> ${summary.fechaActivacion || 'N/D'}</p>
+            <p><strong>Vencimiento:</strong> ${summary.fechaVencimiento || 'Sin fecha'}</p>
+            <div class="note">Por seguridad, cambie su contrasena en el primer inicio de sesion.</div>
+          </div>
+        </body>
+      </html>
+    `)
+    printWindow.document.close()
+    printWindow.focus()
+    printWindow.print()
+  }
+
+  return (
+    <div className="super-admin-modal" role="dialog" aria-modal="true">
+      <div className="super-admin-card is-small">
+        <header><h2>Empresa creada correctamente</h2><button type="button" onClick={() => setSummary(null)}>X</button></header>
+        <div className="super-admin-access-summary">
+          <p>Entrega estas credenciales al cliente para su primera entrada.</p>
+          <dl>
+            <div><dt>Codigo de empresa</dt><dd>{summary.companyCode}</dd></div>
+            <div><dt>Nombre comercial</dt><dd>{summary.companyName}</dd></div>
+            <div><dt>Usuario administrador</dt><dd>{summary.username}</dd></div>
+            <div><dt>Contrasena inicial</dt><dd>{summary.password}</dd></div>
+            <div><dt>Plan</dt><dd>{summary.plan}</dd></div>
+            <div><dt>Modulos activos</dt><dd>{(summary.modules || []).map((moduleId) => moduleLabelById[moduleId] || moduleId).join(', ')}</dd></div>
+            <div><dt>Activacion</dt><dd>{summary.fechaActivacion || 'N/D'}</dd></div>
+            <div><dt>Vencimiento</dt><dd>{summary.fechaVencimiento || 'Sin fecha'}</dd></div>
+          </dl>
+          <small>Por seguridad, cambie su contrasena en el primer inicio de sesion.</small>
+        </div>
+        <footer>
+          <button type="button" onClick={handleCopy}><Copy size={15} /> Copiar credenciales</button>
+          <button type="button" onClick={handlePrint}><Printer size={15} /> Imprimir hoja de acceso</button>
+          <button type="button" className="is-primary" onClick={() => setSummary(null)}>Cerrar</button>
+        </footer>
       </div>
     </div>
   )

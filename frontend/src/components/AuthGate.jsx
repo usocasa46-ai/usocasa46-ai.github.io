@@ -10,6 +10,7 @@ import {
   startInactivityTimer,
 } from '../security/sessionManager.js'
 import {
+  appendSystemAudit,
   createCompany,
   createSupportAccess,
   ensureDemoCompany,
@@ -174,7 +175,18 @@ export default function AuthGate() {
       currentCompanyCode: company.companyCode,
       currentCompanyName: company.nombreComercial,
       isMainAdmin: Boolean(foundUser.isMainAdmin || String(foundUser.role || '').toLowerCase().includes('administrador')),
+      mustChangePassword: Boolean(foundUser.mustChangePassword),
+      firstLoginPending: Boolean(company.firstLoginPending),
+      onboardingCompleted: Boolean(company.onboardingCompleted),
       loginAt: new Date().toISOString(),
+    }
+
+    if (company.firstLoginPending) {
+      appendSystemAudit('Primer inicio de empresa', {
+        companyCode: company.companyCode,
+        usuario: foundUser.username,
+        descripcion: 'Empresa accede por primera vez al sistema.',
+      })
     }
 
     saveSession(nextSession)
@@ -246,38 +258,95 @@ export default function AuthGate() {
   }
 
   const handleSaveCompany = (companyData) => {
-    const saved = companyData.id ? updateCompany(companyData.id, companyData) : createCompany(companyData)
+    if (companyData.id) {
+      const saved = updateCompany(companyData.id, companyData)
+      refreshCompanies()
+      return saved
+    }
+
+    const saved = createCompany({
+      ...companyData,
+      firstLoginPending: true,
+      onboardingCompleted: false,
+      createdBy: session?.username || 'superadmin',
+    })
+
+    const admin = companyData.admin || {}
+    const result = createCompanyAdminUser(saved, {
+      fullName: admin.fullName,
+      username: admin.username,
+      password: admin.password,
+      email: admin.email,
+      phone: admin.phone,
+      mustChangePassword: true,
+    })
+
     refreshCompanies()
-    return saved
+    return {
+      company: saved,
+      admin: result.user,
+      initialPassword: admin.password,
+      accessSummary: {
+        companyCode: saved.companyCode,
+        companyName: saved.nombreComercial,
+        username: result.user?.username,
+        password: admin.password,
+        plan: saved.plan,
+        modules: saved.modulosActivos,
+        fechaActivacion: saved.fechaActivacion,
+        fechaVencimiento: saved.fechaVencimiento,
+      },
+    }
   }
 
   const handleCreateCompanyAdmin = (companyId, adminData) => {
     const company = companies.find((item) => item.id === companyId)
     if (!company) return { ok: false, message: 'Empresa no encontrada.' }
 
+    const result = createCompanyAdminUser(company, adminData)
+    refreshCompanies()
+    return result
+  }
+
+  const createCompanyAdminUser = (company, adminData) => {
+    if (!company) return { ok: false, message: 'Empresa no encontrada.' }
+
     const companyUsers = loadCompanyUsers(company)
     const cleanUsername = String(adminData.username || '').trim()
+    const cleanFullName = String(adminData.fullName || '').trim()
+    const cleanPassword = String(adminData.password || '').trim()
+
+    if (!cleanFullName || !cleanUsername || !cleanPassword) {
+      return { ok: false, message: 'Completa nombre, usuario y contrasena del admin.' }
+    }
+
     if (companyUsers.some((user) => user.username.toLowerCase() === cleanUsername.toLowerCase())) {
       return { ok: false, message: 'Ese usuario ya existe en la empresa.' }
     }
 
-    saveCompanyUsers(company, [
-      ...companyUsers,
-      {
-        id: `USR-${String(companyUsers.length + 1).padStart(3, '0')}`,
-        companyId: company.id,
-        companyCode: company.companyCode,
-        fullName: adminData.fullName,
-        username: cleanUsername,
-        password: adminData.password,
-        role: 'Administrador Principal',
-        active: true,
-        isMainAdmin: true,
-        createdAt: new Date().toISOString(),
-      },
-    ])
-    refreshCompanies()
-    return { ok: true }
+    const user = {
+      id: `USR-${String(companyUsers.length + 1).padStart(3, '0')}`,
+      companyId: company.id,
+      companyCode: company.companyCode,
+      fullName: cleanFullName,
+      username: cleanUsername,
+      password: cleanPassword,
+      role: 'Administrador Principal',
+      active: true,
+      isMainAdmin: true,
+      email: adminData.email || '',
+      phone: adminData.phone || '',
+      mustChangePassword: adminData.mustChangePassword !== false,
+      createdAt: new Date().toISOString(),
+    }
+
+    saveCompanyUsers(company, [...companyUsers, user])
+    appendSystemAudit('Crear administrador de empresa', {
+      companyCode: company.companyCode,
+      usuario: session?.username || 'superadmin',
+      descripcion: `Admin ${cleanUsername}`,
+    })
+    return { ok: true, user }
   }
 
   const handleToggleCompanyStatus = (companyId) => {
