@@ -38,11 +38,30 @@ function unwrapRow(row) {
   const internalCompanyId = data.companyId || data.company_id || row.company_id || data.companyCode || data.company_code
   return {
     ...data,
+    ...row,
     id: data.id || row.id,
     companyId: data.companyId || internalCompanyId,
     company_id: data.company_id || internalCompanyId,
     companyCode: data.companyCode || companyCode,
     company_code: data.company_code || companyCode,
+    nombreComercial: data.nombreComercial || row.nombre_comercial || data.nombre_comercial,
+    razonSocial: data.razonSocial || row.razon_social || data.razon_social,
+    planContratado: data.planContratado || row.plan_contratado || data.plan_contratado,
+    modulosActivos: data.modulosActivos || row.modulos_activos || data.modulos_activos,
+    fechaActivacion: data.fechaActivacion || row.fecha_activacion || data.fecha_activacion,
+    fechaVencimiento: data.fechaVencimiento || row.fecha_vencimiento || data.fecha_vencimiento,
+    maxUsuarios: data.maxUsuarios || row.max_usuarios || data.max_usuarios,
+    maxSucursales: data.maxSucursales || row.max_sucursales || data.max_sucursales,
+    maxAlmacenes: data.maxAlmacenes || row.max_almacenes || data.max_almacenes,
+    tipoVersion: data.tipoVersion || row.tipo_version || data.tipo_version,
+    username: data.username || row.username || data.usuario || row.usuario,
+    usuario: data.usuario || row.usuario || data.username || row.username,
+    fullName: data.fullName || row.nombre || data.nombre,
+    nombre: data.nombre || row.nombre || data.fullName,
+    role: data.role || row.role || data.rol || row.rol,
+    rol: data.rol || row.rol || data.role || row.role,
+    password: data.password || row.password || data.password_hash || row.password_hash,
+    mustChangePassword: data.mustChangePassword ?? row.must_change_password ?? data.must_change_password,
     _supabase: {
       id: row.id,
       company_id: row.company_id || '',
@@ -140,6 +159,87 @@ function wrapRecord(record, { id, companyId = '', companyCode = '' } = {}) {
     company_code: code || null,
     data: supabaseData(record, { companyId: internalId, companyCode: code }),
     updated_at: nowIso(),
+  }
+}
+
+function companyPayload(company) {
+  const base = wrapRecord(company, {
+    id: company.id,
+    companyId: company.id,
+    companyCode: company.companyCode,
+  })
+
+  return {
+    ...base,
+    nombre_comercial: company.nombreComercial || '',
+    razon_social: company.razonSocial || company.nombreComercial || '',
+    rnc: company.rnc || '',
+    telefono: company.telefono || '',
+    correo: company.correo || '',
+    direccion: company.direccion || '',
+    estado: company.estado || 'activa',
+    plan: company.plan || 'Demo',
+    first_login_pending: company.firstLoginPending !== false,
+    onboarding_completed: Boolean(company.onboardingCompleted),
+    created_at: company.createdAt || nowIso(),
+  }
+}
+
+function licensePayload(license) {
+  const base = wrapRecord(license, {
+    id: license.id,
+    companyId: license.companyId,
+    companyCode: license.companyCode,
+  })
+
+  return {
+    ...base,
+    codigo_licencia: license.codigoLicencia || license.codigo_licencia || license.id || '',
+    plan_contratado: license.planContratado || license.plan_contratado || 'Demo',
+    estado: license.estado || 'activa',
+    modulos_activos: sanitizeModules(license.modulosActivos || license.modulos_activos),
+    fecha_activacion: license.fechaActivacion || license.fecha_activacion || null,
+    fecha_vencimiento: license.fechaVencimiento || license.fecha_vencimiento || null,
+    max_usuarios: Number(license.maxUsuarios || license.max_usuarios || 0),
+    max_sucursales: Number(license.maxSucursales || license.max_sucursales || 0),
+    max_almacenes: Number(license.maxAlmacenes || license.max_almacenes || 0),
+    tipo_version: license.tipoVersion || license.tipo_version || 'Cloud',
+    observacion: license.observacion || '',
+    created_at: license.createdAt || nowIso(),
+  }
+}
+
+function userPayload(user, company) {
+  const code = cleanCode(company?.companyCode || user.companyCode || user.company_code)
+  const companyId = String(company?.id || user.companyId || user.company_id || '')
+  const username = user.username || user.usuario || ''
+  const normalized = {
+    ...user,
+    companyId,
+    companyCode: code,
+    username,
+    usuario: username,
+  }
+  const base = wrapRecord(normalized, {
+    id: username,
+    companyId,
+    companyCode: code,
+  })
+
+  return {
+    ...base,
+    nombre: user.fullName || user.nombre || username,
+    usuario: username,
+    username,
+    password: user.password || '',
+    password_hash: user.passwordHash || user.password_hash || user.password || '',
+    rol: user.role || user.rol || 'Usuario',
+    role: user.role || user.rol || 'Usuario',
+    estado: user.active === false ? 'inactivo' : (user.estado || 'activo'),
+    must_change_password: Boolean(user.mustChangePassword || user.must_change_password),
+    correo: user.email || user.correo || '',
+    telefono: user.phone || user.telefono || '',
+    created_at: user.createdAt || nowIso(),
   }
 }
 
@@ -285,11 +385,7 @@ export async function syncCompanyToSupabase(company) {
         Prefer: 'resolution=merge-duplicates,return=representation',
         ...adminHeaders(),
       },
-      body: JSON.stringify(wrapRecord(company, {
-        id: company.id,
-        companyId: company.id,
-        companyCode: company.companyCode,
-      })),
+      body: JSON.stringify(companyPayload(company)),
     })
     await verifyPersisted(`/companies?select=id,company_id,company_code&id=eq.${encodeURIComponent(company.id)}`, 'Supabase no devolvio la empresa guardada.')
     return { ok: true, rows: Array.isArray(rows) ? rows.length : 0 }
@@ -309,11 +405,7 @@ export async function syncLicenseToSupabase(license) {
         Prefer: 'resolution=merge-duplicates,return=representation',
         ...adminHeaders(),
       },
-      body: JSON.stringify(wrapRecord(license, {
-        id: license.id,
-        companyId: license.companyId,
-        companyCode: license.companyCode,
-      })),
+      body: JSON.stringify(licensePayload(license)),
     })
     await verifyPersisted(`/company_licenses?select=id,company_id,company_code&id=eq.${encodeURIComponent(license.id)}`, 'Supabase no devolvio la licencia guardada.')
     return { ok: true, rows: Array.isArray(rows) ? rows.length : 0 }
@@ -358,15 +450,7 @@ export async function syncCompanyUsersToSupabase(company, users) {
         Prefer: 'resolution=merge-duplicates,return=representation',
         ...adminHeaders(),
       },
-      body: JSON.stringify(users.map((user) => wrapRecord({
-        ...user,
-        companyCode: code,
-        companyId: company.id,
-      }, {
-        id: user.username,
-        companyId: company.id,
-        companyCode: code,
-      }))),
+      body: JSON.stringify(users.map((user) => userPayload(user, company))),
     })
     if (users.length > 0) {
       await verifyPersisted(`/company_users?select=id,company_id,company_code&id=eq.${encodeURIComponent(users[0].username)}&company_id=eq.${encodeURIComponent(company.id)}`, 'Supabase no devolvio el usuario administrador guardado.')
@@ -471,12 +555,7 @@ export async function repairCompanyIdentifiers(companyCode) {
     await supabaseRequest(`/companies?id=eq.${encodeURIComponent(companyRow.id)}`, {
       method: 'PATCH',
       headers,
-      body: JSON.stringify({
-        company_id: company.id,
-        company_code: code,
-        data: supabaseData(company, { companyId: company.id, companyCode: code }),
-        updated_at: nowIso(),
-      }),
+      body: JSON.stringify(companyPayload({ ...company, companyCode: code })),
     })
     touched.companies += 1
 
@@ -489,12 +568,7 @@ export async function repairCompanyIdentifiers(companyCode) {
       await supabaseRequest(`/company_licenses?id=eq.${encodeURIComponent(row.id)}`, {
         method: 'PATCH',
         headers,
-        body: JSON.stringify({
-          company_id: company.id,
-          company_code: code,
-          data: supabaseData(license, { companyId: company.id, companyCode: code }),
-          updated_at: nowIso(),
-        }),
+        body: JSON.stringify(licensePayload({ ...license, companyId: company.id, companyCode: code })),
       })
       touched.licenses += 1
     }
@@ -509,12 +583,7 @@ export async function repairCompanyIdentifiers(companyCode) {
       await supabaseRequest(`/company_users?id=eq.${encodeURIComponent(row.id)}&company_id=eq.${encodeURIComponent(oldCompanyId)}`, {
         method: 'PATCH',
         headers,
-        body: JSON.stringify({
-          company_id: company.id,
-          company_code: code,
-          data: supabaseData(user, { companyId: company.id, companyCode: code }),
-          updated_at: nowIso(),
-        }),
+        body: JSON.stringify(userPayload({ ...user, companyId: company.id, companyCode: code }, company)),
       })
       touched.users += 1
     }

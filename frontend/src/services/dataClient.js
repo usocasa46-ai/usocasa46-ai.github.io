@@ -50,6 +50,16 @@ function unwrapSupabaseRow(row) {
       ...(row.data || {}),
       company_id: row.company_id || row.data?.company_id,
       companyId: row.company_id || row.data?.companyId,
+      company_code: row.company_code || row.data?.company_code,
+      companyCode: row.company_code || row.data?.companyCode,
+      nombreComercial: row.nombre_comercial || row.data?.nombreComercial || row.data?.nombre_comercial,
+      razonSocial: row.razon_social || row.data?.razonSocial || row.data?.razon_social,
+      planContratado: row.plan_contratado || row.data?.planContratado || row.data?.plan_contratado,
+      modulosActivos: row.modulos_activos || row.data?.modulosActivos || row.data?.modulos_activos,
+      fechaActivacion: row.fecha_activacion || row.data?.fechaActivacion || row.data?.fecha_activacion,
+      fechaVencimiento: row.fecha_vencimiento || row.data?.fechaVencimiento || row.data?.fecha_vencimiento,
+      username: row.username || row.usuario || row.data?.username || row.data?.usuario,
+      usuario: row.usuario || row.username || row.data?.usuario || row.data?.username,
     }
   }
 
@@ -66,7 +76,67 @@ function getConflictTarget(companyScoped) {
   return companyScoped ? 'company_id,id' : 'id'
 }
 
-function wrapSupabaseRecord(record, idField = 'id', companyScoped = true) {
+function adminTableColumns(tableName, record, companyId) {
+  if (tableName === 'companies') {
+    const code = String(record.company_code || record.companyCode || '').trim().toUpperCase()
+    return {
+      company_id: record.company_id || record.companyId || record.id || companyId || null,
+      company_code: code || null,
+      nombre_comercial: record.nombre_comercial || record.nombreComercial || '',
+      razon_social: record.razon_social || record.razonSocial || record.nombreComercial || '',
+      rnc: record.rnc || '',
+      telefono: record.telefono || '',
+      correo: record.correo || '',
+      direccion: record.direccion || '',
+      estado: record.estado || 'activa',
+      plan: record.plan || 'Demo',
+      first_login_pending: record.first_login_pending ?? record.firstLoginPending ?? false,
+      onboarding_completed: record.onboarding_completed ?? record.onboardingCompleted ?? false,
+    }
+  }
+
+  if (tableName === 'company_licenses') {
+    const modules = record.modulos_activos || record.modulosActivos || []
+    return {
+      company_id: record.company_id || record.companyId || companyId || null,
+      company_code: String(record.company_code || record.companyCode || '').trim().toUpperCase() || null,
+      codigo_licencia: record.codigo_licencia || record.codigoLicencia || record.id || '',
+      plan_contratado: record.plan_contratado || record.planContratado || 'Demo',
+      estado: record.estado || 'activa',
+      modulos_activos: Array.isArray(modules) ? modules : [],
+      fecha_activacion: record.fecha_activacion || record.fechaActivacion || null,
+      fecha_vencimiento: record.fecha_vencimiento || record.fechaVencimiento || null,
+      max_usuarios: Number(record.max_usuarios || record.maxUsuarios || 0),
+      max_sucursales: Number(record.max_sucursales || record.maxSucursales || 0),
+      max_almacenes: Number(record.max_almacenes || record.maxAlmacenes || 0),
+      tipo_version: record.tipo_version || record.tipoVersion || 'Cloud',
+      observacion: record.observacion || '',
+    }
+  }
+
+  if (tableName === 'company_users') {
+    const username = record.usuario || record.username || ''
+    return {
+      company_id: record.company_id || record.companyId || companyId || null,
+      company_code: String(record.company_code || record.companyCode || '').trim().toUpperCase() || null,
+      nombre: record.nombre || record.fullName || username,
+      usuario: username,
+      username,
+      password: record.password || '',
+      password_hash: record.password_hash || record.passwordHash || record.password || '',
+      rol: record.rol || record.role || 'Usuario',
+      role: record.role || record.rol || 'Usuario',
+      estado: record.estado || (record.active === false ? 'inactivo' : 'activo'),
+      must_change_password: record.must_change_password ?? record.mustChangePassword ?? false,
+      correo: record.correo || record.email || '',
+      telefono: record.telefono || record.phone || '',
+    }
+  }
+
+  return {}
+}
+
+function wrapSupabaseRecord(record, idField = 'id', companyScoped = true, tableName = '') {
   const id = getRecordId(record, idField)
   if (!id) {
     throw new Error('El registro necesita un id, codigo o numero para sincronizar con Supabase.')
@@ -79,6 +149,7 @@ function wrapSupabaseRecord(record, idField = 'id', companyScoped = true) {
     company_id: companyId,
     data,
     updated_at: new Date().toISOString(),
+    ...adminTableColumns(tableName, record, companyId),
   }
 }
 
@@ -117,7 +188,7 @@ export async function createRecord(tableName, localStorageKey, data, options = {
   const { companyScoped = true, idField = 'id' } = options
   return withSupabaseFallback(
     async () => {
-      const payload = wrapSupabaseRecord(data, idField, companyScoped)
+      const payload = wrapSupabaseRecord(data, idField, companyScoped, tableName)
       const rows = await supabaseRequest(`/${tableName}?on_conflict=${getConflictTarget(companyScoped)}`, {
         method: 'POST',
         headers: { Prefer: 'resolution=merge-duplicates,return=representation' },
@@ -147,7 +218,12 @@ export async function updateRecord(tableName, localStorageKey, id, data, options
       const next = companyScoped ? attachCompanyId({ ...current, ...data }) : { ...current, ...data }
       const rows = await supabaseRequest(withCompanyFilter(`/${tableName}?id=eq.${encodeURIComponent(id)}`, companyScoped), {
         method: 'PATCH',
-        body: JSON.stringify({ company_id: resolveCompanyId(next, companyScoped), data: next, updated_at: new Date().toISOString() }),
+        body: JSON.stringify({
+          company_id: resolveCompanyId(next, companyScoped),
+          data: next,
+          updated_at: new Date().toISOString(),
+          ...adminTableColumns(tableName, next, resolveCompanyId(next, companyScoped)),
+        }),
       })
       return Array.isArray(rows) ? unwrapSupabaseRow(rows[0]) : next
     },
@@ -200,7 +276,7 @@ export function createCollectionClient({ table, storageKey, idField = 'id', fall
           const rows = await supabaseRequest(`/${table}?on_conflict=${getConflictTarget(companyScoped)}`, {
             method: 'POST',
             headers: { Prefer: 'resolution=merge-duplicates,return=representation' },
-            body: JSON.stringify(wrapSupabaseRecord(record, idField, companyScoped)),
+        body: JSON.stringify(wrapSupabaseRecord(record, idField, companyScoped, table)),
           })
           return Array.isArray(rows) ? unwrapSupabaseRow(rows[0]) || record : record
         },
@@ -225,7 +301,12 @@ export function createCollectionClient({ table, storageKey, idField = 'id', fall
           const next = companyScoped ? attachCompanyId({ ...current, ...patch }) : { ...current, ...patch }
           const rows = await supabaseRequest(withCompanyFilter(`/${table}?id=eq.${encodeURIComponent(id)}`, companyScoped), {
             method: 'PATCH',
-            body: JSON.stringify({ company_id: resolveCompanyId(next, companyScoped), data: next, updated_at: new Date().toISOString() }),
+            body: JSON.stringify({
+              company_id: resolveCompanyId(next, companyScoped),
+              data: next,
+              updated_at: new Date().toISOString(),
+              ...adminTableColumns(table, next, resolveCompanyId(next, companyScoped)),
+            }),
           })
           return Array.isArray(rows) ? unwrapSupabaseRow(rows[0]) || next : next
         },
@@ -265,7 +346,7 @@ export function createCollectionClient({ table, storageKey, idField = 'id', fall
         await supabaseRequest(`/${table}?on_conflict=${getConflictTarget(companyScoped)}`, {
           method: 'POST',
           headers: { Prefer: 'resolution=merge-duplicates,return=minimal' },
-          body: JSON.stringify(list.map((record) => wrapSupabaseRecord(record, idField, companyScoped))),
+          body: JSON.stringify(list.map((record) => wrapSupabaseRecord(record, idField, companyScoped, table))),
         })
       } catch (error) {
         console.warn('No se pudo sincronizar con Supabase:', error.message)
