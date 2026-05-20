@@ -179,6 +179,36 @@ export function parseCsvLine(line = '') {
   return result
 }
 
+function stripTrailingRecordDelimiter(line = '') {
+  return String(line || '')
+    .replace(/^\uFEFF/, '')
+    .trim()
+    .replace(/;+\s*$/, '')
+    .trim()
+}
+
+function cleanCsvValue(value = '') {
+  let clean = String(value ?? '').trim()
+  while (clean.length >= 2 && clean.startsWith('"') && clean.endsWith('"')) {
+    clean = clean.slice(1, -1).trim()
+  }
+  return clean.replace(/""/g, '"').trim()
+}
+
+function normalizeCsvRecordLine(line = '') {
+  const clean = stripTrailingRecordDelimiter(line)
+  if (!clean) return ''
+  const parsed = parseCsvLine(clean)
+  if (parsed.length === 1 && clean.startsWith('"') && clean.endsWith('"')) {
+    return clean.slice(1, -1).replace(/""/g, '"').trim()
+  }
+  return clean
+}
+
+function parseCsvRecordLine(line = '') {
+  return parseCsvLine(normalizeCsvRecordLine(line)).map(cleanCsvValue)
+}
+
 function splitCsvRecords(buffer = '', flush = false) {
   const records = []
   let current = ''
@@ -189,7 +219,7 @@ function splitCsvRecords(buffer = '', flush = false) {
     const next = buffer[index + 1]
 
     if (char === '"' && insideQuotes && next === '"') {
-      current += '"'
+      current += '""'
       index += 1
     } else if (char === '"') {
       insideQuotes = !insideQuotes
@@ -252,19 +282,36 @@ export function validateColumnMapping(mapping = {}) {
   return missing
 }
 
+function normalizeRncColumns(values = []) {
+  const cleaned = values.map(cleanCsvValue)
+  if (cleaned.length <= 6) {
+    return Array.from({ length: 6 }, (_, index) => cleaned[index] ?? '')
+  }
+
+  const rnc = cleaned[0] || ''
+  const razonSocial = cleaned[1] || ''
+  const regimenPago = cleaned[cleaned.length - 1] || ''
+  const estado = cleaned[cleaned.length - 2] || ''
+  const fechaInicioOperaciones = cleaned[cleaned.length - 3] || ''
+  const actividadEconomica = cleaned.slice(2, -3).join(', ').trim()
+
+  return [rnc, razonSocial, actividadEconomica, fechaInicioOperaciones, estado, regimenPago]
+}
+
 export function recordFromCsvValues(values = [], headerMap = {}) {
+  const normalizedValues = normalizeRncColumns(values)
   return makeRncRecord({
-    rnc: values[headerMap.rnc],
-    razonSocial: values[headerMap.razonSocial],
-    actividadEconomica: values[headerMap.actividadEconomica],
-    fechaInicioOperaciones: values[headerMap.fechaInicioOperaciones],
-    estado: values[headerMap.estado],
-    regimenPago: values[headerMap.regimenPago],
+    rnc: normalizedValues[headerMap.rnc],
+    razonSocial: normalizedValues[headerMap.razonSocial],
+    actividadEconomica: normalizedValues[headerMap.actividadEconomica],
+    fechaInicioOperaciones: normalizedValues[headerMap.fechaInicioOperaciones],
+    estado: normalizedValues[headerMap.estado],
+    regimenPago: normalizedValues[headerMap.regimenPago],
   }, 'csv')
 }
 
 function buildHeaderMap(headerLine = '', providedMapping = null) {
-  const headers = parseCsvLine(headerLine).map((header) => header.replace(/^\uFEFF/, '').trim())
+  const headers = parseCsvRecordLine(headerLine)
   const mapping = providedMapping || detectColumnMapping(headers).mapping
   const missing = validateColumnMapping(mapping)
   if (missing.length) {
@@ -275,7 +322,7 @@ function buildHeaderMap(headerLine = '', providedMapping = null) {
 }
 
 function recordFromCsvLine(line, headerMap) {
-  return recordFromCsvValues(parseCsvLine(line), headerMap)
+  return recordFromCsvValues(parseCsvRecordLine(line), headerMap)
 }
 
 export function validateRncRecord(record) {
@@ -285,14 +332,50 @@ export function validateRncRecord(record) {
 }
 
 function readFileAsUtf8(file) {
-  if (typeof FileReader === 'undefined') return file.text()
+  if (typeof FileReader === 'undefined') {
+    return file.arrayBuffer ? file.arrayBuffer().then(decodeCsvBuffer) : file.text()
+  }
 
   return new Promise((resolve, reject) => {
     const reader = new FileReader()
-    reader.onload = () => resolve(String(reader.result || ''))
+    reader.onload = () => {
+      try {
+        resolve(decodeCsvBuffer(reader.result))
+      } catch (error) {
+        reject(error)
+      }
+    }
     reader.onerror = () => reject(reader.error || new Error('No se pudo leer el archivo CSV.'))
-    reader.readAsText(file, 'UTF-8')
+    reader.readAsArrayBuffer(file)
   })
+}
+
+function createDecoder(label, options = {}) {
+  try {
+    return new TextDecoder(label, options)
+  } catch {
+    return new TextDecoder(label === 'windows-1252' ? 'iso-8859-1' : 'utf-8', options)
+  }
+}
+
+function hasEncodingDamage(text = '') {
+  return String(text || '').includes('\uFFFD') || String(text || '').includes(String.fromCharCode(0x00c3))
+}
+
+function detectCsvEncoding(bytes) {
+  try {
+    const strictUtf8 = createDecoder('utf-8', { fatal: true })
+    const sample = strictUtf8.decode(bytes instanceof Uint8Array ? bytes : new Uint8Array(bytes), { stream: false })
+    return hasEncodingDamage(sample) ? 'windows-1252' : 'utf-8'
+  } catch {
+    return 'windows-1252'
+  }
+}
+
+function decodeCsvBuffer(buffer) {
+  const bytes = buffer instanceof Uint8Array ? buffer : new Uint8Array(buffer || [])
+  const encoding = detectCsvEncoding(bytes)
+  return createDecoder(encoding).decode(bytes)
 }
 
 async function readCsvRecords(file, onRecord, options = {}) {
@@ -315,10 +398,11 @@ async function readCsvRecords(file, onRecord, options = {}) {
 
   if (file.stream) {
     const reader = file.stream().getReader()
-    const decoder = new TextDecoder('utf-8')
+    let decoder = null
     while (keepReading) {
       const { value, done } = await reader.read()
       if (done) break
+      if (!decoder) decoder = createDecoder(detectCsvEncoding(value))
       loaded += value.byteLength
       buffer += decoder.decode(value, { stream: true })
       const split = splitCsvRecords(buffer, false)
@@ -331,7 +415,7 @@ async function readCsvRecords(file, onRecord, options = {}) {
       }
     }
     if (keepReading) {
-      buffer += decoder.decode()
+      buffer += decoder ? decoder.decode() : ''
       const split = splitCsvRecords(buffer, true)
       await handleRecords(split.records)
     }
@@ -540,7 +624,7 @@ export async function analyzeCsv(file, options = {}) {
   await readCsvRecords(file, async (line, rowNumber) => {
     if (!line.trim()) return true
     if (!headerFound) {
-      headers = parseCsvLine(line).map((header) => header.replace(/^\uFEFF/, '').trim())
+      headers = parseCsvRecordLine(line)
       const detected = detectColumnMapping(headers)
       mapping = detected.mapping
       confidence = detected.confidence
@@ -548,7 +632,7 @@ export async function analyzeCsv(file, options = {}) {
       return true
     }
 
-    sampleRows.push({ row: rowNumber, values: parseCsvLine(line) })
+    sampleRows.push({ row: rowNumber, values: parseCsvRecordLine(line) })
     return sampleRows.length < previewSize
   })
 
