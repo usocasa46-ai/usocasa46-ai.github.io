@@ -4,11 +4,18 @@
   --pos-border: #d9e4ef;
   --pos-soft: #f5f8fb;
   display: grid;
+  grid-template-rows: auto minmax(0, 1fr);
   gap: 12px;
+  height: 100%;
+  min-height: 0;
+  overflow: hidden;
 }
 
 .erp-module-page:has(.sales-pos-page) {
   gap: 10px;
+  height: calc(100vh - 36px);
+  min-height: 0;
+  overflow: hidden;
 }
 
 .erp-module-page:has(.sales-pos-page) .erp-page-header {
@@ -30,6 +37,16 @@
   min-height: 36px;
   border-radius: 9px;
   padding: 7px 11px;
+}
+
+.erp-module-page:has(.sales-pos-page) .erp-page-body,
+.erp-module-page:has(.sales-pos-page) .erp-page-content {
+  min-height: 0;
+  overflow: hidden;
+}
+
+.erp-module-page:has(.sales-pos-page) .erp-page-body {
+  flex: 1 1 auto;
 }
 
 .pos-message {
@@ -78,9 +95,11 @@
 
 .pos-shell {
   display: grid;
-  grid-template-columns: minmax(0, 1.35fr) minmax(390px, 0.85fr);
+  grid-template-columns: minmax(360px, 1fr) minmax(340px, 420px);
   gap: 12px;
-  min-height: calc(100vh - 230px);
+  min-height: 0;
+  height: 100%;
+  overflow: hidden;
 }
 
 .pos-product-zone,
@@ -103,14 +122,23 @@
   gap: 10px;
   padding: 12px;
   min-width: 0;
+  min-height: 0;
+  overflow: hidden;
 }
 
 .pos-cart-zone {
+  position: sticky;
+  top: 10px;
+  align-self: start;
   display: grid;
   grid-template-rows: auto auto minmax(220px, 1fr) auto auto;
   gap: 10px;
+  height: 100%;
+  max-height: 100%;
   padding: 12px;
   min-width: 0;
+  min-height: 0;
+  overflow: auto;
 }
 
 .pos-search-card {
@@ -206,6 +234,9 @@
   display: flex;
   flex-wrap: wrap;
   gap: 6px;
+  max-height: 76px;
+  overflow: auto;
+  padding-right: 2px;
 }
 
 .pos-category-row button,
@@ -240,6 +271,7 @@
   grid-template-columns: repeat(auto-fill, minmax(132px, 1fr));
   align-content: start;
   gap: 8px;
+  min-height: 0;
   overflow: auto;
   padding-right: 4px;
 }
@@ -540,7 +572,8 @@
   display: grid;
   grid-template-rows: auto minmax(0, 1fr);
   gap: 8px;
-  overflow: hidden;
+  min-height: 0;
+  overflow: auto;
   padding: 10px;
 }
 
@@ -675,6 +708,9 @@
 }
 
 .pos-total-panel {
+  position: sticky;
+  bottom: 0;
+  z-index: 2;
   display: grid;
   gap: 7px;
   padding: 12px;
@@ -831,7 +867,8 @@
   position: fixed;
   inset: 0;
   z-index: 80;
-  overflow: auto;
+  grid-template-rows: auto minmax(0, 1fr);
+  overflow: hidden;
   background: var(--pos-soft);
   padding: 14px;
 }
@@ -898,9 +935,27 @@ body.theme-dark .pos-modal footer button {
   color: #e8f0f7;
 }
 
-@media (max-width: 1180px) {
+@media (max-width: 980px) {
+  .erp-module-page:has(.sales-pos-page) {
+    height: auto;
+    min-height: calc(100vh - 36px);
+    overflow: visible;
+  }
+
+  .erp-module-page:has(.sales-pos-page) .erp-page-body,
+  .erp-module-page:has(.sales-pos-page) .erp-page-content {
+    overflow: visible;
+  }
+
+  .sales-pos-page {
+    height: auto;
+    overflow: visible;
+  }
+
   .pos-shell {
     grid-template-columns: 1fr;
+    height: auto;
+    overflow: visible;
   }
 
   .pos-session-strip {
@@ -908,7 +963,17 @@ body.theme-dark .pos-modal footer button {
   }
 
   .pos-cart-zone {
-    grid-template-rows: auto minmax(180px, auto) auto auto;
+    position: static;
+    height: auto;
+    max-height: none;
+    grid-template-rows: auto auto minmax(180px, auto) auto auto;
+    overflow: visible;
+  }
+
+  .pos-product-zone,
+  .pos-products-grid,
+  .pos-cart-list {
+    overflow: visible;
   }
 }
 
