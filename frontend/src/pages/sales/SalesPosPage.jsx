@@ -3,6 +3,8 @@ import {
   CreditCard,
   Download,
   Maximize2,
+  Monitor,
+  MoreVertical,
   Minus,
   Package,
   Pause,
@@ -12,7 +14,10 @@ import {
   RefreshCcw,
   RotateCcw,
   Search,
+  Store,
+  Tag,
   Trash2,
+  User,
   X,
 } from 'lucide-react'
 import { useEffect, useMemo, useState } from 'react'
@@ -36,6 +41,7 @@ const SETTINGS_KEY = 'invefat_company_settings'
 const POS_SALES_KEY = 'invefat_pos_sales'
 const SUSPENDED_KEY = 'invefat_pos_suspended_sales'
 const CASH_MOVEMENTS_KEY = 'invefat_cash_movements'
+const POS_DISPLAY_KEY = 'invefat_current_pos_sale_display'
 
 const paymentMethods = ['Efectivo', 'Tarjeta', 'Transferencia', 'Credito', 'Mixto']
 const fiscalReceiptTypes = ['Credito fiscal', 'Consumidor final', 'Regimen especial', 'Gubernamental']
@@ -339,6 +345,7 @@ function makeLine(product) {
     description: product.description,
     unit: product.unit,
     barcode: product.barcode,
+    image: product.image,
     stock: product.stock,
     quantity: 1,
     price: product.price,
@@ -382,6 +389,240 @@ function buildReport(invoice, totals) {
     source: 'POS',
     updatedAt: new Date().toISOString(),
   }
+}
+
+function buildPosDisplayPayload({
+  settings,
+  branch,
+  warehouse,
+  session,
+  customer,
+  lines,
+  totals,
+  payment,
+  fiscalReceipt,
+  status,
+}) {
+  return {
+    brand: {
+      name: settings?.company?.tradeName || settings?.company?.legalName || 'INVE-FAT SYSTEM',
+      subtitle: 'ERP Empresarial',
+      logo: settings?.brand?.logo || settings?.company?.logo || '',
+    },
+    caja: 'CA-01',
+    branch: branch?.name || branch?.code || 'Sucursal principal',
+    warehouse,
+    cashier: session?.fullName || session?.username || 'Caja',
+    customer: {
+      name: fiscalReceipt?.enabled ? fiscalReceipt.name : customer?.name || 'Consumidor final',
+      fiscalId: fiscalReceipt?.enabled ? fiscalReceipt.fiscalId : customer?.fiscalId || '',
+      receiptType: fiscalReceipt?.enabled ? fiscalReceipt.receiptType : 'Consumidor final',
+      fiscalEnabled: Boolean(fiscalReceipt?.enabled),
+    },
+    lines: lines.map((line) => ({
+      id: line.id,
+      code: line.code,
+      name: line.name,
+      image: line.image,
+      quantity: toNumber(line.quantity),
+      price: toNumber(line.price),
+      tax: lineTax(line),
+      subtotal: lineTotal(line),
+    })),
+    totals,
+    paymentMethod: payment?.method || 'Efectivo',
+    status,
+    updatedAt: new Date().toISOString(),
+    footer: {
+      loyalty: 'Acumula puntos por cada compra.',
+      promo: settings?.billing?.footerMessage || 'Pregunta por nuestras ofertas y descuentos especiales.',
+      thanks: 'Gracias por preferirnos.',
+    },
+  }
+}
+
+function publishPosDisplay(payload) {
+  if (!canUseStorage()) return
+  localStorage.setItem(POS_DISPLAY_KEY, JSON.stringify(payload))
+}
+
+function openCustomerDisplayWindow() {
+  if (typeof window === 'undefined') return null
+  const displayWindow = window.open('', 'invefat_pos_customer_display', 'width=1366,height=768')
+  if (!displayWindow) return null
+
+  displayWindow.document.write(`<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>INVE-FAT SYSTEM - Pantalla cliente</title>
+  <style>
+    :root { --blue:#073246; --blue2:#001f2f; --orange:#ff7a18; --line:#dde5ee; --soft:#f5f7fb; --text:#101d33; --muted:#5c6b80; }
+    * { box-sizing: border-box; }
+    body { margin: 0; min-height: 100vh; font-family: Inter, Arial, sans-serif; background: var(--soft); color: var(--text); overflow: hidden; }
+    .client-display { min-height: 100vh; display: grid; grid-template-rows: 88px minmax(0, 1fr) 118px; }
+    .top { display: grid; grid-template-columns: 1fr auto 1fr; align-items: center; gap: 24px; background: linear-gradient(135deg, var(--blue2), var(--blue)); color: #fff; padding: 18px 30px; box-shadow: 0 10px 30px rgba(0,0,0,.14); }
+    .brand { display: flex; align-items: center; gap: 14px; }
+    .mark { width: 58px; height: 42px; border-radius: 16px; background: linear-gradient(135deg, #ff9e28, var(--orange)); clip-path: polygon(0 20%, 28% 20%, 50% 58%, 75% 20%, 100% 20%, 58% 100%, 42% 100%); }
+    .brand strong { display: block; font-size: 26px; line-height: 1; }
+    .brand span, .cashbox span { display: block; color: rgba(255,255,255,.78); font-weight: 700; margin-top: 5px; }
+    .title { display: flex; align-items: center; gap: 14px; font-size: 34px; font-weight: 950; }
+    .cashbox { justify-self: end; border-left: 1px solid rgba(255,255,255,.28); padding-left: 28px; font-size: 20px; font-weight: 900; }
+    .content { display: grid; grid-template-columns: minmax(0, 1.15fr) minmax(420px, .85fr); gap: 22px; padding: 22px; min-height: 0; }
+    .panel { min-height: 0; border: 1px solid var(--line); border-radius: 18px; background: #fff; box-shadow: 0 14px 36px rgba(15,39,66,.08); overflow: hidden; }
+    .items { display: grid; grid-template-rows: auto minmax(0,1fr) auto; }
+    .table-head, .item { display: grid; grid-template-columns: minmax(0, 1fr) 110px 160px 160px; gap: 16px; align-items: center; }
+    .table-head { padding: 20px 24px; border-bottom: 1px solid var(--line); color: #101d33; font-size: 17px; font-weight: 950; text-transform: uppercase; }
+    .list { overflow: auto; padding: 0 18px; }
+    .item { min-height: 82px; border-bottom: 1px solid #edf1f5; font-size: 18px; font-weight: 800; }
+    .product { display: grid; grid-template-columns: 70px minmax(0,1fr); align-items: center; gap: 18px; }
+    .product-img { width: 58px; height: 58px; display: grid; place-items: center; border-radius: 14px; background: #eef4f8; color: #7b8ea4; overflow: hidden; }
+    .product-img img { width: 100%; height: 100%; object-fit: contain; }
+    .product small { display: block; color: var(--muted); font-size: 13px; margin-top: 4px; }
+    .qty { justify-self: start; min-width: 50px; border: 1px solid var(--line); border-radius: 10px; padding: 10px 14px; text-align: center; background: #fbfcfe; }
+    .money { text-align: right; white-space: nowrap; }
+    .summary { padding: 20px; display: grid; gap: 20px; align-content: start; }
+    .status { display: flex; align-items: center; gap: 18px; border: 1px solid #ffddbd; border-radius: 18px; background: linear-gradient(135deg, #fff6eb, #fff); padding: 22px; }
+    .coin { width: 86px; height: 86px; display:grid; place-items:center; border-radius: 50%; background: radial-gradient(circle, #ff8a22, #ffb980); color:#fff; font-size: 38px; font-weight: 950; border: 8px dotted rgba(255,255,255,.7); }
+    .status h2 { margin: 0; font-size: 30px; color: #0f2035; text-transform: uppercase; }
+    .status p { margin: 7px 0 0; color: #4f6278; font-size: 18px; font-weight: 750; }
+    .totals { display: grid; gap: 13px; font-size: 21px; }
+    .totals div { display: flex; justify-content: space-between; gap: 16px; }
+    .totals .grand { margin-top: 10px; border-top: 1px solid var(--line); padding-top: 26px; align-items: baseline; }
+    .totals .grand span { color: #0f2035; font-size: 30px; font-weight: 950; text-transform: uppercase; }
+    .totals .grand strong { color: var(--orange); font-size: 46px; }
+    .client { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; border: 1px solid var(--line); border-radius: 18px; padding: 18px; }
+    .client article { display: grid; gap: 6px; }
+    .client span { color: var(--muted); font-size: 13px; font-weight: 900; text-transform: uppercase; }
+    .client strong { font-size: 18px; }
+    .items-foot { display: flex; justify-content: space-between; padding: 18px 24px; color: var(--muted); font-weight: 850; }
+    .footer { display: grid; grid-template-columns: repeat(3,1fr); gap: 24px; align-items: center; background: linear-gradient(135deg, var(--blue2), var(--blue)); color: #fff; padding: 20px 34px; }
+    .footer article { display: grid; grid-template-columns: 68px 1fr; gap: 15px; align-items: center; border-right: 1px solid rgba(255,255,255,.28); min-height: 70px; }
+    .footer article:last-child { border-right: 0; }
+    .footer .icon { width: 60px; height: 60px; display:grid; place-items:center; border: 3px solid var(--orange); border-radius: 50%; color: var(--orange); font-size: 30px; }
+    .footer strong { color: #ff9d30; font-size: 22px; }
+    .footer p { margin: 5px 0 0; color: rgba(255,255,255,.88); font-size: 17px; }
+    .empty { height: 100%; display:grid; place-items:center; color: var(--muted); font-size: 22px; font-weight: 850; text-align:center; padding: 40px; }
+    @media (max-width: 980px) { body { overflow:auto; } .client-display { grid-template-rows:auto auto auto; } .top, .content, .footer { grid-template-columns: 1fr; } .cashbox { justify-self:start; border-left:0; padding-left:0; } .content { min-height:auto; } }
+  </style>
+</head>
+<body>
+  <main class="client-display">
+    <header class="top">
+      <div class="brand"><div class="mark"></div><div><strong id="brandName">INVE-FAT SYSTEM</strong><span>ERP Empresarial</span></div></div>
+      <div class="title"><span class="title-icon">$</span><span>Su compra</span></div>
+      <div class="cashbox"><span>Caja activa</span><strong id="cashbox">CA-01</strong></div>
+    </header>
+    <section class="content">
+      <section class="panel items">
+        <div class="table-head"><span>Producto</span><span>Cant.</span><span>Precio unit.</span><span>Subtotal</span></div>
+        <div class="list" id="items"></div>
+        <div class="items-foot"><span id="articleCount">0 Articulos</span><span>Ultima actualizacion: <strong id="updatedAt">--</strong></span></div>
+      </section>
+      <aside class="panel summary">
+        <section class="status"><div class="coin">$</div><div><h2 id="status">Esperando venta</h2><p id="statusText">Agregue productos para iniciar.</p></div></section>
+        <section class="totals">
+          <div><span>Subtotal</span><strong id="subtotal">RD$ 0.00</strong></div>
+          <div><span>ITBIS</span><strong id="tax">RD$ 0.00</strong></div>
+          <div><span>Descuento</span><strong id="discount">RD$ 0.00</strong></div>
+          <div class="grand"><span>Total</span><strong id="total">RD$ 0.00</strong></div>
+        </section>
+        <section class="client">
+          <article><span>Cliente</span><strong id="customer">Consumidor final</strong><small id="rnc">000-0000000-0</small></article>
+          <article><span>Comprobante</span><strong id="receipt">Consumidor final</strong><small id="payment">Efectivo</small></article>
+        </section>
+      </aside>
+    </section>
+    <footer class="footer">
+      <article><div class="icon">*</div><div><strong>¡Acumula puntos!</strong><p id="loyalty">Por cada compra acumulas beneficios.</p></div></article>
+      <article><div class="icon">+</div><div><strong>Promociones exclusivas</strong><p id="promo">Pregunta por nuestras ofertas.</p></div></article>
+      <article><div class="icon">&lt;3</div><div><strong>¡Gracias por preferirnos!</strong><p>Vuelve pronto.</p></div></article>
+    </footer>
+  </main>
+  <script>
+    const key = ${JSON.stringify(POS_DISPLAY_KEY)};
+    const money = (value) => 'RD$ ' + Number(value || 0).toLocaleString('es-DO', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+    const qty = (value) => Number(value || 0).toLocaleString('es-DO', { maximumFractionDigits: 2 });
+    const text = (id, value) => { const el = document.getElementById(id); if (el) el.textContent = value || ''; };
+    const productImage = (line) => {
+      const wrap = document.createElement('div');
+      wrap.className = 'product-img';
+      if (line.image) {
+        const img = document.createElement('img');
+        img.src = line.image;
+        img.alt = line.name || 'Producto';
+        wrap.appendChild(img);
+      } else {
+        wrap.textContent = '[]';
+      }
+      return wrap;
+    };
+    function render() {
+      let data = null;
+      try { data = JSON.parse(localStorage.getItem(key) || 'null'); } catch (error) { data = null; }
+      data = data || { lines: [], totals: {}, customer: {}, brand: { name: 'INVE-FAT SYSTEM' }, caja: 'CA-01', status: 'Esperando venta', updatedAt: new Date().toISOString(), footer: {} };
+      text('brandName', data.brand?.name || 'INVE-FAT SYSTEM');
+      text('cashbox', data.caja || 'CA-01');
+      text('status', data.status || 'Esperando venta');
+      text('statusText', data.lines?.length ? 'Revise sus productos y total.' : 'Agregue productos para iniciar.');
+      text('subtotal', money(data.totals?.subtotal));
+      text('tax', money(data.totals?.taxTotal));
+      text('discount', money(data.totals?.discountTotal));
+      text('total', money(data.totals?.total));
+      text('customer', data.customer?.name || 'Consumidor final');
+      text('rnc', data.customer?.fiscalId || '000-0000000-0');
+      text('receipt', data.customer?.receiptType || 'Consumidor final');
+      text('payment', data.paymentMethod || 'Efectivo');
+      text('loyalty', data.footer?.loyalty || 'Por cada compra acumulas beneficios.');
+      text('promo', data.footer?.promo || 'Pregunta por nuestras ofertas.');
+      text('articleCount', qty((data.lines || []).reduce((sum, line) => sum + Number(line.quantity || 0), 0)) + ' Articulos');
+      text('updatedAt', new Date(data.updatedAt || Date.now()).toLocaleTimeString('es-DO', { hour: '2-digit', minute: '2-digit', second: '2-digit' }));
+      const list = document.getElementById('items');
+      list.innerHTML = '';
+      if (!data.lines?.length) {
+        const empty = document.createElement('div');
+        empty.className = 'empty';
+        empty.textContent = 'Su compra aparecera aqui.';
+        list.appendChild(empty);
+        return;
+      }
+      data.lines.forEach((line) => {
+        const row = document.createElement('article');
+        row.className = 'item';
+        const product = document.createElement('div');
+        product.className = 'product';
+        product.appendChild(productImage(line));
+        const info = document.createElement('div');
+        const name = document.createElement('strong');
+        name.textContent = line.name || 'Producto';
+        const code = document.createElement('small');
+        code.textContent = line.code || '';
+        info.appendChild(name);
+        info.appendChild(code);
+        product.appendChild(info);
+        const quantity = document.createElement('div');
+        quantity.className = 'qty';
+        quantity.textContent = qty(line.quantity);
+        const price = document.createElement('div');
+        price.className = 'money';
+        price.textContent = money(line.price);
+        const subtotal = document.createElement('div');
+        subtotal.className = 'money';
+        subtotal.textContent = money(line.subtotal);
+        row.append(product, quantity, price, subtotal);
+        list.appendChild(row);
+      });
+    }
+    window.addEventListener('storage', (event) => { if (event.key === key) render(); });
+    setInterval(render, 700);
+    render();
+  </script>
+</body>
+</html>`)
+  displayWindow.document.close()
+  displayWindow.focus()
+  return displayWindow
 }
 
 export default function SalesPosPage({ controls, onAction, searchValue = '', onSearchChange, session }) {
@@ -432,10 +673,57 @@ export default function SalesPosPage({ controls, onAction, searchValue = '', onS
       .filter((item) => !query || [item.code, item.name, item.fiscalId, item.phone].some((field) => cleanText(field).includes(query)))
       .slice(0, 20)
   }, [customers, customerQuery])
+  const itemCount = useMemo(() => lines.reduce((sum, line) => sum + toNumber(line.quantity), 0), [lines])
+
+  useEffect(() => {
+    const displayInvoice = completedInvoice
+    const displayLines = displayInvoice?.lines || lines
+    const displayTotals = displayInvoice?.totals || totals
+    const displayCustomer = displayInvoice
+      ? {
+          ...customer,
+          name: displayInvoice.customer || customer.name,
+          fiscalId: displayInvoice.fiscalId || customer.fiscalId,
+        }
+      : customer
+    const displayFiscal = displayInvoice
+      ? {
+          enabled: Boolean(displayInvoice.comprobanteFiscal || displayInvoice.ncf),
+          name: displayInvoice.customer,
+          fiscalId: displayInvoice.fiscalId,
+          receiptType: displayInvoice.receiptType || displayInvoice.tipoComprobante || 'Consumidor final',
+        }
+      : fiscalReceipt
+    const status = displayInvoice
+      ? 'Pago completado'
+      : lines.length
+        ? totals.paid > 0
+          ? 'Pago en proceso'
+          : 'Esperando pago'
+        : 'Esperando venta'
+
+    publishPosDisplay(buildPosDisplayPayload({
+      settings,
+      branch,
+      warehouse,
+      session,
+      customer: displayCustomer,
+      lines: displayLines,
+      totals: displayTotals,
+      payment,
+      fiscalReceipt: displayFiscal,
+      status,
+    }))
+  }, [branch, completedInvoice, customer, fiscalReceipt, lines, payment, session, settings, totals, warehouse])
 
   const notify = (text) => {
     setMessage(text)
     onAction?.(text)
+  }
+
+  const openCustomerDisplay = () => {
+    const displayWindow = openCustomerDisplayWindow()
+    notify(displayWindow ? 'Pantalla cliente abierta. Puede moverla al segundo monitor.' : 'El navegador bloqueo la pantalla cliente. Permita ventanas emergentes.')
   }
 
   const resetSale = () => {
@@ -908,13 +1196,7 @@ export default function SalesPosPage({ controls, onAction, searchValue = '', onS
       searchValue={searchValue}
       searchPlaceholder="Buscar producto en POS"
       onSearchChange={onSearchChange}
-      actions={[
-        { id: 'fullscreen', label: fullscreen ? 'Salir pantalla completa' : 'Pantalla completa', icon: Maximize2, onClick: toggleFullscreen },
-        { id: 'suspend', label: 'Suspender venta', icon: Pause, onClick: suspendSale, disabled: lines.length === 0 },
-        { id: 'recover', label: 'Recuperar venta', icon: RotateCcw, onClick: () => setShowSuspended(true), disabled: suspendedSales.length === 0 },
-        { id: 'cancel', label: 'Cancelar venta', icon: X, variant: 'danger', onClick: resetSale, disabled: lines.length === 0 },
-        { id: 'exit', label: 'Salir', icon: X, onClick: controls?.onClose },
-      ]}
+      actions={[]}
       windowState={controls?.windowState}
       onClose={controls?.onClose}
       onMinimize={controls?.onMinimize}
@@ -924,24 +1206,52 @@ export default function SalesPosPage({ controls, onAction, searchValue = '', onS
       <section className={`sales-pos-page ${fullscreen ? 'is-pos-fullscreen' : ''}`}>
         {message && <div className="pos-message">{message}</div>}
 
-        <div className="pos-session-strip">
-          <article>
-            <span>Cajero</span>
-            <strong>{session?.fullName || session?.username || 'Caja'}</strong>
-          </article>
-          <article>
-            <span>Sucursal</span>
-            <strong>{branch.name || branch.code}</strong>
-          </article>
-          <article>
-            <span>Almacen</span>
-            <strong>{warehouse}</strong>
-          </article>
-          <article>
-            <span>Facturas POS</span>
-            <strong>{invoices.filter((item) => item.source === 'POS').length}</strong>
-          </article>
-        </div>
+        <header className="pos-operator-bar">
+          <div className="pos-brand-block">
+            <div className="pos-brand-mark" aria-hidden="true" />
+            <div>
+              <strong>INVE-FAT SYSTEM</strong>
+              <span>ERP Empresarial</span>
+            </div>
+          </div>
+
+          <div className="pos-session-metrics">
+            <article>
+              <span>Caja activa</span>
+              <strong><i />CA-01</strong>
+            </article>
+            <article>
+              <span>Sucursal</span>
+              <strong><Store size={16} />{branch.name || branch.code}</strong>
+            </article>
+            <article>
+              <span>Cajero</span>
+              <strong><User size={16} />{session?.fullName || session?.username || 'Caja'}</strong>
+            </article>
+          </div>
+
+          <label className="pos-global-search">
+            <Search size={18} />
+            <input
+              value={productQuery}
+              onChange={(event) => updateProductQuery(event.target.value)}
+              placeholder="Buscar productos, clientes, facturas..."
+              autoComplete="off"
+            />
+            <kbd>Ctrl + K</kbd>
+          </label>
+
+          <div className="pos-quick-actions">
+            <button type="button" onClick={suspendSale} disabled={lines.length === 0} title="Suspender venta"><Pause size={18} /><span>Suspender</span></button>
+            <button type="button" onClick={resetSale} title="Nueva venta"><Plus size={18} /><span>Nueva venta</span></button>
+            <button type="button" onClick={() => notify('Descuento por linea disponible desde el detalle de productos.')} title="Descuento"><Tag size={18} /><span>Descuento</span></button>
+            <button type="button" onClick={printCompleted} disabled={!completedInvoice} title="Reimprimir"><Printer size={18} /><span>Reimprimir</span></button>
+            <button type="button" onClick={() => notify('Apertura de caja preparada para integracion de efectivo.')} title="Abrir caja"><Banknote size={18} /><span>Abrir caja</span></button>
+            <button type="button" onClick={openCustomerDisplay} title="Pantalla cliente"><Monitor size={18} /><span>Pantalla cliente</span></button>
+            <button type="button" onClick={toggleFullscreen} title={fullscreen ? 'Salir pantalla completa' : 'Pantalla completa'}><Maximize2 size={18} /><span>{fullscreen ? 'Salir' : 'Pantalla'}</span></button>
+            <button type="button" onClick={() => notify('Mas opciones POS preparadas.')} title="Mas opciones"><MoreVertical size={18} /><span>Mas</span></button>
+          </div>
+        </header>
 
         <div className="pos-shell">
           <section className="pos-product-zone">
@@ -998,6 +1308,7 @@ export default function SalesPosPage({ controls, onAction, searchValue = '', onS
                       <small>Stock {formatQuantity(product.stock)}</small>
                     </div>
                     <em className={`pos-stock-pill ${stockStatus.className}`}>{stockStatus.label}</em>
+                    <span className="pos-add-badge" aria-hidden="true"><Plus size={18} /></span>
                   </button>
                 )
               })}
@@ -1012,89 +1323,13 @@ export default function SalesPosPage({ controls, onAction, searchValue = '', onS
           </section>
 
           <aside className="pos-cart-zone">
-            <div className="pos-customer-card">
-              <div>
-                <span>Cliente</span>
-                <strong>{customer.name}</strong>
-                <small>{customer.fiscalId || 'Consumidor final'}</small>
-              </div>
-              <label>
-                Buscar cliente
-                <input value={customerQuery} onChange={(event) => updateCustomerQuery(event.target.value)} placeholder="Codigo, nombre o RNC" list="pos-customers" />
-              </label>
-              <select value={customer.code} onChange={(event) => selectCustomer(event.target.value)}>
-                {filteredCustomers.map((item) => <option key={item.code} value={item.code}>{item.code} - {item.name}</option>)}
-              </select>
-              <datalist id="pos-customers">
-                {filteredCustomers.map((item) => <option key={item.code} value={`${item.code} - ${item.name}`} />)}
-              </datalist>
-            </div>
-
-            <div className="pos-fiscal-card">
-              <div className="pos-fiscal-header">
-                <div>
-                  <span>Comprobante fiscal</span>
-                  <strong>Factura con comprobante?</strong>
-                </div>
-                <div className="pos-fiscal-toggle" role="group" aria-label="Factura con comprobante fiscal">
-                  <button type="button" className={!fiscalReceipt.enabled ? 'is-active' : ''} onClick={() => toggleFiscalReceipt(false)} aria-pressed={!fiscalReceipt.enabled}>No</button>
-                  <button type="button" className={fiscalReceipt.enabled ? 'is-active' : ''} onClick={() => toggleFiscalReceipt(true)} aria-pressed={fiscalReceipt.enabled}>Si</button>
-                </div>
-              </div>
-
-              {!fiscalReceipt.enabled && (
-                <div className="pos-fiscal-note">
-                  Se emitira como consumidor final sin comprobante fiscal especial.
-                </div>
-              )}
-
-              {fiscalReceipt.enabled && (
-                <div className="pos-fiscal-grid">
-                  <label>
-                    RNC cliente
-                    <input value={fiscalReceipt.fiscalId} onChange={(event) => updateFiscalRnc(event.target.value)} placeholder="RNC obligatorio" />
-                  </label>
-                  <label>
-                    Nombre / razon social
-                    <input value={fiscalReceipt.name} onChange={(event) => setFiscalReceipt((current) => ({ ...current, name: event.target.value }))} placeholder="Nombre fiscal" />
-                  </label>
-                  <label>
-                    Tipo de comprobante
-                    <select value={fiscalReceipt.receiptType} onChange={(event) => setFiscalReceipt((current) => ({ ...current, receiptType: event.target.value }))}>
-                      {fiscalReceiptTypes.map((type) => <option key={type} value={type}>{type}</option>)}
-                    </select>
-                  </label>
-                  <label>
-                    NCF generado
-                    <input readOnly value={fiscalPreview.ncf || 'Sin secuencia disponible'} />
-                  </label>
-                  <label>
-                    Valido hasta
-                    <input readOnly value={fiscalPreview.validUntil || 'No configurado'} />
-                  </label>
-                  <label>
-                    Condicion de pago
-                    <input value={fiscalReceipt.paymentCondition} onChange={(event) => setFiscalReceipt((current) => ({ ...current, paymentCondition: event.target.value }))} />
-                  </label>
-                  <label>
-                    Telefono
-                    <input value={fiscalReceipt.phone} onChange={(event) => setFiscalReceipt((current) => ({ ...current, phone: event.target.value }))} />
-                  </label>
-                  <label>
-                    Direccion
-                    <input value={fiscalReceipt.address} onChange={(event) => setFiscalReceipt((current) => ({ ...current, address: event.target.value }))} />
-                  </label>
-                  {fiscalPreview.error && <div className="pos-fiscal-warning">{fiscalPreview.error}</div>}
-                  {rncLookupNote && <div className="pos-fiscal-warning">{rncLookupNote}</div>}
-                </div>
-              )}
-            </div>
-
             <div className="pos-cart-list">
               <div className="pos-cart-heading">
-                <ReceiptText size={18} />
-                <strong>Carrito</strong>
-                <span>{lines.length} linea(s)</span>
+                <div>
+                  <ReceiptText size={18} />
+                  <strong>Detalle de la venta</strong>
+                </div>
+                <span>{formatQuantity(itemCount)} Articulos</span>
               </div>
 
               {lines.length === 0 && <div className="pos-empty-cart">Agregue productos para iniciar la venta.</div>}
@@ -1121,6 +1356,70 @@ export default function SalesPosPage({ controls, onAction, searchValue = '', onS
               ))}
             </div>
 
+            <div className="pos-checkout-details">
+              <div className="pos-customer-card">
+                <div>
+                  <span>Cliente</span>
+                  <strong>{customer.name}</strong>
+                  <small>{customer.fiscalId || 'Consumidor final'}</small>
+                </div>
+                <label>
+                  Buscar cliente
+                  <input value={customerQuery} onChange={(event) => updateCustomerQuery(event.target.value)} placeholder="Codigo, nombre o RNC" list="pos-customers" />
+                </label>
+                <select value={customer.code} onChange={(event) => selectCustomer(event.target.value)}>
+                  {filteredCustomers.map((item) => <option key={item.code} value={item.code}>{item.code} - {item.name}</option>)}
+                </select>
+                <datalist id="pos-customers">
+                  {filteredCustomers.map((item) => <option key={item.code} value={`${item.code} - ${item.name}`} />)}
+                </datalist>
+              </div>
+
+              <div className="pos-fiscal-card">
+                <div className="pos-fiscal-header">
+                  <div>
+                    <span>Comprobante</span>
+                    <strong>{fiscalReceipt.enabled ? fiscalReceipt.receiptType : 'Consumidor final'}</strong>
+                  </div>
+                  <div className="pos-fiscal-toggle" role="group" aria-label="Factura con comprobante fiscal">
+                    <button type="button" className={!fiscalReceipt.enabled ? 'is-active' : ''} onClick={() => toggleFiscalReceipt(false)} aria-pressed={!fiscalReceipt.enabled}>No</button>
+                    <button type="button" className={fiscalReceipt.enabled ? 'is-active' : ''} onClick={() => toggleFiscalReceipt(true)} aria-pressed={fiscalReceipt.enabled}>Si</button>
+                  </div>
+                </div>
+
+                {!fiscalReceipt.enabled && (
+                  <div className="pos-fiscal-note">
+                    Venta como consumidor final.
+                  </div>
+                )}
+
+                {fiscalReceipt.enabled && (
+                  <div className="pos-fiscal-grid">
+                    <label>
+                      RNC cliente
+                      <input value={fiscalReceipt.fiscalId} onChange={(event) => updateFiscalRnc(event.target.value)} placeholder="RNC obligatorio" />
+                    </label>
+                    <label>
+                      Razon social
+                      <input value={fiscalReceipt.name} onChange={(event) => setFiscalReceipt((current) => ({ ...current, name: event.target.value }))} placeholder="Nombre fiscal" />
+                    </label>
+                    <label>
+                      Tipo
+                      <select value={fiscalReceipt.receiptType} onChange={(event) => setFiscalReceipt((current) => ({ ...current, receiptType: event.target.value }))}>
+                        {fiscalReceiptTypes.map((type) => <option key={type} value={type}>{type}</option>)}
+                      </select>
+                    </label>
+                    <label>
+                      NCF
+                      <input readOnly value={fiscalPreview.ncf || 'Sin secuencia'} />
+                    </label>
+                    {fiscalPreview.error && <div className="pos-fiscal-warning">{fiscalPreview.error}</div>}
+                    {rncLookupNote && <div className="pos-fiscal-warning">{rncLookupNote}</div>}
+                  </div>
+                )}
+              </div>
+            </div>
+
             <div className="pos-payment-panel">
               <div className="pos-payment-methods">
                 {paymentMethods.map((method) => (
@@ -1142,7 +1441,11 @@ export default function SalesPosPage({ controls, onAction, searchValue = '', onS
               <div className="is-grand"><span>Total</span><strong>{currency(totals.total, settings)}</strong></div>
               <button type="button" className="pos-charge-button" onClick={completeSale}>
                 <ReceiptText size={22} />
-                Cobrar
+                Cobrar {currency(totals.total, settings)}
+              </button>
+              <button type="button" className="pos-clear-button" onClick={resetSale} disabled={lines.length === 0}>
+                <Trash2 size={17} />
+                Limpiar venta
               </button>
             </div>
           </aside>
