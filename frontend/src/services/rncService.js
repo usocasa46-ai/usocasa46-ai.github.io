@@ -5,13 +5,43 @@ const META_STORE = 'rnc_meta'
 const FALLBACK_KEY = 'invefat_rnc_registry_fallback'
 const FALLBACK_META_KEY = 'invefat_rnc_registry_meta'
 
-const requiredHeaders = [
-  'RNC',
-  'RAZON SOCIAL',
-  'ACTIVIDAD ECONOMICA',
-  'FECHA DE INICIO OPERACIONES',
-  'ESTADO',
-  'REGIMEN DE PAGO',
+export const RNC_FIELD_DEFINITIONS = [
+  {
+    key: 'rnc',
+    label: 'RNC',
+    required: true,
+    aliases: ['RNC', 'R.N.C', 'REGISTRO', 'REGISTRO NACIONAL', 'IDENTIFICACION', 'IDENTIFICACION TRIBUTARIA'],
+  },
+  {
+    key: 'razonSocial',
+    label: 'Razon social',
+    required: true,
+    aliases: ['RAZON SOCIAL', 'NOMBRE', 'NOMBRE COMERCIAL', 'CONTRIBUYENTE', 'EMPRESA', 'RAZON_SOCIAL'],
+  },
+  {
+    key: 'actividadEconomica',
+    label: 'Actividad economica',
+    required: false,
+    aliases: ['ACTIVIDAD ECONOMICA', 'ACTIVIDAD', 'ACTIVIDAD_ECONOMICA'],
+  },
+  {
+    key: 'fechaInicioOperaciones',
+    label: 'Fecha inicio operaciones',
+    required: false,
+    aliases: ['FECHA DE INICIO OPERACIONES', 'FECHA INICIO', 'INICIO OPERACIONES', 'FECHA INICIO OPERACIONES', 'FECHA_INICIO_OPERACIONES'],
+  },
+  {
+    key: 'estado',
+    label: 'Estado',
+    required: false,
+    aliases: ['ESTADO', 'ESTADO CONTRIBUYENTE', 'STATUS'],
+  },
+  {
+    key: 'regimenPago',
+    label: 'Regimen de pago',
+    required: false,
+    aliases: ['REGIMEN DE PAGO', 'REGIMEN', 'REGIMEN_PAGO'],
+  },
 ]
 
 function canUseIndexedDb() {
@@ -28,6 +58,18 @@ function normalizeText(value = '') {
     .replace(/[\u0300-\u036f]/g, '')
     .trim()
     .toUpperCase()
+}
+
+function normalizeColumnName(value = '') {
+  return normalizeText(value)
+    .replace(/^\uFEFF/, '')
+    .replace(/[._/-]+/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim()
+}
+
+function compactColumnName(value = '') {
+  return normalizeColumnName(value).replace(/\s+/g, '')
 }
 
 export function normalizeRnc(value = '') {
@@ -111,7 +153,7 @@ function openDb() {
   return dbPromise
 }
 
-function parseCsvLine(line = '') {
+export function parseCsvLine(line = '') {
   const result = []
   let current = ''
   let insideQuotes = false
@@ -137,25 +179,80 @@ function parseCsvLine(line = '') {
   return result
 }
 
-function buildHeaderMap(headerLine = '') {
-  const headers = parseCsvLine(headerLine).map((header) => normalizeText(header.replace(/^\uFEFF/, '')))
-  const missing = requiredHeaders.filter((header) => !headers.includes(header))
-  if (missing.length) {
-    throw new Error('El archivo no contiene el encabezado requerido.')
+function splitCsvRecords(buffer = '', flush = false) {
+  const records = []
+  let current = ''
+  let insideQuotes = false
+
+  for (let index = 0; index < buffer.length; index += 1) {
+    const char = buffer[index]
+    const next = buffer[index + 1]
+
+    if (char === '"' && insideQuotes && next === '"') {
+      current += '"'
+      index += 1
+    } else if (char === '"') {
+      insideQuotes = !insideQuotes
+      current += char
+    } else if ((char === '\n' || char === '\r') && !insideQuotes) {
+      if (char === '\r' && next === '\n') index += 1
+      records.push(current)
+      current = ''
+    } else {
+      current += char
+    }
   }
 
-  return {
-    rnc: headers.indexOf('RNC'),
-    razonSocial: headers.indexOf('RAZON SOCIAL'),
-    actividadEconomica: headers.indexOf('ACTIVIDAD ECONOMICA'),
-    fechaInicioOperaciones: headers.indexOf('FECHA DE INICIO OPERACIONES'),
-    estado: headers.indexOf('ESTADO'),
-    regimenPago: headers.indexOf('REGIMEN DE PAGO'),
-  }
+  if (flush) return { records: current ? [...records, current] : records, remainder: '' }
+  return { records, remainder: current }
 }
 
-function recordFromCsvLine(line, headerMap) {
-  const values = parseCsvLine(line)
+function scoreColumn(header, field) {
+  const normalizedHeader = normalizeColumnName(header)
+  const compactHeader = compactColumnName(header)
+
+  return field.aliases.reduce((best, alias) => {
+    const normalizedAlias = normalizeColumnName(alias)
+    const compactAlias = compactColumnName(alias)
+    if (!normalizedHeader || !normalizedAlias) return best
+    if (normalizedHeader === normalizedAlias) return Math.max(best, 100)
+    if (compactHeader === compactAlias) return Math.max(best, 96)
+    if (normalizedHeader.includes(normalizedAlias) || normalizedAlias.includes(normalizedHeader)) return Math.max(best, 78)
+    const tokens = normalizedAlias.split(' ').filter(Boolean)
+    if (tokens.length > 1 && tokens.every((token) => normalizedHeader.includes(token))) return Math.max(best, 72)
+    return best
+  }, 0)
+}
+
+export function detectColumnMapping(headers = []) {
+  const mapping = {}
+  const confidence = {}
+  const usedIndexes = new Set()
+
+  RNC_FIELD_DEFINITIONS.forEach((field) => {
+    let best = { index: -1, score: 0 }
+    headers.forEach((header, index) => {
+      if (usedIndexes.has(index)) return
+      const score = scoreColumn(header, field)
+      if (score > best.score) best = { index, score }
+    })
+    const minimumScore = field.required ? 70 : 60
+    mapping[field.key] = best.score >= minimumScore ? best.index : -1
+    confidence[field.key] = best.score
+    if (mapping[field.key] >= 0) usedIndexes.add(mapping[field.key])
+  })
+
+  return { mapping, confidence }
+}
+
+export function validateColumnMapping(mapping = {}) {
+  const missing = RNC_FIELD_DEFINITIONS
+    .filter((field) => field.required && Number(mapping[field.key]) < 0)
+    .map((field) => field.label)
+  return missing
+}
+
+export function recordFromCsvValues(values = [], headerMap = {}) {
   return makeRncRecord({
     rnc: values[headerMap.rnc],
     razonSocial: values[headerMap.razonSocial],
@@ -166,10 +263,78 @@ function recordFromCsvLine(line, headerMap) {
   }, 'csv')
 }
 
-function validateRecord(record) {
+function buildHeaderMap(headerLine = '', providedMapping = null) {
+  const headers = parseCsvLine(headerLine).map((header) => header.replace(/^\uFEFF/, '').trim())
+  const mapping = providedMapping || detectColumnMapping(headers).mapping
+  const missing = validateColumnMapping(mapping)
+  if (missing.length) {
+    throw new Error(`No se detectaron columnas obligatorias: ${missing.join(', ')}.`)
+  }
+
+  return mapping
+}
+
+function recordFromCsvLine(line, headerMap) {
+  return recordFromCsvValues(parseCsvLine(line), headerMap)
+}
+
+export function validateRncRecord(record) {
   if (!record.rnc) return 'RNC obligatorio'
   if (!record.razonSocial) return 'Razon social obligatoria'
   return ''
+}
+
+async function readCsvRecords(file, onRecord, options = {}) {
+  const signal = options.signal
+  const onProgress = typeof options.onProgress === 'function' ? options.onProgress : () => {}
+  let buffer = ''
+  let loaded = 0
+  let rowNumber = 0
+  let keepReading = true
+
+  const handleRecords = async (records) => {
+    for (const record of records) {
+      if (signal?.aborted) throw new Error('Importacion cancelada.')
+      if (!keepReading) return
+      rowNumber += 1
+      const result = await onRecord(record, rowNumber)
+      if (result === false) keepReading = false
+    }
+  }
+
+  if (file.stream) {
+    const reader = file.stream().getReader()
+    const decoder = new TextDecoder('utf-8')
+    while (keepReading) {
+      const { value, done } = await reader.read()
+      if (done) break
+      loaded += value.byteLength
+      buffer += decoder.decode(value, { stream: true })
+      const split = splitCsvRecords(buffer, false)
+      buffer = split.remainder
+      await handleRecords(split.records)
+      onProgress(file.size ? Math.min(99, Math.round((loaded / file.size) * 100)) : 0)
+      if (!keepReading) {
+        await reader.cancel()
+        break
+      }
+    }
+    if (keepReading) {
+      buffer += decoder.decode()
+      const split = splitCsvRecords(buffer, true)
+      await handleRecords(split.records)
+    }
+    return
+  }
+
+  const text = await file.text()
+  const split = splitCsvRecords(text, true)
+  const total = split.records.length || 1
+  for (let index = 0; index < split.records.length; index += 1) {
+    await handleRecords([split.records[index]])
+    if (index % 500 === 0) onProgress(Math.round((index / total) * 100))
+    if (!keepReading) break
+  }
 }
 
 async function putBatch(records) {
@@ -315,7 +480,7 @@ export async function getAllPaginated(page = 1, pageSize = 50) {
 
 export async function updateRnc(rnc, data) {
   const record = makeRncRecord({ ...data, rnc }, data.source || 'manual')
-  const error = validateRecord(record)
+  const error = validateRncRecord(record)
   if (error) throw new Error(error)
   await putBatch([{ ...record, updatedAt: nowIso() }])
   return record
@@ -352,13 +517,60 @@ function pause() {
   return new Promise((resolve) => setTimeout(resolve, 0))
 }
 
+export async function analyzeCsv(file, options = {}) {
+  if (!file) throw new Error('Seleccione un archivo CSV.')
+  const previewSize = Number(options.previewSize) || 20
+  const sampleRows = []
+  let headers = []
+  let mapping = {}
+  let confidence = {}
+  let headerFound = false
+
+  await readCsvRecords(file, async (line, rowNumber) => {
+    if (!line.trim()) return true
+    if (!headerFound) {
+      headers = parseCsvLine(line).map((header) => header.replace(/^\uFEFF/, '').trim())
+      const detected = detectColumnMapping(headers)
+      mapping = detected.mapping
+      confidence = detected.confidence
+      headerFound = true
+      return true
+    }
+
+    sampleRows.push({ row: rowNumber, values: parseCsvLine(line) })
+    return sampleRows.length < previewSize
+  })
+
+  if (!headerFound || headers.length === 0) {
+    throw new Error('El archivo no contiene encabezados para analizar.')
+  }
+
+  const preview = []
+  for (const row of sampleRows) {
+    const record = recordFromCsvValues(row.values, mapping)
+    const error = validateRncRecord(record) || (await existsRnc(record.rnc) ? 'RNC duplicado en base' : '')
+    preview.push({ row: row.row, record, error })
+  }
+
+  return {
+    headers,
+    mapping,
+    confidence,
+    missingRequired: validateColumnMapping(mapping),
+    sampleRows,
+    preview,
+  }
+}
+
 export async function importCsv(file, options = {}) {
   if (!file) throw new Error('Seleccione un archivo CSV.')
-  const updateDuplicates = options.updateDuplicates !== false
+  const duplicateMode = options.duplicateMode || (options.updateDuplicates === false ? 'skip' : 'update')
+  const updateDuplicates = duplicateMode !== 'skip'
   const clearBeforeImport = Boolean(options.clearBeforeImport)
   const onProgress = typeof options.onProgress === 'function' ? options.onProgress : () => {}
   const signal = options.signal
   const batchSize = Number(options.batchSize) || 500
+  const providedMapping = options.mapping || null
   const summary = {
     processed: 0,
     imported: 0,
@@ -370,8 +582,6 @@ export async function importCsv(file, options = {}) {
     percent: 0,
   }
   let headerMap = null
-  let buffer = ''
-  let loaded = 0
   let batch = []
 
   if (clearBeforeImport) await clearAll()
@@ -387,14 +597,14 @@ export async function importCsv(file, options = {}) {
     if (signal?.aborted) throw new Error('Importacion cancelada.')
     if (!line.trim()) return
     if (!headerMap) {
-      headerMap = buildHeaderMap(line)
+      headerMap = buildHeaderMap(line, providedMapping)
       return
     }
 
     summary.processed += 1
     try {
       const record = recordFromCsvLine(line, headerMap)
-      const error = validateRecord(record)
+      const error = validateRncRecord(record)
       if (error) throw new Error(error)
       const existed = await existsRnc(record.rnc)
       if (!updateDuplicates && existed) {
@@ -414,34 +624,15 @@ export async function importCsv(file, options = {}) {
     }
   }
 
-  if (file.stream) {
-    const reader = file.stream().getReader()
-    const decoder = new TextDecoder('utf-8')
-    while (true) {
-      const { value, done } = await reader.read()
-      if (done) break
-      loaded += value.byteLength
-      buffer += decoder.decode(value, { stream: true })
-      const lines = buffer.split(/\r?\n/)
-      buffer = lines.pop() || ''
-      for (const line of lines) await handleLine(line)
-      summary.percent = file.size ? Math.min(99, Math.round((loaded / file.size) * 100)) : 0
+  await readCsvRecords(file, handleLine, {
+    signal,
+    onProgress: (percent) => {
+      summary.percent = percent
       onProgress({ ...summary })
-    }
-    buffer += decoder.decode()
-    if (buffer.trim()) await handleLine(buffer)
-  } else {
-    const text = await file.text()
-    const lines = text.split(/\r?\n/)
-    for (let index = 0; index < lines.length; index += 1) {
-      await handleLine(lines[index])
-      loaded = index
-      summary.percent = lines.length ? Math.round((loaded / lines.length) * 100) : 0
-      if (index % batchSize === 0) onProgress({ ...summary })
-    }
-  }
+    },
+  })
 
-  if (!headerMap) throw new Error('El archivo no contiene el encabezado requerido.')
+  if (!headerMap) throw new Error('El archivo no contiene encabezados para importar.')
   await flushBatch()
   summary.percent = 100
   await putMeta({
@@ -491,6 +682,7 @@ export async function enrichDgiiRecordsWithRnc(records = [], type = '607') {
 }
 
 export const rncService = {
+  analyzeCsv,
   importCsv,
   getByRnc,
   search,

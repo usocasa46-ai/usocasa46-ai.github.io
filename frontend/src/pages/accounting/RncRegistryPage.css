@@ -102,7 +102,8 @@
 .rnc-filter-grid input,
 .rnc-filter-grid select,
 .rnc-form-grid input,
-.rnc-import-box input {
+.rnc-import-box input,
+.rnc-import-box select {
   width: 100%;
   min-height: 34px;
   border: 1px solid #d7e1ec;
@@ -263,10 +264,46 @@
   gap: 12px;
 }
 
+.rnc-import-steps {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.rnc-import-steps span {
+  border: 1px solid #dce5ef;
+  border-radius: 999px;
+  background: #f7fafc;
+  color: #52677d;
+  padding: 7px 10px;
+  font-size: 12px;
+  font-weight: 900;
+  text-align: center;
+}
+
+.rnc-import-steps .is-done {
+  border-color: #cbe9d4;
+  background: #f1fbf4;
+  color: #176d39;
+}
+
 .rnc-import-box p {
   margin: 0;
   color: #52677d;
   font-weight: 800;
+}
+
+.rnc-import-box details {
+  border: 1px solid #dce5ef;
+  border-radius: 10px;
+  background: #fbfdff;
+  padding: 10px;
+}
+
+.rnc-import-box summary {
+  color: #24435f;
+  cursor: pointer;
+  font-weight: 900;
 }
 
 .rnc-import-box code {
@@ -278,6 +315,98 @@
   color: #24435f;
   padding: 9px 10px;
   white-space: nowrap;
+}
+
+.rnc-mapping-panel,
+.rnc-preview-panel {
+  display: grid;
+  gap: 10px;
+  border: 1px solid #dce5ef;
+  border-radius: 10px;
+  background: #fbfdff;
+  padding: 12px;
+}
+
+.rnc-mapping-panel h3,
+.rnc-preview-panel h3 {
+  margin: 0 0 3px;
+  color: #10243a;
+  font-size: 15px;
+}
+
+.rnc-mapping-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.rnc-warning,
+.rnc-processing {
+  border-radius: 8px;
+  padding: 8px 10px;
+  font-weight: 900;
+}
+
+.rnc-warning {
+  background: #fff7ed;
+  color: #9a3412;
+}
+
+.rnc-processing {
+  background: #eaf1f8;
+  color: #24435f;
+}
+
+.rnc-preview-table-wrap {
+  overflow-x: auto;
+  border: 1px solid #dce5ef;
+  border-radius: 8px;
+}
+
+.rnc-preview-table {
+  width: 100%;
+  min-width: 980px;
+  border-collapse: collapse;
+  font-size: 12px;
+}
+
+.rnc-preview-table th,
+.rnc-preview-table td {
+  border-bottom: 1px solid #edf2f7;
+  padding: 8px 9px;
+  text-align: left;
+}
+
+.rnc-preview-table th {
+  background: #f3f7fb;
+  color: #52677d;
+  font-weight: 900;
+}
+
+.rnc-preview-table tr.has-error td {
+  background: #fff7f6;
+  color: #8a2f2a;
+}
+
+.rnc-duplicate-options {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.rnc-duplicate-options label {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  border: 1px solid #dce5ef;
+  border-radius: 8px;
+  background: #fff;
+  padding: 8px 10px;
+}
+
+.rnc-duplicate-options input {
+  width: auto;
+  min-height: auto;
 }
 
 .rnc-check {
@@ -353,17 +482,36 @@ body.theme-dark .rnc-filter-grid input,
 body.theme-dark .rnc-filter-grid select,
 body.theme-dark .rnc-form-grid input,
 body.theme-dark .rnc-import-box input,
-body.theme-dark .rnc-import-box code {
+body.theme-dark .rnc-import-box select,
+body.theme-dark .rnc-import-box code,
+body.theme-dark .rnc-import-box details,
+body.theme-dark .rnc-mapping-panel,
+body.theme-dark .rnc-preview-panel,
+body.theme-dark .rnc-duplicate-options label {
   border-color: #27415d;
   background: #0f1e2f;
   color: #e7edf5;
+}
+
+body.theme-dark .rnc-mapping-panel h3,
+body.theme-dark .rnc-preview-panel h3,
+body.theme-dark .rnc-import-box summary {
+  color: #f8fbff;
+}
+
+body.theme-dark .rnc-preview-table th {
+  background: #162b42;
+  color: #d7e4f2;
 }
 
 @media (max-width: 1180px) {
   .rnc-stats-grid,
   .rnc-import-summary,
   .rnc-filter-grid,
-  .rnc-form-grid {
+  .rnc-form-grid,
+  .rnc-mapping-grid,
+  .rnc-duplicate-options,
+  .rnc-import-steps {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 }
@@ -372,7 +520,10 @@ body.theme-dark .rnc-import-box code {
   .rnc-stats-grid,
   .rnc-import-summary,
   .rnc-filter-grid,
-  .rnc-form-grid {
+  .rnc-form-grid,
+  .rnc-mapping-grid,
+  .rnc-duplicate-options,
+  .rnc-import-steps {
     grid-template-columns: 1fr;
   }
 
