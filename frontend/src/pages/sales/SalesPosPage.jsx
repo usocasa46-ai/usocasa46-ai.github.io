@@ -461,50 +461,52 @@ function openCustomerDisplayWindow() {
     :root { --blue:#073246; --blue2:#001f2f; --orange:#ff7a18; --line:#dde5ee; --soft:#f5f7fb; --text:#101d33; --muted:#5c6b80; }
     * { box-sizing: border-box; }
     body { margin: 0; min-height: 100vh; font-family: Inter, Arial, sans-serif; background: var(--soft); color: var(--text); overflow: hidden; }
-    .client-display { min-height: 100vh; display: grid; grid-template-rows: 88px minmax(0, 1fr) 118px; }
-    .top { display: grid; grid-template-columns: 1fr auto 1fr; align-items: center; gap: 24px; background: linear-gradient(135deg, var(--blue2), var(--blue)); color: #fff; padding: 18px 30px; box-shadow: 0 10px 30px rgba(0,0,0,.14); }
-    .brand { display: flex; align-items: center; gap: 14px; }
-    .mark { width: 58px; height: 42px; border-radius: 16px; background: linear-gradient(135deg, #ff9e28, var(--orange)); clip-path: polygon(0 20%, 28% 20%, 50% 58%, 75% 20%, 100% 20%, 58% 100%, 42% 100%); }
-    .brand strong { display: block; font-size: 26px; line-height: 1; }
-    .brand span, .cashbox span { display: block; color: rgba(255,255,255,.78); font-weight: 700; margin-top: 5px; }
-    .title { display: flex; align-items: center; gap: 14px; font-size: 34px; font-weight: 950; }
-    .title-icon { width: 54px; height: 54px; display:grid; place-items:center; border: 3px solid var(--orange); border-radius: 16px; color: var(--orange); font-weight: 950; }
-    .cashbox { justify-self: end; border-left: 1px solid rgba(255,255,255,.28); padding-left: 28px; font-size: 20px; font-weight: 900; }
-    .content { display: grid; grid-template-columns: minmax(0, 1.15fr) minmax(420px, .85fr); gap: 22px; padding: 22px; min-height: 0; }
-    .panel { min-height: 0; border: 1px solid var(--line); border-radius: 18px; background: #fff; box-shadow: 0 14px 36px rgba(15,39,66,.08); overflow: hidden; }
+    .client-display { height: 100vh; display: grid; grid-template-rows: 72px minmax(0, 1fr) 86px; }
+    .top { display: grid; grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr); align-items: center; gap: 16px; background: linear-gradient(135deg, var(--blue2), var(--blue)); color: #fff; padding: 12px 24px; box-shadow: 0 10px 30px rgba(0,0,0,.14); }
+    .brand { min-width: 0; display: flex; align-items: center; gap: 12px; }
+    .mark { width: 44px; height: 32px; flex: 0 0 auto; border-radius: 13px; background: linear-gradient(135deg, #ff9e28, var(--orange)); clip-path: polygon(0 20%, 28% 20%, 50% 58%, 75% 20%, 100% 20%, 58% 100%, 42% 100%); }
+    .brand strong { display: block; overflow: hidden; font-size: clamp(18px, 2vw, 22px); line-height: 1; text-overflow: ellipsis; white-space: nowrap; }
+    .brand span, .cashbox span { display: block; color: rgba(255,255,255,.78); font-size: 13px; font-weight: 700; margin-top: 4px; }
+    .title { display: flex; align-items: center; gap: 10px; font-size: clamp(24px, 2.7vw, 30px); font-weight: 950; white-space: nowrap; }
+    .title-icon { width: 42px; height: 42px; display:grid; place-items:center; border: 3px solid var(--orange); border-radius: 14px; color: var(--orange); font-weight: 950; }
+    .cashbox { justify-self: end; border-left: 1px solid rgba(255,255,255,.28); padding-left: 22px; font-size: 17px; font-weight: 900; }
+    .content { display: grid; grid-template-columns: minmax(0, 1.2fr) minmax(340px, .8fr); gap: 16px; padding: 16px; min-height: 0; overflow: hidden; }
+    .panel { min-height: 0; border: 1px solid var(--line); border-radius: 14px; background: #fff; box-shadow: 0 12px 30px rgba(15,39,66,.08); overflow: hidden; }
     .items { display: grid; grid-template-rows: auto minmax(0,1fr) auto; }
-    .table-head, .item { display: grid; grid-template-columns: minmax(0, 1fr) 110px 160px 160px; gap: 16px; align-items: center; }
-    .table-head { padding: 20px 24px; border-bottom: 1px solid var(--line); color: #101d33; font-size: 17px; font-weight: 950; text-transform: uppercase; }
-    .list { overflow: auto; padding: 0 18px; }
-    .item { min-height: 82px; border-bottom: 1px solid #edf1f5; font-size: 18px; font-weight: 800; }
-    .product { display: grid; grid-template-columns: 70px minmax(0,1fr); align-items: center; gap: 18px; }
-    .product-img { width: 58px; height: 58px; display: grid; place-items: center; border-radius: 14px; background: #eef4f8; color: #7b8ea4; overflow: hidden; }
+    .table-head, .item { display: grid; grid-template-columns: minmax(0, 1fr) 78px 120px 130px; gap: 12px; align-items: center; }
+    .table-head { padding: 14px 18px; border-bottom: 1px solid var(--line); color: #101d33; font-size: 14px; font-weight: 950; text-transform: uppercase; }
+    .list { overflow: auto; padding: 0 12px; }
+    .item { min-height: 64px; border-bottom: 1px solid #edf1f5; font-size: 15px; font-weight: 800; }
+    .product { min-width: 0; display: grid; grid-template-columns: 52px minmax(0,1fr); align-items: center; gap: 12px; }
+    .product-img { width: 44px; height: 44px; display: grid; place-items: center; border-radius: 11px; background: #eef4f8; color: #7b8ea4; overflow: hidden; }
     .product-img img { width: 100%; height: 100%; object-fit: contain; }
-    .product small { display: block; color: var(--muted); font-size: 13px; margin-top: 4px; }
-    .qty { justify-self: start; min-width: 50px; border: 1px solid var(--line); border-radius: 10px; padding: 10px 14px; text-align: center; background: #fbfcfe; }
+    .product strong { display: -webkit-box; overflow: hidden; line-height: 1.18; -webkit-box-orient: vertical; -webkit-line-clamp: 2; }
+    .product small { display: block; color: var(--muted); font-size: 11px; margin-top: 3px; }
+    .qty { justify-self: start; min-width: 42px; border: 1px solid var(--line); border-radius: 9px; padding: 7px 10px; text-align: center; background: #fbfcfe; }
     .money { text-align: right; white-space: nowrap; }
-    .summary { padding: 20px; display: grid; gap: 20px; align-content: start; }
-    .status { display: flex; align-items: center; gap: 18px; border: 1px solid #ffddbd; border-radius: 18px; background: linear-gradient(135deg, #fff6eb, #fff); padding: 22px; }
-    .coin { width: 86px; height: 86px; display:grid; place-items:center; border-radius: 50%; background: radial-gradient(circle, #ff8a22, #ffb980); color:#fff; font-size: 38px; font-weight: 950; border: 8px dotted rgba(255,255,255,.7); }
-    .status h2 { margin: 0; font-size: 30px; color: #0f2035; text-transform: uppercase; }
-    .status p { margin: 7px 0 0; color: #4f6278; font-size: 18px; font-weight: 750; }
-    .totals { display: grid; gap: 13px; font-size: 21px; }
+    .summary { padding: 16px; display: grid; gap: 14px; align-content: start; }
+    .status { display: flex; align-items: center; gap: 12px; border: 1px solid #ffddbd; border-radius: 14px; background: linear-gradient(135deg, #fff6eb, #fff); padding: 16px; }
+    .coin { width: 62px; height: 62px; flex: 0 0 auto; display:grid; place-items:center; border-radius: 50%; background: radial-gradient(circle, #ff8a22, #ffb980); color:#fff; font-size: 28px; font-weight: 950; border: 6px dotted rgba(255,255,255,.7); }
+    .status h2 { margin: 0; font-size: clamp(21px, 2.1vw, 26px); color: #0f2035; text-transform: uppercase; }
+    .status p { margin: 5px 0 0; color: #4f6278; font-size: 15px; font-weight: 750; }
+    .totals { display: grid; gap: 10px; font-size: clamp(16px, 1.7vw, 19px); }
     .totals div { display: flex; justify-content: space-between; gap: 16px; }
-    .totals .grand { margin-top: 10px; border-top: 1px solid var(--line); padding-top: 26px; align-items: baseline; }
-    .totals .grand span { color: #0f2035; font-size: 30px; font-weight: 950; text-transform: uppercase; }
-    .totals .grand strong { color: var(--orange); font-size: 46px; }
-    .client { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; border: 1px solid var(--line); border-radius: 18px; padding: 18px; }
-    .client article { display: grid; gap: 6px; }
-    .client span { color: var(--muted); font-size: 13px; font-weight: 900; text-transform: uppercase; }
-    .client strong { font-size: 18px; }
-    .items-foot { display: flex; justify-content: space-between; padding: 18px 24px; color: var(--muted); font-weight: 850; }
-    .footer { display: grid; grid-template-columns: repeat(3,1fr); gap: 24px; align-items: center; background: linear-gradient(135deg, var(--blue2), var(--blue)); color: #fff; padding: 20px 34px; }
-    .footer article { display: grid; grid-template-columns: 68px 1fr; gap: 15px; align-items: center; border-right: 1px solid rgba(255,255,255,.28); min-height: 70px; }
+    .totals .grand { margin-top: 6px; border-top: 1px solid var(--line); padding-top: 18px; align-items: baseline; }
+    .totals .grand span { color: #0f2035; font-size: clamp(22px, 2.5vw, 28px); font-weight: 950; text-transform: uppercase; }
+    .totals .grand strong { color: var(--orange); font-size: clamp(34px, 4vw, 44px); line-height: 1; }
+    .client { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; border: 1px solid var(--line); border-radius: 14px; padding: 14px; }
+    .client article { min-width: 0; display: grid; gap: 5px; }
+    .client span { color: var(--muted); font-size: 11px; font-weight: 900; text-transform: uppercase; }
+    .client strong { overflow: hidden; font-size: 15px; text-overflow: ellipsis; white-space: nowrap; }
+    .client small { color: var(--muted); font-weight: 800; }
+    .items-foot { display: flex; justify-content: space-between; gap: 12px; padding: 12px 18px; color: var(--muted); font-size: 13px; font-weight: 850; }
+    .footer { display: grid; grid-template-columns: repeat(3,1fr); gap: 16px; align-items: center; background: linear-gradient(135deg, var(--blue2), var(--blue)); color: #fff; padding: 14px 24px; }
+    .footer article { display: grid; grid-template-columns: 50px 1fr; gap: 11px; align-items: center; border-right: 1px solid rgba(255,255,255,.28); min-height: 54px; }
     .footer article:last-child { border-right: 0; }
-    .footer .icon { width: 60px; height: 60px; display:grid; place-items:center; border: 3px solid var(--orange); border-radius: 50%; color: var(--orange); font-size: 30px; }
-    .footer strong { color: #ff9d30; font-size: 22px; }
-    .footer p { margin: 5px 0 0; color: rgba(255,255,255,.88); font-size: 17px; }
-    .empty { height: 100%; display:grid; place-items:center; color: var(--muted); font-size: 22px; font-weight: 850; text-align:center; padding: 40px; }
+    .footer .icon { width: 46px; height: 46px; display:grid; place-items:center; border: 3px solid var(--orange); border-radius: 50%; color: var(--orange); font-size: 23px; }
+    .footer strong { color: #ff9d30; font-size: 17px; }
+    .footer p { margin: 4px 0 0; color: rgba(255,255,255,.88); font-size: 13px; }
+    .empty { height: 100%; display:grid; place-items:center; color: var(--muted); font-size: 18px; font-weight: 850; text-align:center; padding: 28px; }
     @media (prefers-color-scheme: dark) {
       :root { --soft:#071522; --text:#edf4fb; --muted:#a8bbce; --line:#26435f; }
       body { background: var(--soft); color: var(--text); }
@@ -516,7 +518,8 @@ function openCustomerDisplayWindow() {
       .status h2, .totals .grand span, .client strong { color: var(--text); }
       .client { border-color: var(--line); }
     }
-    @media (max-width: 980px) { body { overflow:auto; } .client-display { grid-template-rows:auto auto auto; } .top, .content, .footer { grid-template-columns: 1fr; } .cashbox { justify-self:start; border-left:0; padding-left:0; } .content { min-height:auto; } }
+    @media (max-width: 980px) { body { overflow:auto; } .client-display { height:auto; min-height:100vh; grid-template-rows:auto auto auto; } .top, .content, .footer { grid-template-columns: 1fr; } .cashbox { justify-self:start; border-left:0; padding-left:0; } .content { min-height:auto; overflow:visible; } .panel { min-height: 320px; } .footer article { border-right:0; } }
+    @media (max-height: 720px) and (min-width: 981px) { .client-display { grid-template-rows: 64px minmax(0,1fr) 72px; } .top { padding: 9px 20px; } .content { padding: 12px; gap: 12px; } .footer { padding: 10px 20px; } .status { padding: 12px; } .coin { width: 52px; height: 52px; font-size: 24px; } .totals .grand { padding-top: 12px; } }
   </style>
 </head>
 <body>
@@ -655,12 +658,25 @@ export default function SalesPosPage({ controls, onAction, searchValue = '', onS
   const [completedInvoice, setCompletedInvoice] = useState(null)
   const [showSuspended, setShowSuspended] = useState(false)
   const [fullscreen, setFullscreen] = useState(false)
+  const [lastAddedCode, setLastAddedCode] = useState('')
 
   useEffect(() => {
     setProducts(loadProducts())
     setCustomers(loadCustomers())
     setInvoices(readArray(INVOICES_KEY))
   }, [])
+
+  useEffect(() => {
+    if (!lastAddedCode) return undefined
+    const timer = window.setTimeout(() => setLastAddedCode(''), 900)
+    return () => window.clearTimeout(timer)
+  }, [lastAddedCode])
+
+  useEffect(() => {
+    if (!message) return undefined
+    const timer = window.setTimeout(() => setMessage(''), 2600)
+    return () => window.clearTimeout(timer)
+  }, [message])
 
   const branch = defaultBranch(settings)
   const warehouse = defaultWarehouse(settings, branch.code)
@@ -860,6 +876,8 @@ export default function SalesPosPage({ controls, onAction, searchValue = '', onS
       return [...current, makeLine(product)]
     })
     setProductQuery('')
+    setLastAddedCode(product.code)
+    notify('Producto agregado')
   }
 
   const updateLine = (lineId, field, value) => {
@@ -1378,28 +1396,35 @@ export default function SalesPosPage({ controls, onAction, searchValue = '', onS
                 <span>{formatQuantity(itemCount)} Articulos</span>
               </div>
 
-              {lines.length === 0 && <div className="pos-empty-cart">Agregue productos para iniciar la venta.</div>}
-              {lines.map((line) => (
-                <article key={line.id} className="pos-cart-line">
-                  <div>
-                    <strong>{line.name}</strong>
-                    <span>{line.code} | {line.unit}</span>
-                  </div>
-                  <div className="pos-qty-controls">
-                    <button type="button" onClick={() => changeQty(line.id, -1)}><Minus size={16} /></button>
-                    <input type="number" min="1" value={line.quantity} onChange={(event) => updateLine(line.id, 'quantity', event.target.value)} />
-                    <button type="button" onClick={() => changeQty(line.id, 1)}><Plus size={16} /></button>
-                  </div>
-                  <div className="pos-line-money">
-                    <input type="number" min="0" value={line.price} onChange={(event) => updateLine(line.id, 'price', event.target.value)} title="Precio" />
-                    <input type="number" min="0" value={line.discount} onChange={(event) => updateLine(line.id, 'discount', event.target.value)} title="Descuento" />
-                    <strong>{currency(lineTotal(line), settings)}</strong>
-                  </div>
-                  <button type="button" className="pos-remove-line" onClick={() => removeLine(line.id)} title="Eliminar linea">
-                    <Trash2 size={17} />
-                  </button>
-                </article>
-              ))}
+              <div className="pos-cart-items">
+                {lines.length === 0 && <div className="pos-empty-cart">Agregue productos para iniciar la venta.</div>}
+                {lines.map((line) => (
+                  <article key={line.id} className={`pos-cart-line ${lastAddedCode === line.code ? 'is-recent' : ''}`}>
+                    <div className="pos-cart-product">
+                      <div className="pos-cart-thumb">
+                        {line.image ? <img src={line.image} alt={line.name} /> : <Package size={20} />}
+                      </div>
+                      <div>
+                        <strong>{line.name}</strong>
+                        <span>{line.code} | {line.unit}</span>
+                      </div>
+                    </div>
+                    <div className="pos-qty-controls">
+                      <button type="button" onClick={() => changeQty(line.id, -1)}><Minus size={16} /></button>
+                      <input type="number" min="1" value={line.quantity} onChange={(event) => updateLine(line.id, 'quantity', event.target.value)} />
+                      <button type="button" onClick={() => changeQty(line.id, 1)}><Plus size={16} /></button>
+                    </div>
+                    <div className="pos-line-money">
+                      <input type="number" min="0" value={line.price} onChange={(event) => updateLine(line.id, 'price', event.target.value)} title="Precio" />
+                      <input type="number" min="0" value={line.discount} onChange={(event) => updateLine(line.id, 'discount', event.target.value)} title="Descuento" />
+                      <strong>{currency(lineTotal(line), settings)}</strong>
+                    </div>
+                    <button type="button" className="pos-remove-line" onClick={() => removeLine(line.id)} title="Eliminar linea">
+                      <Trash2 size={17} />
+                    </button>
+                  </article>
+                ))}
+              </div>
             </div>
 
             <div className="pos-checkout-details">
