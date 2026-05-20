@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import './LoginScreen.css'
 
 const loginMenu = [
@@ -11,6 +11,153 @@ const loginMenu = [
   { label: 'Ayuda', options: ['Acerca del sistema', 'Soporte'] },
 ]
 
+const PASSWORD_RESET_KEY = 'invefat_password_reset_requests'
+
+function loadPasswordResetRequests() {
+  try {
+    const saved = localStorage.getItem(PASSWORD_RESET_KEY)
+    return saved ? JSON.parse(saved) : []
+  } catch {
+    return []
+  }
+}
+
+function savePasswordResetRequest(request) {
+  const current = loadPasswordResetRequests()
+  localStorage.setItem(PASSWORD_RESET_KEY, JSON.stringify([request, ...current].slice(0, 500)))
+}
+
+function PasswordResetModal({ initialCompanyCode = 'EMP001', onClose }) {
+  const [formData, setFormData] = useState({
+    companyCode: initialCompanyCode || 'EMP001',
+    usuarioOCorreo: '',
+  })
+  const [error, setError] = useState('')
+  const [message, setMessage] = useState('')
+
+  useEffect(() => {
+    const handleEscape = (event) => {
+      if (event.key === 'Escape') {
+        event.preventDefault()
+        onClose?.()
+      }
+    }
+
+    window.addEventListener('keydown', handleEscape)
+    return () => window.removeEventListener('keydown', handleEscape)
+  }, [onClose])
+
+  const updateField = (field, value) => {
+    setFormData((current) => ({
+      ...current,
+      [field]: value,
+    }))
+  }
+
+  const handleSubmit = (event) => {
+    event.preventDefault()
+
+    const companyCode = formData.companyCode.trim().toUpperCase()
+    const usuarioOCorreo = formData.usuarioOCorreo.trim()
+
+    if (!companyCode) {
+      setError('Debe indicar el código de empresa.')
+      setMessage('')
+      return
+    }
+
+    if (!usuarioOCorreo) {
+      setError('Debe indicar usuario o correo.')
+      setMessage('')
+      return
+    }
+
+    const id = window.crypto?.randomUUID?.() || `PRR-${Date.now()}`
+    savePasswordResetRequest({
+      id,
+      companyCode,
+      usuarioOCorreo,
+      fecha: new Date().toISOString(),
+      estado: 'pendiente',
+      origen: 'login',
+    })
+
+    setError('')
+    setMessage('Solicitud registrada. Contacte al administrador de su empresa para restablecer la contraseña.')
+  }
+
+  return (
+    <div
+      className="login-recovery-backdrop"
+      role="presentation"
+      onMouseDown={(event) => {
+        if (event.target === event.currentTarget) {
+          onClose?.()
+        }
+      }}
+    >
+      <form
+        className="login-recovery-modal"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="login-recovery-title"
+        onSubmit={handleSubmit}
+      >
+        <header className="login-recovery-header">
+          <div>
+            <span>Seguridad de acceso</span>
+            <h3 id="login-recovery-title">Recuperar contraseña</h3>
+          </div>
+          <button type="button" className="login-recovery-close" onClick={onClose} aria-label="Cerrar">
+            ×
+          </button>
+        </header>
+
+        <div className="login-recovery-body">
+          <p>
+            Registra una solicitud para que el administrador de tu empresa pueda restablecer el acceso.
+          </p>
+
+          {(error || message) && (
+            <div className={error ? 'login-recovery-alert is-error' : 'login-recovery-alert is-success'}>
+              {error || message}
+            </div>
+          )}
+
+          <label>
+            Código de empresa
+            <input
+              value={formData.companyCode}
+              onChange={(event) => updateField('companyCode', event.target.value.toUpperCase())}
+              placeholder="EMP001"
+              autoComplete="organization"
+            />
+          </label>
+
+          <label>
+            Usuario o correo
+            <input
+              value={formData.usuarioOCorreo}
+              onChange={(event) => updateField('usuarioOCorreo', event.target.value)}
+              placeholder="usuario@empresa.com"
+              autoComplete="username"
+            />
+          </label>
+        </div>
+
+        <footer className="login-recovery-footer">
+          <button type="button" className="login-recovery-cancel" onClick={onClose}>
+            Cancelar
+          </button>
+          <button type="submit" className="login-recovery-submit">
+            Enviar solicitud
+          </button>
+        </footer>
+      </form>
+    </div>
+  )
+}
+
 export default function LoginScreen({ onLogin, notice = '' }) {
   const currentYear = new Date().getFullYear()
   const [formData, setFormData] = useState({
@@ -21,6 +168,7 @@ export default function LoginScreen({ onLogin, notice = '' }) {
   })
 
   const [error, setError] = useState('')
+  const [passwordResetOpen, setPasswordResetOpen] = useState(false)
 
   const updateField = (field, value) => {
     setFormData((current) => ({
@@ -162,8 +310,8 @@ export default function LoginScreen({ onLogin, notice = '' }) {
               Recordarme
             </label>
 
-            <button type="button">
-              Olvide mi clave
+            <button type="button" onClick={() => setPasswordResetOpen(true)}>
+              Olvidé mi clave
             </button>
           </div>
 
@@ -175,6 +323,12 @@ export default function LoginScreen({ onLogin, notice = '' }) {
       <footer className="login-copyright">
         © {currentYear} INVE-FAT SYSTEM. Todos los derechos reservados. v1.0
       </footer>
+      {passwordResetOpen && (
+        <PasswordResetModal
+          initialCompanyCode={formData.companyCode}
+          onClose={() => setPasswordResetOpen(false)}
+        />
+      )}
     </main>
   )
 }
