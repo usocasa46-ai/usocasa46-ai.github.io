@@ -3,8 +3,6 @@ import {
   appendSystemAudit,
   clearRawLocalStorage,
   COMPANY_KEY_MAP,
-  ensureDemoCompany,
-  getCompanyLicense,
   getCompanyKey,
   getRawLocalStorageSnapshot,
   loadCompanyUsers,
@@ -89,37 +87,11 @@ export function resetCompanyLocalData(company, { session } = {}) {
   }
 }
 
-export function resetEntireLocalSystem({ session, backupFilename = '' } = {}) {
+export function resetEntireLocalSystem() {
   const supabaseActive = isSupabaseConfigured()
 
   clearRawLocalStorage()
   sessionStorage.removeItem('inveFatSession')
-  const demoCompany = ensureDemoCompany()
-  getCompanyLicense(demoCompany)
-
-  appendSystemAudit('backup completo generado', {
-    usuario: session?.username || 'superadmin',
-    descripcion: backupFilename || 'Backup completo previo al reinicio',
-  })
-  appendSystemAudit('backup completo descargado', {
-    usuario: session?.username || 'superadmin',
-    descripcion: backupFilename || 'Backup completo descargado previo al reinicio',
-  })
-  appendSystemAudit('reinicio sistema solicitado', {
-    usuario: session?.username || 'superadmin',
-    descripcion: 'Solicitud registrada antes del reinicio',
-  })
-  appendSystemAudit('reinicio sistema confirmado', {
-    usuario: session?.username || 'superadmin',
-    descripcion: 'Confirmado con frase segura antes de ejecutar',
-  })
-  appendSystemAudit('reinicio sistema ejecutado', {
-    usuario: session?.username || 'superadmin',
-    companyCode: demoCompany.companyCode,
-    descripcion: supabaseActive
-      ? 'LocalStorage reiniciado. Supabase no fue eliminado desde frontend.'
-      : 'Sistema local reiniciado por completo.',
-  })
 
   return {
     ok: true,

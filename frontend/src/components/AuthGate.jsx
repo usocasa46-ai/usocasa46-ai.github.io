@@ -13,7 +13,6 @@ import {
   appendSystemAudit,
   createCompany,
   createSupportAccess,
-  ensureDemoCompany,
   findCompanyByCode,
   getCompanyAccessStatus,
   installCompanyStorageScope,
@@ -37,7 +36,6 @@ const SUPER_ADMIN = {
 }
 
 installCompanyStorageScope()
-ensureDemoCompany()
 
 function loadValidSession() {
   try {

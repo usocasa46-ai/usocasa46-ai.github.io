@@ -25,16 +25,15 @@ El frontend usa la anon public key. Esa llave no debe tener permisos administrat
 1. Entrar como `SYSTEM / superadmin`.
 2. Descargar respaldo completo desde el Panel del Sistema.
 3. Verificar que el respaldo abre correctamente.
-4. Ejecutar SQL controlado o funcion backend segura.
-5. Recrear datos minimos:
-   - Empresa demo `EMP001`.
-   - Licencia demo.
-   - Plan demo.
-   - Usuario administrador de empresa si aplica.
-6. Probar login y aislamiento multiempresa.
+4. Ejecutar `supabase/reset_all_data.sql` o una funcion backend segura equivalente.
+5. Confirmar que la base queda sin empresas.
+6. Entrar con `SYSTEM / superadmin / admin123`.
+7. Crear empresas manualmente desde el Panel del Sistema.
 
 ## Nota
 
 La opcion del Panel del Sistema reinicia `localStorage` y deja un aviso cuando Supabase esta activo:
 
 `Los datos en Supabase no fueron eliminados porque se requiere operacion administrativa segura.`
+
+Despues del reinicio total no debe existir `EMP001` hasta que el Super Admin la cree manualmente.

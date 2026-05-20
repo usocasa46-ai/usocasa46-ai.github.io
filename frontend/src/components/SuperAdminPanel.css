@@ -166,6 +166,41 @@
   border-radius: 8px;
 }
 
+.super-admin-empty-state {
+  display: grid;
+  justify-items: start;
+  gap: 8px;
+  margin-top: 12px;
+  border: 1px dashed #cbd8e5;
+  border-radius: 10px;
+  background: #f8fafc;
+  padding: 16px;
+}
+
+.super-admin-empty-state h3,
+.super-admin-empty-state p {
+  margin: 0;
+}
+
+.super-admin-empty-state p {
+  color: #62768a;
+  font-size: 13px;
+}
+
+.super-admin-empty-state button {
+  min-height: 36px;
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  border: 1px solid #f97316;
+  border-radius: 8px;
+  background: #f97316;
+  color: #ffffff;
+  cursor: pointer;
+  padding: 8px 12px;
+  font-weight: 900;
+}
+
 .super-admin-card-grid,
 .super-admin-plan-grid {
   display: grid;

@@ -468,7 +468,7 @@ export default function SuperAdminPanel({
 
     if (resetDraft.confirmation !== 'REINICIAR SISTEMA') return
     setResetDraft({ ...resetDraft, busy: true })
-    const result = resetEntireLocalSystem({ session, backupFilename: resetDraft.backupFilename })
+    const result = resetEntireLocalSystem()
     setResetDraft(null)
     setNotice(result.message)
     onLogout?.('system-reset')
@@ -511,6 +511,16 @@ export default function SuperAdminPanel({
         onLicense={(company) => setLicenseDraft(getCompanyLicense(company))}
         onBackup={exportBackup}
       />
+      {filteredCompanies.length === 0 && (
+        <div className="super-admin-empty-state">
+          <h3>No hay empresas creadas todavía.</h3>
+          <p>Cree una empresa para comenzar. El acceso SYSTEM / superadmin no cuenta como empresa cliente.</p>
+          <button type="button" className="is-primary" onClick={() => setCompanyDraft(emptyCompany)}>
+            <Plus size={16} />
+            Crear primera empresa
+          </button>
+        </div>
+      )}
     </section>
   )
 
@@ -746,6 +756,12 @@ export default function SuperAdminPanel({
           <button type="button" disabled={supabaseDiagnostic.busy} onClick={() => runSupabaseTest(() => testSupabaseIsolation(companies))}>Probar aislamiento EMP001 / EMP002</button>
         </div>
       </div>
+
+      {supabaseDiagnostic.configured && companies.length === 0 && (
+        <div className="super-admin-notice">
+          Sistema local limpio. Si existen datos en Supabase, ejecute <strong>supabase/reset_all_data.sql</strong> desde Supabase para limpiar la nube de forma segura.
+        </div>
+      )}
 
       <div className="super-admin-table-wrap super-admin-diagnostic-table">
         <table className="super-admin-table">

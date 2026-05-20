@@ -2,7 +2,6 @@ import { erpModules } from '../config/modulesMap.js'
 
 const COMPANIES_KEY = 'invefat_companies'
 const SESSION_KEY = 'inveFatSession'
-const DEFAULT_COMPANY_CODE = 'EMP001'
 const LICENSES_KEY = 'invefat_company_licenses'
 const PLANS_KEY = 'invefat_system_plans'
 const BACKUPS_LOG_KEY = 'invefat_company_backups_log'
@@ -11,25 +10,6 @@ const SYSTEM_AUDIT_KEY = 'invefat_system_audit_log'
 
 export const ALL_COMPANY_MODULES = erpModules.map((module) => module.id)
 export const DEVELOPMENT_PLAN_NAMES = ['demo', 'desarrollo', 'development']
-
-const DEMO_COMPANY = {
-  id: 'COMP-EMP001',
-  companyCode: DEFAULT_COMPANY_CODE,
-  nombreComercial: 'Empresa Demo',
-  razonSocial: 'Empresa Demo',
-  rnc: '000000000',
-  telefono: '',
-  correo: '',
-  direccion: '',
-  estado: 'activa',
-  plan: 'Demo',
-  fechaActivacion: new Date().toISOString().slice(0, 10),
-  fechaVencimiento: '',
-  modulosActivos: ALL_COMPANY_MODULES,
-  maxUsuarios: 5,
-  createdAt: new Date().toISOString(),
-  updatedAt: new Date().toISOString(),
-}
 
 const CLEAN_COMPANY_DEFAULTS = {
   inveFatInventoryProducts: [],
@@ -381,18 +361,12 @@ export function installCompanyStorageScope() {
 
       const scopedKey = getCompanyKey(key, companyCode)
       const scopedValue = rawStorage.getItem.call(this, scopedKey)
-      if (scopedKey !== key && scopedValue === null && companyCode === DEFAULT_COMPANY_CODE) {
-        return rawStorage.getItem.call(this, key)
-      }
 
       return scopedValue
     }
 
     const scopedKey = getCompanyKey(key)
     const scopedValue = rawStorage.getItem.call(this, scopedKey)
-    if (scopedKey !== key && scopedValue === null && getSessionCompanyCode() === DEFAULT_COMPANY_CODE) {
-      return rawStorage.getItem.call(this, key)
-    }
 
     return scopedValue
   }
@@ -429,9 +403,9 @@ export function getGlobalOperationalStorageWarnings() {
 
 export function loadCompanies() {
   const saved = safeParse(rawGet(COMPANIES_KEY), null)
-  if (Array.isArray(saved) && saved.length > 0) {
+  if (Array.isArray(saved)) {
     const normalized = saved.map((company) => (
-      cleanCode(company.companyCode) === DEFAULT_COMPANY_CODE
+      DEVELOPMENT_PLAN_NAMES.includes(String(company.plan || '').toLowerCase())
         ? { ...company, modulosActivos: ALL_COMPANY_MODULES }
         : { ...company, modulosActivos: normalizeModuleList(company.modulosActivos) }
     ))
@@ -439,8 +413,7 @@ export function loadCompanies() {
     return normalized
   }
 
-  rawSet(COMPANIES_KEY, JSON.stringify([DEMO_COMPANY]))
-  return [DEMO_COMPANY]
+  return []
 }
 
 export function saveCompanies(companies) {
@@ -470,8 +443,7 @@ export function loadSystemAudit() {
 
 export function loadSystemPlans() {
   const saved = safeParse(rawGet(PLANS_KEY), null)
-  if (Array.isArray(saved) && saved.length > 0) {
-    const defaultsByName = new Map(DEFAULT_SYSTEM_PLANS.map((plan) => [String(plan.name).toLowerCase(), plan]))
+  if (Array.isArray(saved)) {
     const normalized = saved.map((plan) => {
       const isDevPlan = DEVELOPMENT_PLAN_NAMES.includes(String(plan.name || '').toLowerCase())
       return {
@@ -479,17 +451,11 @@ export function loadSystemPlans() {
         modules: isDevPlan ? ALL_COMPANY_MODULES : normalizeModuleList(plan.modules),
       }
     })
-    DEFAULT_SYSTEM_PLANS.forEach((defaultPlan) => {
-      if (!normalized.some((plan) => String(plan.name).toLowerCase() === String(defaultPlan.name).toLowerCase())) {
-        normalized.push(defaultPlan)
-      }
-    })
     rawSet(PLANS_KEY, JSON.stringify(normalized))
     return normalized
   }
 
-  rawSet(PLANS_KEY, JSON.stringify(DEFAULT_SYSTEM_PLANS))
-  return DEFAULT_SYSTEM_PLANS
+  return []
 }
 
 export function saveSystemPlans(plans) {
@@ -502,10 +468,7 @@ export function loadCompanyLicenses() {
   const saved = safeParse(rawGet(LICENSES_KEY), null)
   if (Array.isArray(saved)) return saved
 
-  const companies = loadCompanies()
-  const licenses = companies.map((company) => buildDefaultLicense(company))
-  rawSet(LICENSES_KEY, JSON.stringify(licenses))
-  return licenses
+  return []
 }
 
 function buildDefaultLicense(company) {
@@ -525,7 +488,7 @@ function buildDefaultLicense(company) {
     limiteMensualDocumentosElectronicos: Number(company.limiteMensualDocumentosElectronicos || 0),
     documentosElectronicosUsados: Number(company.documentosElectronicosUsados || 0),
     bloquearAlLimiteElectronico: Boolean(company.bloquearAlLimiteElectronico),
-    modulosActivos: cleanCode(company.companyCode) === DEFAULT_COMPANY_CODE || DEVELOPMENT_PLAN_NAMES.includes(String(company.plan || '').toLowerCase())
+    modulosActivos: DEVELOPMENT_PLAN_NAMES.includes(String(company.plan || '').toLowerCase())
       ? ALL_COMPANY_MODULES
       : normalizeModuleList(Array.isArray(company.modulosActivos) && company.modulosActivos.length ? company.modulosActivos : plan.modules),
     tipoVersion: company.tipoVersion || 'Cloud',
@@ -601,7 +564,7 @@ export function getActiveModuleIdsForCompany(companyCode) {
   const modules = Array.isArray(license?.modulosActivos) && license.modulosActivos.length
     ? license.modulosActivos
     : company.modulosActivos
-  if (cleanCode(company.companyCode) === DEFAULT_COMPANY_CODE || DEVELOPMENT_PLAN_NAMES.includes(String(license?.planContratado || company.plan || '').toLowerCase())) {
+  if (DEVELOPMENT_PLAN_NAMES.includes(String(license?.planContratado || company.plan || '').toLowerCase())) {
     return ALL_COMPANY_MODULES
   }
   return normalizeModuleList(modules)
@@ -644,9 +607,9 @@ export function createCompany(data) {
     plan: data.plan || 'Demo',
     fechaActivacion: data.fechaActivacion || new Date().toISOString().slice(0, 10),
     fechaVencimiento: data.fechaVencimiento || '',
-    modulosActivos: cleanCode(data.companyCode) === DEFAULT_COMPANY_CODE || DEVELOPMENT_PLAN_NAMES.includes(String(data.plan || '').toLowerCase())
+    modulosActivos: DEVELOPMENT_PLAN_NAMES.includes(String(data.plan || '').toLowerCase())
       ? ALL_COMPANY_MODULES
-      : normalizeModuleList(data.modulosActivos || DEMO_COMPANY.modulosActivos),
+      : normalizeModuleList(data.modulosActivos || ALL_COMPANY_MODULES),
     maxUsuarios: Number(data.maxUsuarios || 5),
     firstLoginPending: data.firstLoginPending !== false,
     onboardingCompleted: Boolean(data.onboardingCompleted),
@@ -663,7 +626,7 @@ export function createCompany(data) {
 }
 
 export function initializeCleanCompanyData(company) {
-  if (!company || cleanCode(company.companyCode) === DEFAULT_COMPANY_CODE) return false
+  if (!company) return false
 
   Object.entries(CLEAN_COMPANY_DEFAULTS).forEach(([baseKey, value]) => {
     setCompanyData(baseKey, value, company.companyCode)
@@ -690,10 +653,6 @@ export function getCompanyData(baseKey, fallback = [], companyCode = getSessionC
   const scopedKey = getCompanyKey(baseKey, companyCode)
   const scoped = safeParse(rawGet(scopedKey), null)
   if (scoped !== null) return scoped
-
-  if (cleanCode(companyCode) === DEFAULT_COMPANY_CODE) {
-    return safeParse(rawGet(baseKey), fallback)
-  }
 
   return fallback
 }
@@ -746,30 +705,8 @@ export function loadCompanyUsers(company) {
     return users.map((user) => normalizeCompanyUser(user, company))
   }
 
-  const isDemoCompany = cleanCode(company.companyCode) === DEFAULT_COMPANY_CODE
-  const legacy = isDemoCompany ? safeParse(rawGet('inveFatUsers'), []) : []
-  if (!isDemoCompany) {
-    setCompanyData('inveFatUsers', [], company.companyCode)
-    return []
-  }
-
-  const seeded = Array.isArray(legacy) && legacy.length > 0
-    ? legacy.map((user) => normalizeCompanyUser(user, company))
-    : [
-        normalizeCompanyUser({
-          id: 'USR-001',
-          fullName: 'Administrador Principal',
-          username: 'admin',
-          password: 'admin123',
-          role: 'Administrador Principal',
-          active: true,
-          isMainAdmin: true,
-          createdAt: 'Inicial',
-        }, company),
-      ]
-
-  setCompanyData('inveFatUsers', seeded, company.companyCode)
-  return seeded
+  setCompanyData('inveFatUsers', [], company.companyCode)
+  return []
 }
 
 export function saveCompanyUsers(company, users) {
@@ -891,21 +828,4 @@ export function getIsolationResults(companies = loadCompanies()) {
       counts,
     }
   })
-}
-
-export function ensureDemoCompany() {
-  const companies = loadCompanies()
-  const demo = companies.find((company) => cleanCode(company.companyCode) === DEFAULT_COMPANY_CODE) || createCompany(DEMO_COMPANY)
-  const normalizedDemo = { ...demo, modulosActivos: ALL_COMPANY_MODULES, plan: demo.plan || 'Demo' }
-  if (JSON.stringify(demo.modulosActivos) !== JSON.stringify(ALL_COMPANY_MODULES)) {
-    saveCompanies(companies.map((company) => (company.id === demo.id ? normalizedDemo : company)))
-    upsertCompanyLicense(normalizedDemo, {
-      ...getCompanyLicense(normalizedDemo),
-      planContratado: 'Demo',
-      modulosActivos: ALL_COMPANY_MODULES,
-      estado: 'demo',
-    })
-  }
-  loadCompanyUsers(demo)
-  return demo
 }
