@@ -483,6 +483,18 @@
   gap: 8px;
 }
 
+.super-admin-test-actions input {
+  min-height: 34px;
+  min-width: min(260px, 100%);
+  border: 1px solid #d7e1eb;
+  border-radius: 8px;
+  background: #ffffff;
+  color: #18334d;
+  padding: 7px 10px;
+  font-size: 12px;
+  font-weight: 800;
+}
+
 .super-admin-test-actions button {
   min-height: 34px;
   border: 1px solid #d7e1eb;

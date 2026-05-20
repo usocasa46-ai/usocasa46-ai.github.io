@@ -200,7 +200,7 @@ export default function AuthGate() {
     let company = findCompanyByCode(cleanCompanyCode)
     let companyUsers = company ? loadCompanyUsers(company) : []
 
-    if (!company && isSupabaseConfigured()) {
+    if (isSupabaseConfigured()) {
       const bundle = await loadCompanyBundleForLogin(cleanCompanyCode)
       if (bundle?.company) {
         company = findCompanyByCode(cleanCompanyCode) || bundle.company

@@ -47,6 +47,9 @@ Si falta alguna variable, INVE-FAT SYSTEM sigue usando `localStorage` multiempre
 
 - Todas las tablas operativas deben tener `company_id`.
 - Cada usuario de empresa pertenece a una sola empresa.
+- En tablas administrativas, `company_id` guarda el id interno de la empresa, por ejemplo `COMP-PRUEBA`.
+- En tablas administrativas, `company_code` guarda el codigo de login, por ejemplo `PRUEBA`.
+- `company_users` y `company_licenses` deben tener el mismo `company_id` y `company_code` de su registro en `companies`.
 - El Super Admin administra empresas, licencias, planes, soporte y logs tecnicos.
 - El Super Admin no consulta datos privados de una empresa salvo que exista soporte autorizado vigente.
 - Los datos operativos se filtran siempre por `company_id`.
@@ -80,6 +83,17 @@ La capa `frontend/src/services/dataClient.js` agrega `company_id` al guardar dat
 Las tablas operativas usan clave compuesta `company_id + id`, porque dos empresas pueden tener el mismo codigo de producto, numero de factura o identificador interno sin mezclar datos.
 
 No hay migracion masiva automatica desde `localStorage` hacia Supabase en esta fase. Primero se prueba escritura, lectura y aislamiento con datos nuevos controlados.
+
+## Diagnostico y reparacion de empresa
+
+En **Panel del Sistema > Estado del sistema > Diagnosticar empresa**:
+
+1. Escribir el codigo de empresa, por ejemplo `PRUEBA`.
+2. Pulsar **Diagnosticar**.
+3. Verificar que `company_id` y `company_code` coincidan en `companies`, `company_users` y `company_licenses`.
+4. Si hay campos mezclados, pulsar **Reparar empresa**.
+
+La reparacion no borra datos. Solo actualiza identificadores para que el login desde otro navegador pueda encontrar empresa, licencia y usuario en Supabase.
 
 ## Servicios preparados
 

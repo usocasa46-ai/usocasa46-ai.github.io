@@ -23,6 +23,7 @@ import {
   getGlobalOperationalStorageWarnings,
   getIsolationResults,
   ALL_COMPANY_MODULES,
+  COMPANY_LICENSE_MODULES,
   importCompanyBackup,
   isCompanyActive,
   loadBackupLog,
@@ -40,6 +41,10 @@ import {
   writeSupabaseEmp001Test,
 } from '../services/supabaseDiagnosticsService.js'
 import {
+  diagnoseCompanyLogin,
+  repairCompanyIdentifiers,
+} from '../services/systemDataSyncService.js'
+import {
   createCompleteSystemBackup,
   createSingleCompanyBackup,
   markBackupDownloaded,
@@ -51,7 +56,7 @@ import {
 } from '../services/systemResetService.js'
 import './SuperAdminPanel.css'
 
-const moduleOptions = ALL_COMPANY_MODULES
+const moduleOptions = COMPANY_LICENSE_MODULES
 
 const sections = [
   ['empresas', 'Empresas'],
@@ -82,7 +87,7 @@ const emptyCompany = {
   maxSucursales: 1,
   maxAlmacenes: 2,
   tipoVersion: 'Cloud',
-  modulosActivos: ALL_COMPANY_MODULES,
+  modulosActivos: COMPANY_LICENSE_MODULES,
   admin: {
     fullName: '',
     username: 'admin',
@@ -181,6 +186,9 @@ export default function SuperAdminPanel({
     message: 'Ejecuta una prueba para validar la conexion.',
     busy: false,
   }))
+  const [companyDiagnosticCode, setCompanyDiagnosticCode] = useState('')
+  const [companyDiagnostic, setCompanyDiagnostic] = useState(null)
+  const [companyDiagnosticBusy, setCompanyDiagnosticBusy] = useState(false)
 
   const licenses = useMemo(() => loadCompanyLicenses(), [companies, refreshKey])
   const backups = useMemo(() => loadBackupLog(), [refreshKey])
@@ -253,7 +261,7 @@ export default function SuperAdminPanel({
         usersCount: loadCompanyUsers(company).length,
         licenseStatus: license?.estado || 'sin licencia',
         activeModulesCount: Array.isArray(modules) ? modules.length : 0,
-        modulesTotal: ALL_COMPANY_MODULES.length,
+        modulesTotal: COMPANY_LICENSE_MODULES.length,
         lastBackup,
         isolation: isolationByCompany.get(company.companyCode)?.status || 'Sin prueba',
       }
@@ -296,6 +304,24 @@ export default function SuperAdminPanel({
       busy: false,
     })
     setNotice(result.message)
+  }
+
+  const runCompanyDiagnostic = async () => {
+    setCompanyDiagnosticBusy(true)
+    const result = await diagnoseCompanyLogin(companyDiagnosticCode)
+    setCompanyDiagnostic(result)
+    setCompanyDiagnosticBusy(false)
+    setNotice(result.message || result.problem || (result.loginShouldWork ? 'Login deberia funcionar.' : 'Diagnostico completado.'))
+  }
+
+  const repairDiagnosedCompany = async () => {
+    setCompanyDiagnosticBusy(true)
+    const result = await repairCompanyIdentifiers(companyDiagnosticCode)
+    setNotice(result.message || 'Reparacion finalizada.')
+    const nextDiagnostic = await diagnoseCompanyLogin(companyDiagnosticCode)
+    setCompanyDiagnostic(nextDiagnostic)
+    setCompanyDiagnosticBusy(false)
+    refresh()
   }
 
   const saveCompany = async () => {
@@ -786,6 +812,39 @@ export default function SuperAdminPanel({
         </div>
       )}
 
+      <div className="super-admin-supabase-panel">
+        <div>
+          <span>Diagnosticar empresa</span>
+          <h3>Login multiempresa</h3>
+          <p>Valida que companies, company_users y company_licenses usen el mismo company_id y company_code.</p>
+        </div>
+        <div className="super-admin-test-actions">
+          <input
+            value={companyDiagnosticCode}
+            onChange={(event) => setCompanyDiagnosticCode(event.target.value.toUpperCase())}
+            placeholder="Codigo empresa, ej. PRUEBA"
+          />
+          <button type="button" disabled={companyDiagnosticBusy} onClick={runCompanyDiagnostic}>Diagnosticar</button>
+          <button type="button" disabled={companyDiagnosticBusy || !companyDiagnostic?.exists} onClick={repairDiagnosedCompany}>Reparar empresa</button>
+        </div>
+        {companyDiagnostic && (
+          <dl>
+            <div><dt>Existe en companies</dt><dd>{companyDiagnostic.exists ? 'Si' : 'No'}</dd></div>
+            <div><dt>company_id detectado</dt><dd>{companyDiagnostic.companyId || 'N/D'}</dd></div>
+            <div><dt>company_code detectado</dt><dd>{companyDiagnostic.detectedCompanyCode || 'N/D'}</dd></div>
+            <div><dt>Admin activo</dt><dd>{companyDiagnostic.adminActive ? 'Si' : 'No'}</dd></div>
+            <div><dt>Licencia activa</dt><dd>{companyDiagnostic.licenseActive ? 'Si' : 'No'}</dd></div>
+            <div><dt>Licencia company_id correcto</dt><dd>{companyDiagnostic.licenseCompanyIdOk ? 'Si' : 'No'}</dd></div>
+            <div><dt>Licencia company_code correcto</dt><dd>{companyDiagnostic.licenseCompanyCodeOk ? 'Si' : 'No'}</dd></div>
+            <div><dt>Usuario company_id correcto</dt><dd>{companyDiagnostic.userCompanyIdOk ? 'Si' : 'No'}</dd></div>
+            <div><dt>Usuario company_code correcto</dt><dd>{companyDiagnostic.userCompanyCodeOk ? 'Si' : 'No'}</dd></div>
+            <div><dt>Login deberia funcionar</dt><dd>{companyDiagnostic.loginShouldWork ? 'Si' : 'No'}</dd></div>
+          </dl>
+        )}
+        {companyDiagnostic?.problem && <small>{companyDiagnostic.problem}</small>}
+        {companyDiagnostic?.message && !companyDiagnostic.ok && <small>{companyDiagnostic.message}</small>}
+      </div>
+
       <div className="super-admin-table-wrap super-admin-diagnostic-table">
         <table className="super-admin-table">
           <thead>
@@ -1188,10 +1247,10 @@ function LicenseModal({ draft, setDraft, onSave, plans }) {
           <label>Observacion<input value={draft.observacion || ''} onChange={(event) => setDraft({ ...draft, observacion: event.target.value })} /></label>
           <div className="super-admin-checks">
             <div className="super-admin-check-actions">
-              <button type="button" onClick={() => setDraft({ ...draft, modulosActivos: ALL_COMPANY_MODULES })}>Activar todos los modulos para esta empresa</button>
+              <button type="button" onClick={() => setDraft({ ...draft, modulosActivos: COMPANY_LICENSE_MODULES })}>Activar todos los modulos para esta empresa</button>
               <button type="button" onClick={() => {
                 const plan = plans.find((item) => item.name === draft.planContratado)
-                setDraft({ ...draft, modulosActivos: plan?.modules || ALL_COMPANY_MODULES })
+                setDraft({ ...draft, modulosActivos: plan?.modules || COMPANY_LICENSE_MODULES })
               }}>Restaurar modulos por defecto</button>
             </div>
             {moduleOptions.map((moduleId) => <label key={moduleId}><input type="checkbox" checked={(draft.modulosActivos || []).includes(moduleId)} onChange={() => setDraft({ ...draft, modulosActivos: toggleModule(draft.modulosActivos, moduleId) })} />{moduleId}</label>)}
@@ -1214,7 +1273,7 @@ function PlanModal({ draft, setDraft, onSave }) {
           <label className="is-wide">Descripcion<input value={draft.description || ''} onChange={(event) => setDraft({ ...draft, description: event.target.value })} /></label>
           <div className="super-admin-checks">
             <div className="super-admin-check-actions">
-              <button type="button" onClick={() => setDraft({ ...draft, modules: ALL_COMPANY_MODULES })}>Activar todos los modulos</button>
+              <button type="button" onClick={() => setDraft({ ...draft, modules: COMPANY_LICENSE_MODULES })}>Activar todos los modulos</button>
               <button type="button" onClick={() => setDraft({ ...draft, modules: ['dashboard'] })}>Restaurar modulos por defecto</button>
             </div>
             {moduleOptions.map((moduleId) => <label key={moduleId}><input type="checkbox" checked={(draft.modules || []).includes(moduleId)} onChange={() => setDraft({ ...draft, modules: toggleModule(draft.modules, moduleId) })} />{moduleId}</label>)}

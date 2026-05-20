@@ -45,6 +45,7 @@ $$;
 create table if not exists public.companies (
   id text primary key,
   company_id text,
+  company_code text,
   data jsonb not null default '{}'::jsonb,
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now()
@@ -53,6 +54,7 @@ create table if not exists public.companies (
 create table if not exists public.company_licenses (
   id text primary key,
   company_id text,
+  company_code text,
   data jsonb not null default '{}'::jsonb,
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now()
@@ -69,6 +71,7 @@ create table if not exists public.system_plans (
 create table if not exists public.company_users (
   id text not null,
   company_id text not null,
+  company_code text,
   data jsonb not null default '{}'::jsonb,
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now(),
@@ -90,6 +93,53 @@ create table if not exists public.system_audit_log (
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now()
 );
+
+-- Compatibilidad para bases creadas antes de normalizar company_id/company_code.
+alter table public.companies add column if not exists company_code text;
+alter table public.company_licenses add column if not exists company_code text;
+alter table public.company_users add column if not exists company_code text;
+
+update public.companies
+set
+  company_code = upper(coalesce(nullif(company_code, ''), nullif(data ->> 'company_code', ''), nullif(data ->> 'companyCode', ''), nullif(company_id, ''))),
+  company_id = coalesce(nullif(data ->> 'companyId', ''), nullif(data ->> 'company_id', ''), nullif(company_id, ''), id),
+  data = data
+    || jsonb_build_object(
+      'companyCode', upper(coalesce(nullif(company_code, ''), nullif(data ->> 'company_code', ''), nullif(data ->> 'companyCode', ''), nullif(company_id, ''))),
+      'company_code', upper(coalesce(nullif(company_code, ''), nullif(data ->> 'company_code', ''), nullif(data ->> 'companyCode', ''), nullif(company_id, ''))),
+      'companyId', coalesce(nullif(data ->> 'companyId', ''), nullif(data ->> 'company_id', ''), nullif(company_id, ''), id),
+      'company_id', coalesce(nullif(data ->> 'companyId', ''), nullif(data ->> 'company_id', ''), nullif(company_id, ''), id)
+    );
+
+update public.company_licenses license
+set
+  company_code = upper(coalesce(nullif(license.company_code, ''), nullif(license.data ->> 'company_code', ''), nullif(license.data ->> 'companyCode', ''), nullif(company.company_code, ''), nullif(license.company_id, ''))),
+  company_id = coalesce(nullif(license.data ->> 'companyId', ''), nullif(company.id, ''), nullif(license.company_id, '')),
+  data = license.data
+    || jsonb_build_object(
+      'companyCode', upper(coalesce(nullif(license.company_code, ''), nullif(license.data ->> 'company_code', ''), nullif(license.data ->> 'companyCode', ''), nullif(company.company_code, ''), nullif(license.company_id, ''))),
+      'company_code', upper(coalesce(nullif(license.company_code, ''), nullif(license.data ->> 'company_code', ''), nullif(license.data ->> 'companyCode', ''), nullif(company.company_code, ''), nullif(license.company_id, ''))),
+      'companyId', coalesce(nullif(license.data ->> 'companyId', ''), nullif(company.id, ''), nullif(license.company_id, '')),
+      'company_id', coalesce(nullif(license.data ->> 'companyId', ''), nullif(company.id, ''), nullif(license.company_id, ''))
+    )
+from public.companies company
+where upper(coalesce(nullif(license.company_code, ''), nullif(license.data ->> 'company_code', ''), nullif(license.data ->> 'companyCode', ''), nullif(license.company_id, '')))
+  = upper(company.company_code);
+
+update public.company_users user_row
+set
+  company_code = upper(coalesce(nullif(user_row.company_code, ''), nullif(user_row.data ->> 'company_code', ''), nullif(user_row.data ->> 'companyCode', ''), nullif(company.company_code, ''), nullif(user_row.company_id, ''))),
+  company_id = coalesce(nullif(user_row.data ->> 'companyId', ''), nullif(company.id, ''), nullif(user_row.company_id, '')),
+  data = user_row.data
+    || jsonb_build_object(
+      'companyCode', upper(coalesce(nullif(user_row.company_code, ''), nullif(user_row.data ->> 'company_code', ''), nullif(user_row.data ->> 'companyCode', ''), nullif(company.company_code, ''), nullif(user_row.company_id, ''))),
+      'company_code', upper(coalesce(nullif(user_row.company_code, ''), nullif(user_row.data ->> 'company_code', ''), nullif(user_row.data ->> 'companyCode', ''), nullif(company.company_code, ''), nullif(user_row.company_id, ''))),
+      'companyId', coalesce(nullif(user_row.data ->> 'companyId', ''), nullif(company.id, ''), nullif(user_row.company_id, '')),
+      'company_id', coalesce(nullif(user_row.data ->> 'companyId', ''), nullif(company.id, ''), nullif(user_row.company_id, ''))
+    )
+from public.companies company
+where upper(coalesce(nullif(user_row.company_code, ''), nullif(user_row.data ->> 'company_code', ''), nullif(user_row.data ->> 'companyCode', ''), nullif(user_row.company_id, '')))
+  = upper(company.company_code);
 
 -- Tablas operativas con company_id obligatorio para separar datos por empresa.
 create table if not exists public.products (
@@ -174,7 +224,10 @@ create table if not exists public.inventory_movements (
 );
 
 create index if not exists idx_company_licenses_company_id on public.company_licenses(company_id);
+create index if not exists idx_companies_company_code on public.companies(company_code);
+create index if not exists idx_company_licenses_company_code on public.company_licenses(company_code);
 create index if not exists idx_company_users_company_id on public.company_users(company_id);
+create index if not exists idx_company_users_company_code on public.company_users(company_code);
 create index if not exists idx_support_access_company_id on public.support_access(company_id);
 create index if not exists idx_products_company_id on public.products(company_id);
 create index if not exists idx_customers_company_id on public.customers(company_id);
@@ -210,9 +263,12 @@ drop policy if exists "company_login_companies" on public.companies;
 create policy "company_login_companies" on public.companies
   for select
   using (
-    company_id = public.invefat_request_company_id()
+    company_code = public.invefat_request_company_id()
+    or company_code = public.invefat_request_header('x-company-code')
     or data ->> 'companyCode' = public.invefat_request_company_id()
     or data ->> 'companyCode' = public.invefat_request_header('x-company-code')
+    or data ->> 'company_code' = public.invefat_request_company_id()
+    or data ->> 'company_code' = public.invefat_request_header('x-company-code')
   );
 
 drop policy if exists "super_admin_company_licenses" on public.company_licenses;
@@ -222,9 +278,12 @@ drop policy if exists "company_login_licenses" on public.company_licenses;
 create policy "company_login_licenses" on public.company_licenses
   for select
   using (
-    company_id = public.invefat_request_company_id()
+    company_code = public.invefat_request_company_id()
+    or company_code = public.invefat_request_header('x-company-code')
     or data ->> 'companyCode' = public.invefat_request_company_id()
     or data ->> 'companyCode' = public.invefat_request_header('x-company-code')
+    or data ->> 'company_code' = public.invefat_request_company_id()
+    or data ->> 'company_code' = public.invefat_request_header('x-company-code')
   );
 
 drop policy if exists "super_admin_system_plans" on public.system_plans;
@@ -240,8 +299,20 @@ create policy "super_admin_system_audit_log" on public.system_audit_log for all 
 drop policy if exists "company_users_by_company" on public.company_users;
 create policy "company_users_by_company" on public.company_users
   for all
-  using (public.invefat_is_super_admin() or company_id = public.invefat_request_company_id())
-  with check (public.invefat_is_super_admin() or company_id = public.invefat_request_company_id());
+  using (
+    public.invefat_is_super_admin()
+    or company_code = public.invefat_request_company_id()
+    or company_code = public.invefat_request_header('x-company-code')
+    or data ->> 'companyCode' = public.invefat_request_company_id()
+    or data ->> 'company_code' = public.invefat_request_header('x-company-code')
+  )
+  with check (
+    public.invefat_is_super_admin()
+    or company_code = public.invefat_request_company_id()
+    or company_code = public.invefat_request_header('x-company-code')
+    or data ->> 'companyCode' = public.invefat_request_company_id()
+    or data ->> 'company_code' = public.invefat_request_header('x-company-code')
+  );
 
 -- Datos operativos: company_id debe coincidir con la empresa activa.
 -- El Panel Super Admin puede ejecutar pruebas controladas enviando x-company-id

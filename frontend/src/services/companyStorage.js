@@ -9,6 +9,7 @@ const SUPPORT_ACCESS_KEY = 'invefat_support_access'
 const SYSTEM_AUDIT_KEY = 'invefat_system_audit_log'
 
 export const ALL_COMPANY_MODULES = erpModules.map((module) => module.id)
+export const COMPANY_LICENSE_MODULES = ALL_COMPANY_MODULES.filter((moduleId) => moduleId !== 'system')
 export const DEVELOPMENT_PLAN_NAMES = ['demo', 'desarrollo', 'development']
 
 const CLEAN_COMPANY_DEFAULTS = {
@@ -76,14 +77,14 @@ const DEFAULT_SYSTEM_PLANS = [
     id: 'PLAN-DEMO',
     name: 'Demo',
     status: 'Activo',
-    modules: ALL_COMPANY_MODULES,
+    modules: COMPANY_LICENSE_MODULES,
     description: 'Modo prueba con todos los modulos activos.',
   },
   {
     id: 'PLAN-DEVELOPMENT',
     name: 'Desarrollo',
     status: 'Activo',
-    modules: ALL_COMPANY_MODULES,
+    modules: COMPANY_LICENSE_MODULES,
     description: 'Plan interno para probar el sistema completo.',
   },
   {
@@ -104,7 +105,7 @@ const DEFAULT_SYSTEM_PLANS = [
     id: 'PLAN-ENTERPRISE',
     name: 'Empresarial',
     status: 'Activo',
-    modules: ['dashboard', 'system', 'sales', 'inventory', 'purchases', 'warehouse', 'finance', 'reports', 'settings', 'security'],
+    modules: ['dashboard', 'sales', 'inventory', 'purchases', 'warehouse', 'finance', 'reports', 'settings', 'security'],
     description: 'Todo el ERP, finanzas, DGII, multiusuario y seguridad avanzada.',
   },
 ]
@@ -281,8 +282,8 @@ function cleanCode(value) {
 }
 
 function normalizeModuleList(modules) {
-  if (!Array.isArray(modules) || modules.length === 0) return ALL_COMPANY_MODULES
-  return Array.from(new Set(['dashboard', ...modules.filter((moduleId) => ALL_COMPANY_MODULES.includes(moduleId))]))
+  if (!Array.isArray(modules) || modules.length === 0) return COMPANY_LICENSE_MODULES
+  return Array.from(new Set(['dashboard', ...modules.filter((moduleId) => COMPANY_LICENSE_MODULES.includes(moduleId))]))
 }
 
 function rawGet(key) {
@@ -406,7 +407,7 @@ export function loadCompanies() {
   if (Array.isArray(saved)) {
     const normalized = saved.map((company) => (
       DEVELOPMENT_PLAN_NAMES.includes(String(company.plan || '').toLowerCase())
-        ? { ...company, modulosActivos: ALL_COMPANY_MODULES }
+        ? { ...company, modulosActivos: COMPANY_LICENSE_MODULES }
         : { ...company, modulosActivos: normalizeModuleList(company.modulosActivos) }
     ))
     rawSet(COMPANIES_KEY, JSON.stringify(normalized))
@@ -448,7 +449,7 @@ export function loadSystemPlans() {
       const isDevPlan = DEVELOPMENT_PLAN_NAMES.includes(String(plan.name || '').toLowerCase())
       return {
         ...plan,
-        modules: isDevPlan ? ALL_COMPANY_MODULES : normalizeModuleList(plan.modules),
+        modules: isDevPlan ? COMPANY_LICENSE_MODULES : normalizeModuleList(plan.modules),
       }
     })
     rawSet(PLANS_KEY, JSON.stringify(normalized))
@@ -459,9 +460,13 @@ export function loadSystemPlans() {
 }
 
 export function saveSystemPlans(plans) {
-  rawSet(PLANS_KEY, JSON.stringify(plans))
+  const normalized = (Array.isArray(plans) ? plans : []).map((plan) => ({
+    ...plan,
+    modules: normalizeModuleList(plan.modules),
+  }))
+  rawSet(PLANS_KEY, JSON.stringify(normalized))
   appendSystemAudit('Cambiar planes', { descripcion: 'Planes del sistema actualizados' })
-  return plans
+  return normalized
 }
 
 export function loadCompanyLicenses() {
@@ -479,7 +484,7 @@ function buildDefaultLicense(company) {
     companyCode: company.companyCode,
     codigoLicencia: `LIC-${company.companyCode}-${String(Date.now()).slice(-6)}`,
     planContratado: company.plan || plan.name,
-    estado: company.estado === 'suspendida' ? 'suspendida' : company.plan === 'Demo' ? 'demo' : 'activa',
+    estado: company.estado === 'suspendida' ? 'suspendida' : 'activa',
     fechaActivacion: company.fechaActivacion || new Date().toISOString().slice(0, 10),
     fechaVencimiento: company.fechaVencimiento || '',
     maxUsuarios: Number(company.maxUsuarios || 5),
@@ -489,7 +494,7 @@ function buildDefaultLicense(company) {
     documentosElectronicosUsados: Number(company.documentosElectronicosUsados || 0),
     bloquearAlLimiteElectronico: Boolean(company.bloquearAlLimiteElectronico),
     modulosActivos: DEVELOPMENT_PLAN_NAMES.includes(String(company.plan || '').toLowerCase())
-      ? ALL_COMPANY_MODULES
+      ? COMPANY_LICENSE_MODULES
       : normalizeModuleList(Array.isArray(company.modulosActivos) && company.modulosActivos.length ? company.modulosActivos : plan.modules),
     tipoVersion: company.tipoVersion || 'Cloud',
     observacion: company.observacion || '',
@@ -524,6 +529,7 @@ export function upsertCompanyLicense(companyOrCode, patch) {
     ...patch,
     companyId: company.id,
     companyCode: company.companyCode,
+    modulosActivos: normalizeModuleList(patch.modulosActivos || current.modulosActivos || company.modulosActivos),
     updatedAt: nowIso(),
   }
   const next = licenses.some((item) => item.id === nextLicense.id)
@@ -565,7 +571,7 @@ export function getActiveModuleIdsForCompany(companyCode) {
     ? license.modulosActivos
     : company.modulosActivos
   if (DEVELOPMENT_PLAN_NAMES.includes(String(license?.planContratado || company.plan || '').toLowerCase())) {
-    return ALL_COMPANY_MODULES
+    return COMPANY_LICENSE_MODULES
   }
   return normalizeModuleList(modules)
 }
@@ -608,8 +614,8 @@ export function createCompany(data) {
     fechaActivacion: data.fechaActivacion || new Date().toISOString().slice(0, 10),
     fechaVencimiento: data.fechaVencimiento || '',
     modulosActivos: DEVELOPMENT_PLAN_NAMES.includes(String(data.plan || '').toLowerCase())
-      ? ALL_COMPANY_MODULES
-      : normalizeModuleList(data.modulosActivos || ALL_COMPANY_MODULES),
+      ? COMPANY_LICENSE_MODULES
+      : normalizeModuleList(data.modulosActivos || COMPANY_LICENSE_MODULES),
     maxUsuarios: Number(data.maxUsuarios || 5),
     firstLoginPending: data.firstLoginPending !== false,
     onboardingCompleted: Boolean(data.onboardingCompleted),
