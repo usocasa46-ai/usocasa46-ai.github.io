@@ -33,22 +33,40 @@ const DEMO_COMPANY = {
 
 const CLEAN_COMPANY_DEFAULTS = {
   inveFatInventoryProducts: [],
+  invefat_products: [],
   invefat_customers: [],
+  invefat_sales_customers: [],
+  inveFatCustomers: [],
   invefat_sales_invoices: [],
   invefat_sales_quotes: [],
+  invefat_sales_orders: [],
+  invefat_sales_returns: [],
+  invefat_sales_credit_notes: [],
   invefat_suppliers: [],
   invefat_company_settings: {},
+  invefat_settings: {},
   inveFatUsers: [],
+  invefat_users: [],
   inveFatRoles: [],
   invefat_roles: [],
   invefat_permissions: [],
   invefat_ncf_sequences: [],
   invefat_ncf_used: [],
   invefat_warehouses: [],
+  invefat_warehouse_locations: [],
   invefat_inventory_movements: [],
+  inveFatInventoryMovements: [],
+  invefat_inventory_adjustments: [],
+  invefat_inventory_counts: [],
   invefat_purchase_orders: [],
+  invefat_purchase_requests: [],
+  invefat_supplier_quotes: [],
   invefat_supplier_invoices: [],
+  invefat_supplier_credit_notes: [],
+  invefat_supplier_payments: [],
   invefat_warehouse_receipts: [],
+  invefat_warehouse_dispatches: [],
+  invefat_warehouse_transfers: [],
   invefat_dgii_606: [],
   invefat_dgii_607: [],
 }
@@ -92,41 +110,117 @@ const DEFAULT_SYSTEM_PLANS = [
 ]
 
 export const COMPANY_KEY_MAP = {
+  products: 'products',
   inveFatInventoryProducts: 'products',
+  invefat_products: 'products',
+  customers: 'customers',
   invefat_customers: 'customers',
+  invefat_sales_customers: 'customers',
+  inveFatCustomers: 'customers',
+  invoices: 'invoices',
   invefat_sales_invoices: 'invoices',
+  invefat_invoices: 'invoices',
+  quotes: 'quotes',
   invefat_sales_quotes: 'quotes',
+  invefat_quotes: 'quotes',
+  sales_orders: 'sales_orders',
+  invefat_sales_orders: 'sales_orders',
+  sales_returns: 'sales_returns',
+  invefat_sales_returns: 'sales_returns',
+  sales_credit_notes: 'sales_credit_notes',
+  invefat_sales_credit_notes: 'sales_credit_notes',
+  customer_payments: 'customer_payments',
+  invefat_customer_payments: 'customer_payments',
   invefat_suppliers: 'suppliers',
+  suppliers: 'suppliers',
+  settings: 'settings',
   invefat_company_settings: 'settings',
+  invefat_settings: 'settings',
+  'invefat-business-settings': 'settings',
+  inveFatSystemConfig: 'settings',
+  users: 'users',
   inveFatUsers: 'users',
+  invefat_users: 'users',
+  'invefat-system-users': 'users',
   inveFatRoles: 'roles',
   invefat_roles: 'security_roles',
   invefat_permissions: 'permissions',
+  invefat_audit_log: 'audit_log',
+  inveFatAuditLog: 'audit_log',
   invefat_ncf_sequences: 'ncf_sequences',
   invefat_ncf_used: 'ncf_used',
   invefat_warehouses: 'warehouses',
+  invefat_branches: 'branches',
   invefat_inventory_movements: 'inventory_movements',
+  inveFatInventoryMovements: 'inventory_movements',
+  inventory_movements: 'inventory_movements',
   invefat_inventory_categories: 'inventory_categories',
+  inventory_categories: 'inventory_categories',
   invefat_inventory_brands: 'inventory_brands',
+  inventory_brands: 'inventory_brands',
   invefat_inventory_units: 'inventory_units',
+  inventory_units: 'inventory_units',
+  invefat_inventory_adjustments: 'inventory_adjustments',
+  invefat_inventory_counts: 'inventory_counts',
+  invefat_cycle_counts: 'cycle_counts',
+  invefat_inventory_rotation_alerts: 'inventory_rotation_alerts',
+  invefat_inventory_lots: 'inventory_lots',
+  invefat_inventory_barcodes: 'inventory_barcodes',
+  invefat_inventory_costs: 'inventory_costs',
+  invefat_inventory_transfers: 'inventory_transfers',
+  invefat_stock_transfers: 'inventory_transfers',
   invefat_price_lists: 'price_lists',
+  invefat_product_suppliers: 'product_suppliers',
   invefat_purchase_requests: 'purchase_requests',
   invefat_supplier_quotes: 'supplier_quotes',
   invefat_purchase_orders: 'purchase_orders',
+  invefat_purchase_receivings: 'warehouse_receipts',
+  invefat_receivings: 'warehouse_receipts',
   invefat_supplier_invoices: 'supplier_invoices',
   invefat_supplier_credit_notes: 'supplier_credit_notes',
   invefat_supplier_payments: 'supplier_payments',
   invefat_warehouse_receipts: 'warehouse_receipts',
+  invefat_warehouse_receivings: 'warehouse_receipts',
+  invefat_warehouse_locations: 'warehouse_locations',
   invefat_warehouse_dispatches: 'warehouse_dispatches',
   invefat_warehouse_transfers: 'warehouse_transfers',
+  invefat_warehouse_picking: 'warehouse_picking',
+  invefat_warehouse_putaway: 'warehouse_putaway',
   invefat_warehouse_returns: 'warehouse_returns',
   invefat_warehouse_damages: 'warehouse_damages',
   invefat_warehouse_quarantine: 'warehouse_quarantine',
+  invefat_warehouse_quality: 'warehouse_quality',
+  invefat_warehouse_routes: 'warehouse_routes',
+  invefat_alerts: 'alerts',
+  invefat_notifications: 'notifications',
+  invefat_pending_purchase_order_from_alert: 'pending_purchase_order_from_alert',
+  invefat_pending_invoice_from_sales: 'pending_invoice_from_sales',
+  invefat_pending_receipt_order: 'pending_receipt_order',
+  invefat_pos_sales: 'pos_sales',
+  invefat_pos_suspended_sales: 'pos_suspended_sales',
   invefat_sales_reports: 'sales_reports',
+  invefat_sales_quote_reports: 'sales_quote_reports',
+  invefat_reports: 'reports',
   invefat_dgii_606: 'dgii_606',
   invefat_dgii_607: 'dgii_607',
+  invefat_chart_of_accounts: 'chart_of_accounts',
+  invefat_journal_entries: 'journal_entries',
+  invefat_accounting_settings: 'accounting_settings',
+  invefat_banks: 'banks',
+  invefat_bank_movements: 'bank_movements',
+  invefat_bank_reconciliations: 'bank_reconciliations',
+  invefat_cash_boxes: 'cash_boxes',
+  invefat_cash_movements: 'cash_movements',
   invefat_rnc_registry: 'rnc_registry',
+  invefat_rnc_registry_fallback: 'rnc_registry_fallback',
+  invefat_rnc_registry_meta: 'rnc_registry_meta',
+  invefat_company_credential: 'company_credential',
 }
+
+const OPERATIONAL_SUFFIXES = new Set(Object.values(COMPANY_KEY_MAP))
+const OPERATIONAL_GLOBAL_KEYS = Object.keys(COMPANY_KEY_MAP).filter((key) => (
+  key.startsWith('invefat') || key.startsWith('inveFat') || key === 'products' || key === 'customers' || key === 'invoices' || key === 'quotes' || key === 'suppliers'
+))
 
 const rawStorage = {
   getItem: Storage.prototype.getItem,
@@ -170,6 +264,23 @@ function rawRemove(key) {
   rawStorage.removeItem.call(localStorage, key)
 }
 
+function isAlreadyScopedCompanyKey(key) {
+  const match = /^invefat_[A-Z0-9]+_(.+)$/i.exec(String(key || ''))
+  return Boolean(match && OPERATIONAL_SUFFIXES.has(match[1]))
+}
+
+function isOperationalStorageKey(key) {
+  return Boolean(COMPANY_KEY_MAP[key] || isAlreadyScopedCompanyKey(key))
+}
+
+function hasStoredOperationalData(value) {
+  if (value === null || value === undefined) return false
+  const parsed = safeParse(value, undefined)
+  if (Array.isArray(parsed)) return parsed.length > 0
+  if (parsed && typeof parsed === 'object') return Object.keys(parsed).length > 0
+  return !['', 'null', 'undefined', '[]', '{}'].includes(String(value).trim())
+}
+
 function getSessionCompanyCode() {
   const session = safeParse(rawStorage.getItem.call(sessionStorage, SESSION_KEY), null)
   if (!session || session.isSuperAdmin) return ''
@@ -177,6 +288,7 @@ function getSessionCompanyCode() {
 }
 
 export function getCompanyKey(baseKey, companyCode = getSessionCompanyCode()) {
+  if (isAlreadyScopedCompanyKey(baseKey)) return baseKey
   const suffix = COMPANY_KEY_MAP[baseKey]
   const code = cleanCode(companyCode)
   if (!suffix || !code || code === 'SYSTEM') return baseKey
@@ -188,6 +300,19 @@ export function installCompanyStorageScope() {
   storageScopeInstalled = true
 
   Storage.prototype.getItem = function scopedGetItem(key) {
+    if (this === localStorage && isOperationalStorageKey(key)) {
+      const companyCode = getSessionCompanyCode()
+      if (!companyCode || companyCode === 'SYSTEM') return null
+
+      const scopedKey = getCompanyKey(key, companyCode)
+      const scopedValue = rawStorage.getItem.call(this, scopedKey)
+      if (scopedKey !== key && scopedValue === null && companyCode === DEFAULT_COMPANY_CODE) {
+        return rawStorage.getItem.call(this, key)
+      }
+
+      return scopedValue
+    }
+
     const scopedKey = getCompanyKey(key)
     const scopedValue = rawStorage.getItem.call(this, scopedKey)
     if (scopedKey !== key && scopedValue === null && getSessionCompanyCode() === DEFAULT_COMPANY_CODE) {
@@ -198,12 +323,33 @@ export function installCompanyStorageScope() {
   }
 
   Storage.prototype.setItem = function scopedSetItem(key, value) {
+    if (this === localStorage && isOperationalStorageKey(key)) {
+      const companyCode = getSessionCompanyCode()
+      if (!companyCode || companyCode === 'SYSTEM') return undefined
+      return rawStorage.setItem.call(this, getCompanyKey(key, companyCode), value)
+    }
+
     return rawStorage.setItem.call(this, getCompanyKey(key), value)
   }
 
   Storage.prototype.removeItem = function scopedRemoveItem(key) {
+    if (this === localStorage && isOperationalStorageKey(key)) {
+      const companyCode = getSessionCompanyCode()
+      if (!companyCode || companyCode === 'SYSTEM') return undefined
+      return rawStorage.removeItem.call(this, getCompanyKey(key, companyCode))
+    }
+
     return rawStorage.removeItem.call(this, getCompanyKey(key))
   }
+}
+
+export function getGlobalOperationalStorageWarnings() {
+  return OPERATIONAL_GLOBAL_KEYS
+    .filter((key) => hasStoredOperationalData(rawGet(key)))
+    .map((key) => ({
+      key,
+      message: `Se detectaron datos operativos globales no aislados en ${key}. Son datos antiguos y no se cargan en empresas nuevas.`,
+    }))
 }
 
 export function loadCompanies() {

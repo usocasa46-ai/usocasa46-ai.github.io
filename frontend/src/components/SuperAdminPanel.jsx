@@ -19,6 +19,7 @@ import {
   createSupportAccess,
   generateCompanyBackup,
   getCompanyLicense,
+  getGlobalOperationalStorageWarnings,
   getIsolationResults,
   ALL_COMPANY_MODULES,
   importCompanyBackup,
@@ -160,7 +161,8 @@ export default function SuperAdminPanel({
   const auditLog = useMemo(() => loadSystemAudit(), [refreshKey])
   const isolation = useMemo(() => getIsolationResults(companies), [companies, refreshKey])
   const diagnostics = useMemo(() => {
-    const warnings = []
+    const globalStorageWarnings = getGlobalOperationalStorageWarnings()
+    const warnings = globalStorageWarnings.map((item) => item.message)
     const errors = []
     const companyIds = new Set(companies.map((company) => company.id))
     const companyCodes = new Set()
@@ -227,6 +229,7 @@ export default function SuperAdminPanel({
       rows,
       warnings,
       errors,
+      globalStorageWarnings,
       status: errors.length ? 'Revisar' : warnings.length ? 'Con advertencias' : 'Correcto',
     }
   }, [companies, licenses, backups, plans, isolation, refreshKey])
@@ -555,6 +558,11 @@ export default function SuperAdminPanel({
   const renderIsolation = () => (
     <section className="super-admin-panel">
       <div className="super-admin-toolbar"><div><h2>Prueba de aislamiento</h2><p>Solo muestra conteos, no datos privados.</p></div></div>
+      {diagnostics.globalStorageWarnings?.length > 0 && (
+        <div className="super-admin-notice">
+          Se detectaron datos operativos globales no aislados. Son datos antiguos y no se cargan en empresas nuevas.
+        </div>
+      )}
       <div className="super-admin-card-grid">
         {isolation.map((result) => (
           <article key={result.companyCode}>
