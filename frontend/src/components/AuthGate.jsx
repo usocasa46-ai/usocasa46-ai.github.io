@@ -14,7 +14,6 @@ import {
   createCompany,
   createSupportAccess,
   findCompanyByCode,
-  getCompanyAccessStatus,
   getCompanyLicense,
   installCompanyStorageScope,
   isCompanyActive,
@@ -31,22 +30,13 @@ import {
 } from '../services/companyStorage.js'
 import { isSupabaseConfigured } from '../lib/supabaseClient.js'
 import {
-  loadCompanyBundleForLogin,
   loadSystemDataFromSupabase,
   syncCompanyToSupabase,
   syncCompanyUsersToSupabase,
   syncLicenseToSupabase,
   syncPlansToSupabase,
 } from '../services/systemDataSyncService.js'
-
-const AUTH_VERSION = 3
-const SYSTEM_COMPANY_CODE = 'SYSTEM'
-const SUPER_ADMIN = {
-  username: 'superadmin',
-  password: 'admin123',
-  fullName: 'Super Admin',
-  role: 'Super Admin',
-}
+import { AUTH_VERSION, loginCompanyUser } from '../services/authService.js'
 
 installCompanyStorageScope()
 
@@ -192,94 +182,21 @@ export default function AuthGate() {
   }
 
   const handleLogin = async ({ companyCode, username, password }) => {
-    const cleanCompanyCode = String(companyCode || '').trim().toUpperCase()
-    const cleanUsername = String(username || '').trim()
-    const cleanPassword = String(password || '').trim()
+    const result = await loginCompanyUser({ companyCode, username, password })
+    if (!result.ok) return result
 
-    if (cleanCompanyCode === SYSTEM_COMPANY_CODE) {
-      if (cleanUsername.toLowerCase() !== SUPER_ADMIN.username || cleanPassword !== SUPER_ADMIN.password) {
-        return { ok: false, message: 'Credenciales de Super Admin incorrectas.' }
-      }
-
-      const nextSession = {
-        authVersion: AUTH_VERSION,
-        isSuperAdmin: true,
-        username: SUPER_ADMIN.username,
-        fullName: SUPER_ADMIN.fullName,
-        role: SUPER_ADMIN.role,
-        currentRole: SUPER_ADMIN.role,
-        currentUser: SUPER_ADMIN.username,
-        currentCompanyId: 'SYSTEM',
-        currentCompanyCode: SYSTEM_COMPANY_CODE,
-        currentCompanyName: 'Panel del Sistema',
-        loginAt: new Date().toISOString(),
-      }
-
-      saveSession(nextSession)
-      setLoginNotice('')
-      setSession(nextSession)
-      return { ok: true }
-    }
-
-    let company = findCompanyByCode(cleanCompanyCode)
-    let companyUsers = company ? loadCompanyUsers(company) : []
-
-    if (isSupabaseConfigured()) {
-      const bundle = await loadCompanyBundleForLogin(cleanCompanyCode)
-      if (bundle?.company) {
-        company = findCompanyByCode(cleanCompanyCode) || bundle.company
-        companyUsers = loadCompanyUsers(company)
-      }
-    }
-
-    if (!company) return { ok: false, message: 'Empresa no existe.' }
-    if (!isCompanyActive(company)) return { ok: false, message: 'La empresa no esta activa.' }
-    const accessStatus = getCompanyAccessStatus(company)
-    if (!accessStatus.allowed) return { ok: false, message: accessStatus.message }
-
-    const foundUser = companyUsers.find((user) => (
-      String(user.username || '').toLowerCase() === cleanUsername.toLowerCase() &&
-      user.password === cleanPassword &&
-      user.active
-    ))
-
-    if (!foundUser) {
-      return {
-        ok: false,
-        message: 'Usuario o contrasena incorrectos para esta empresa, o usuario inactivo.',
-      }
-    }
-
-    const nextSession = {
-      authVersion: AUTH_VERSION,
-      isSuperAdmin: false,
-      username: foundUser.username,
-      fullName: foundUser.fullName,
-      role: foundUser.role,
-      currentRole: foundUser.role,
-      currentUser: foundUser.username,
-      currentCompanyId: company.id,
-      currentCompanyCode: company.companyCode,
-      currentCompanyName: company.nombreComercial,
-      isMainAdmin: Boolean(foundUser.isMainAdmin || String(foundUser.role || '').toLowerCase().includes('administrador')),
-      mustChangePassword: Boolean(foundUser.mustChangePassword),
-      firstLoginPending: Boolean(company.firstLoginPending),
-      onboardingCompleted: Boolean(company.onboardingCompleted),
-      loginAt: new Date().toISOString(),
-    }
-
-    if (company.firstLoginPending) {
+    if (!result.session?.isSuperAdmin && result.company?.firstLoginPending) {
       appendSystemAudit('Primer inicio de empresa', {
-        companyCode: company.companyCode,
-        usuario: foundUser.username,
+        companyCode: result.company.companyCode,
+        usuario: result.user?.username,
         descripcion: 'Empresa accede por primera vez al sistema.',
       })
     }
 
-    saveSession(nextSession)
-    setUsers(companyUsers)
+    saveSession(result.session)
+    setUsers(result.users || [])
     setLoginNotice('')
-    setSession(nextSession)
+    setSession(result.session)
     return { ok: true }
   }
 
