@@ -39,7 +39,8 @@ const RNC_CSV_EXAMPLE = '00300755329,"VIRGINIA SOLEDAD PIMENTEL RAMIREZ","EMPLEA
 
 function downloadCsv(filename, content) {
   if (typeof document === 'undefined') return
-  const blob = new Blob([content], { type: 'text/csv;charset=utf-8' })
+  const payload = String(content || '').startsWith('\uFEFF') ? content : `\uFEFF${content}`
+  const blob = new Blob([payload], { type: 'text/csv;charset=utf-8' })
   const url = URL.createObjectURL(blob)
   const link = document.createElement('a')
   link.href = url

@@ -284,6 +284,17 @@ export function validateRncRecord(record) {
   return ''
 }
 
+function readFileAsUtf8(file) {
+  if (typeof FileReader === 'undefined') return file.text()
+
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader()
+    reader.onload = () => resolve(String(reader.result || ''))
+    reader.onerror = () => reject(reader.error || new Error('No se pudo leer el archivo CSV.'))
+    reader.readAsText(file, 'UTF-8')
+  })
+}
+
 async function readCsvRecords(file, onRecord, options = {}) {
   const signal = options.signal
   const onProgress = typeof options.onProgress === 'function' ? options.onProgress : () => {}
@@ -327,7 +338,7 @@ async function readCsvRecords(file, onRecord, options = {}) {
     return
   }
 
-  const text = await file.text()
+  const text = await readFileAsUtf8(file)
   const split = splitCsvRecords(text, true)
   const total = split.records.length || 1
   for (let index = 0; index < split.records.length; index += 1) {
