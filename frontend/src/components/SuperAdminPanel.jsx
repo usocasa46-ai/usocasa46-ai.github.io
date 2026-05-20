@@ -31,6 +31,13 @@ import {
   loadSystemAudit,
   saveCompanyUsers,
 } from '../services/companyStorage.js'
+import {
+  getSupabaseDiagnosticStatus,
+  readSupabaseEmp001Test,
+  testSupabaseConnection,
+  testSupabaseIsolation,
+  writeSupabaseEmp001Test,
+} from '../services/supabaseDiagnosticsService.js'
 import './SuperAdminPanel.css'
 
 const moduleOptions = ALL_COMPANY_MODULES
@@ -154,6 +161,13 @@ export default function SuperAdminPanel({
   const [accessSummary, setAccessSummary] = useState(null)
   const [notice, setNotice] = useState('')
   const [refreshKey, setRefreshKey] = useState(0)
+  const [supabaseDiagnostic, setSupabaseDiagnostic] = useState(() => ({
+    ...getSupabaseDiagnosticStatus(),
+    connectionStatus: 'Sin probar',
+    lastCheckedAt: '',
+    message: 'Ejecuta una prueba para validar la conexion.',
+    busy: false,
+  }))
 
   const licenses = useMemo(() => loadCompanyLicenses(), [companies, refreshKey])
   const backups = useMemo(() => loadBackupLog(), [refreshKey])
@@ -249,6 +263,19 @@ export default function SuperAdminPanel({
   }, [companies, query])
 
   const refresh = () => setRefreshKey((current) => current + 1)
+
+  const runSupabaseTest = async (runner) => {
+    setSupabaseDiagnostic((current) => ({ ...current, busy: true, message: 'Probando Supabase...' }))
+    const result = await runner()
+    setSupabaseDiagnostic({
+      ...getSupabaseDiagnosticStatus(),
+      ...result,
+      connectionStatus: result.ok ? 'Correcto' : 'Revisar',
+      lastCheckedAt: result.checkedAt,
+      busy: false,
+    })
+    setNotice(result.message)
+  }
 
   const saveCompany = () => {
     try {
@@ -611,6 +638,27 @@ export default function SuperAdminPanel({
           <h3>Modulos disponibles</h3>
           <p>{ALL_COMPANY_MODULES.length} en el sistema.</p>
         </article>
+      </div>
+
+      <div className="super-admin-supabase-panel">
+        <div>
+          <span>Estado de Supabase</span>
+          <h3>{supabaseDiagnostic.configured ? 'Supabase configurado' : 'Supabase no configurado'}</h3>
+          <p>{supabaseDiagnostic.message}</p>
+        </div>
+        <dl>
+          <div><dt>Configurado</dt><dd>{supabaseDiagnostic.configured ? 'Si' : 'No'}</dd></div>
+          <div><dt>Modo actual</dt><dd>{supabaseDiagnostic.mode}</dd></div>
+          <div><dt>Ultima prueba</dt><dd>{formatDateTime(supabaseDiagnostic.lastCheckedAt)}</dd></div>
+          <div><dt>Estado</dt><dd>{supabaseDiagnostic.connectionStatus}</dd></div>
+        </dl>
+        {supabaseDiagnostic.error && <small>{supabaseDiagnostic.error}</small>}
+        <div className="super-admin-test-actions">
+          <button type="button" disabled={supabaseDiagnostic.busy} onClick={() => runSupabaseTest(testSupabaseConnection)}>Probar conexion</button>
+          <button type="button" disabled={supabaseDiagnostic.busy} onClick={() => runSupabaseTest(() => writeSupabaseEmp001Test(companies))}>Probar escritura EMP001</button>
+          <button type="button" disabled={supabaseDiagnostic.busy} onClick={() => runSupabaseTest(() => readSupabaseEmp001Test(companies))}>Probar lectura EMP001</button>
+          <button type="button" disabled={supabaseDiagnostic.busy} onClick={() => runSupabaseTest(() => testSupabaseIsolation(companies))}>Probar aislamiento EMP001 / EMP002</button>
+        </div>
       </div>
 
       <div className="super-admin-table-wrap super-admin-diagnostic-table">

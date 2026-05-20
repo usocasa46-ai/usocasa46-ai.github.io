@@ -25,6 +25,24 @@ npm run dev
 
 Si falta alguna variable, INVE-FAT SYSTEM sigue usando `localStorage` multiempresa.
 
+## Prueba controlada desde Super Admin
+
+1. Entrar como `SYSTEM / superadmin / admin123`.
+2. Ir a **Estado del sistema**.
+3. En el bloque **Estado de Supabase**, confirmar:
+   - Supabase configurado: `Si` o `No`.
+   - Modo actual: `Supabase` o `localStorage`.
+   - Ultima prueba de conexion.
+   - Estado de conexion.
+4. Pulsar **Probar conexion**.
+5. Pulsar **Probar escritura EMP001**.
+   - Esta prueba crea o actualiza solo el producto tecnico `TEST-SUPABASE-001`.
+   - El registro se guarda con `company_id` de EMP001.
+6. Pulsar **Probar lectura EMP001**.
+7. Pulsar **Probar aislamiento EMP001 / EMP002**.
+   - La prueba solo devuelve conteos y resultado.
+   - No muestra productos, clientes, facturas ni datos privados.
+
 ## Reglas principales
 
 - Todas las tablas operativas deben tener `company_id`.
@@ -60,6 +78,8 @@ Ejemplos:
 
 La capa `frontend/src/services/dataClient.js` agrega `company_id` al guardar datos operativos y filtra por la empresa de la sesion.
 Las tablas operativas usan clave compuesta `company_id + id`, porque dos empresas pueden tener el mismo codigo de producto, numero de factura o identificador interno sin mezclar datos.
+
+No hay migracion masiva automatica desde `localStorage` hacia Supabase en esta fase. Primero se prueba escritura, lectura y aislamiento con datos nuevos controlados.
 
 ## Servicios preparados
 

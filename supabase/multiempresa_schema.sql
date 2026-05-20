@@ -226,6 +226,9 @@ create policy "company_users_by_company" on public.company_users
   with check (public.invefat_is_super_admin() or company_id = public.invefat_request_company_id());
 
 -- Datos operativos: company_id debe coincidir con la empresa activa.
+-- El Panel Super Admin puede ejecutar pruebas controladas enviando x-company-id
+-- de la empresa evaluada. Las pruebas solo crean/leen registros tecnicos
+-- como TEST-SUPABASE-001 y no exponen datos privados.
 drop policy if exists "products_by_company" on public.products;
 create policy "products_by_company" on public.products for all using (company_id = public.invefat_request_company_id()) with check (company_id = public.invefat_request_company_id());
 
