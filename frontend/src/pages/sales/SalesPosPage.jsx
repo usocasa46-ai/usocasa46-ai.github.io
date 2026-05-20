@@ -468,6 +468,7 @@ function openCustomerDisplayWindow() {
     .brand strong { display: block; font-size: 26px; line-height: 1; }
     .brand span, .cashbox span { display: block; color: rgba(255,255,255,.78); font-weight: 700; margin-top: 5px; }
     .title { display: flex; align-items: center; gap: 14px; font-size: 34px; font-weight: 950; }
+    .title-icon { width: 54px; height: 54px; display:grid; place-items:center; border: 3px solid var(--orange); border-radius: 16px; color: var(--orange); font-weight: 950; }
     .cashbox { justify-self: end; border-left: 1px solid rgba(255,255,255,.28); padding-left: 28px; font-size: 20px; font-weight: 900; }
     .content { display: grid; grid-template-columns: minmax(0, 1.15fr) minmax(420px, .85fr); gap: 22px; padding: 22px; min-height: 0; }
     .panel { min-height: 0; border: 1px solid var(--line); border-radius: 18px; background: #fff; box-shadow: 0 14px 36px rgba(15,39,66,.08); overflow: hidden; }
@@ -504,6 +505,17 @@ function openCustomerDisplayWindow() {
     .footer strong { color: #ff9d30; font-size: 22px; }
     .footer p { margin: 5px 0 0; color: rgba(255,255,255,.88); font-size: 17px; }
     .empty { height: 100%; display:grid; place-items:center; color: var(--muted); font-size: 22px; font-weight: 850; text-align:center; padding: 40px; }
+    @media (prefers-color-scheme: dark) {
+      :root { --soft:#071522; --text:#edf4fb; --muted:#a8bbce; --line:#26435f; }
+      body { background: var(--soft); color: var(--text); }
+      .panel { background:#102439; border-color: var(--line); }
+      .table-head, .item { color: var(--text); border-color: var(--line); }
+      .product-img, .qty { background:#0b1b2b; border-color: var(--line); color:#c8d6e4; }
+      .product small, .items-foot, .client span, .empty, .status p { color: var(--muted); }
+      .status { background: linear-gradient(135deg, rgba(255,122,24,.16), rgba(16,36,57,.9)); border-color: rgba(255,122,24,.38); }
+      .status h2, .totals .grand span, .client strong { color: var(--text); }
+      .client { border-color: var(--line); }
+    }
     @media (max-width: 980px) { body { overflow:auto; } .client-display { grid-template-rows:auto auto auto; } .top, .content, .footer { grid-template-columns: 1fr; } .cashbox { justify-self:start; border-left:0; padding-left:0; } .content { min-height:auto; } }
   </style>
 </head>
@@ -521,7 +533,7 @@ function openCustomerDisplayWindow() {
         <div class="items-foot"><span id="articleCount">0 Articulos</span><span>Ultima actualizacion: <strong id="updatedAt">--</strong></span></div>
       </section>
       <aside class="panel summary">
-        <section class="status"><div class="coin">$</div><div><h2 id="status">Esperando venta</h2><p id="statusText">Agregue productos para iniciar.</p></div></section>
+        <section class="status"><div class="coin">$</div><div><h2 id="status">Esperando productos</h2><p id="statusText">Agregue productos para iniciar.</p></div></section>
         <section class="totals">
           <div><span>Subtotal</span><strong id="subtotal">RD$ 0.00</strong></div>
           <div><span>ITBIS</span><strong id="tax">RD$ 0.00</strong></div>
@@ -535,9 +547,9 @@ function openCustomerDisplayWindow() {
       </aside>
     </section>
     <footer class="footer">
-      <article><div class="icon">*</div><div><strong>¡Acumula puntos!</strong><p id="loyalty">Por cada compra acumulas beneficios.</p></div></article>
+      <article><div class="icon">*</div><div><strong>Acumula puntos</strong><p id="loyalty">Por cada compra acumulas beneficios.</p></div></article>
       <article><div class="icon">+</div><div><strong>Promociones exclusivas</strong><p id="promo">Pregunta por nuestras ofertas.</p></div></article>
-      <article><div class="icon">&lt;3</div><div><strong>¡Gracias por preferirnos!</strong><p>Vuelve pronto.</p></div></article>
+      <article><div class="icon">&lt;3</div><div><strong>Gracias por preferirnos</strong><p>Vuelve pronto.</p></div></article>
     </footer>
   </main>
   <script>
@@ -561,10 +573,10 @@ function openCustomerDisplayWindow() {
     function render() {
       let data = null;
       try { data = JSON.parse(localStorage.getItem(key) || 'null'); } catch (error) { data = null; }
-      data = data || { lines: [], totals: {}, customer: {}, brand: { name: 'INVE-FAT SYSTEM' }, caja: 'CA-01', status: 'Esperando venta', updatedAt: new Date().toISOString(), footer: {} };
+      data = data || { lines: [], totals: {}, customer: {}, brand: { name: 'INVE-FAT SYSTEM' }, caja: 'CA-01', status: 'Esperando productos', updatedAt: new Date().toISOString(), footer: {} };
       text('brandName', data.brand?.name || 'INVE-FAT SYSTEM');
       text('cashbox', data.caja || 'CA-01');
-      text('status', data.status || 'Esperando venta');
+      text('status', data.status || 'Esperando productos');
       text('statusText', data.lines?.length ? 'Revise sus productos y total.' : 'Agregue productos para iniciar.');
       text('subtotal', money(data.totals?.subtotal));
       text('tax', money(data.totals?.taxTotal));
@@ -700,7 +712,7 @@ export default function SalesPosPage({ controls, onAction, searchValue = '', onS
         ? totals.paid > 0
           ? 'Pago en proceso'
           : 'Esperando pago'
-        : 'Esperando venta'
+        : 'Esperando productos'
 
     publishPosDisplay(buildPosDisplayPayload({
       settings,
@@ -724,6 +736,38 @@ export default function SalesPosPage({ controls, onAction, searchValue = '', onS
   const openCustomerDisplay = () => {
     const displayWindow = openCustomerDisplayWindow()
     notify(displayWindow ? 'Pantalla cliente abierta. Puede moverla al segundo monitor.' : 'El navegador bloqueo la pantalla cliente. Permita ventanas emergentes.')
+  }
+
+  const refreshCustomerDisplay = () => {
+    publishPosDisplay(buildPosDisplayPayload({
+      settings,
+      branch,
+      warehouse,
+      session,
+      customer,
+      lines,
+      totals,
+      payment,
+      fiscalReceipt,
+      status: lines.length ? 'Esperando pago' : 'Esperando productos',
+    }))
+    notify('Pantalla cliente actualizada. Mueva esa ventana al segundo monitor para que el cliente vea su compra.')
+  }
+
+  const clearCustomerDisplay = () => {
+    publishPosDisplay(buildPosDisplayPayload({
+      settings,
+      branch,
+      warehouse,
+      session,
+      customer: cashCustomer,
+      lines: [],
+      totals: calculateTotals([], { method: 'Efectivo' }),
+      payment: { method: 'Efectivo' },
+      fiscalReceipt: defaultFiscalReceipt,
+      status: 'Esperando productos',
+    }))
+    notify('Pantalla cliente limpia y lista para la proxima venta.')
   }
 
   const resetSale = () => {
@@ -1247,7 +1291,9 @@ export default function SalesPosPage({ controls, onAction, searchValue = '', onS
             <button type="button" onClick={() => notify('Descuento por linea disponible desde el detalle de productos.')} title="Descuento"><Tag size={18} /><span>Descuento</span></button>
             <button type="button" onClick={printCompleted} disabled={!completedInvoice} title="Reimprimir"><Printer size={18} /><span>Reimprimir</span></button>
             <button type="button" onClick={() => notify('Apertura de caja preparada para integracion de efectivo.')} title="Abrir caja"><Banknote size={18} /><span>Abrir caja</span></button>
-            <button type="button" onClick={openCustomerDisplay} title="Pantalla cliente"><Monitor size={18} /><span>Pantalla cliente</span></button>
+            <button type="button" className="is-customer-display" onClick={openCustomerDisplay} title="Abrir pantalla cliente"><Monitor size={18} /><span>Abrir pantalla cliente</span></button>
+            <button type="button" onClick={refreshCustomerDisplay} title="Actualizar pantalla cliente"><RefreshCcw size={18} /><span>Actualizar cliente</span></button>
+            <button type="button" onClick={clearCustomerDisplay} title="Limpiar pantalla cliente"><X size={18} /><span>Limpiar cliente</span></button>
             <button type="button" onClick={toggleFullscreen} title={fullscreen ? 'Salir pantalla completa' : 'Pantalla completa'}><Maximize2 size={18} /><span>{fullscreen ? 'Salir' : 'Pantalla'}</span></button>
             <button type="button" onClick={() => notify('Mas opciones POS preparadas.')} title="Mas opciones"><MoreVertical size={18} /><span>Mas</span></button>
           </div>
