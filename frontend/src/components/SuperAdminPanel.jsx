@@ -429,7 +429,7 @@ export default function SuperAdminPanel({
       <div className="super-admin-table-wrap">
         <table className="super-admin-table">
           <thead>
-            <tr><th>Empresa</th><th>Licencia</th><th>Plan</th><th>Estado</th><th>Version</th><th>Vence</th><th>Usuarios</th><th>Sucursales</th><th>Almacenes</th><th>Acciones</th></tr>
+            <tr><th>Empresa</th><th>Licencia</th><th>Plan</th><th>Estado</th><th>Version</th><th>Vence</th><th>Usuarios</th><th>Sucursales</th><th>Almacenes</th><th>Docs e-CF</th><th>Acciones</th></tr>
           </thead>
           <tbody>
             {licenses.map((license) => (
@@ -443,6 +443,7 @@ export default function SuperAdminPanel({
                 <td>{license.maxUsuarios}</td>
                 <td>{license.maxSucursales}</td>
                 <td>{license.maxAlmacenes}</td>
+                <td>{license.documentosElectronicosUsados || 0} / {license.limiteMensualDocumentosElectronicos || 'Sin limite'}</td>
                 <td><button type="button" onClick={() => setLicenseDraft(license)}><Pencil size={15} /> Editar</button></td>
               </tr>
             ))}
@@ -918,6 +919,9 @@ function LicenseModal({ draft, setDraft, onSave, plans }) {
           <label>Max usuarios<input type="number" min="1" value={draft.maxUsuarios} onChange={(event) => setDraft({ ...draft, maxUsuarios: event.target.value })} /></label>
           <label>Max sucursales<input type="number" min="1" value={draft.maxSucursales} onChange={(event) => setDraft({ ...draft, maxSucursales: event.target.value })} /></label>
           <label>Max almacenes<input type="number" min="1" value={draft.maxAlmacenes} onChange={(event) => setDraft({ ...draft, maxAlmacenes: event.target.value })} /></label>
+          <label>Limite mensual e-CF<input type="number" min="0" value={draft.limiteMensualDocumentosElectronicos || ''} onChange={(event) => setDraft({ ...draft, limiteMensualDocumentosElectronicos: event.target.value })} /></label>
+          <label>Docs e-CF usados<input type="number" min="0" value={draft.documentosElectronicosUsados || 0} onChange={(event) => setDraft({ ...draft, documentosElectronicosUsados: event.target.value })} /></label>
+          <label>Bloquear limite e-CF<select value={draft.bloquearAlLimiteElectronico ? 'si' : 'no'} onChange={(event) => setDraft({ ...draft, bloquearAlLimiteElectronico: event.target.value === 'si' })}><option value="no">no</option><option value="si">si</option></select></label>
           <label>Observacion<input value={draft.observacion || ''} onChange={(event) => setDraft({ ...draft, observacion: event.target.value })} /></label>
           <div className="super-admin-checks">
             <div className="super-admin-check-actions">

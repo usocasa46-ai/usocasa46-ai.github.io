@@ -20,6 +20,7 @@ import ModulePageLayout from '../shared/ModulePageLayout.jsx'
 import { invoicesService } from '../../services/invoicesService.js'
 import { productsService } from '../../services/productsService.js'
 import { normalizeRnc, rncService } from '../../services/rncService.js'
+import { registerIssuedElectronicDocument } from '../../services/electronicBillingService.js'
 import { createSalesInvoiceEntry, readArray as readAccountingArray, ACCOUNTING_KEYS } from '../../utils/accountingEntries.js'
 import { createPdfMetadata, downloadSalesDocumentPdf } from '../../utils/pdf/salesDocumentPdf.js'
 import { consumeNextNcf, generateNextNcf, markNcfAsUsed, peekNextNcf, previewNextNcf } from '../../utils/ncfGenerator.js'
@@ -755,6 +756,10 @@ export default function SalesPosPage({ controls, onAction, searchValue = '', onS
         total: savedInvoice.totals.total,
         usuario: savedInvoice.seller,
         moduloOrigen: 'Ventas > Punto de venta',
+      })
+      registerIssuedElectronicDocument(savedInvoice, ticketSettings(), {
+        sourceModule: 'Ventas > Punto de venta',
+        documentType: 'Factura POS',
       })
     }
     const existingAccountingEntry = readAccountingArray(ACCOUNTING_KEYS.entries).some((entry) => entry.sourceDocument === savedInvoice.number && entry.sourceModule === 'Ventas')

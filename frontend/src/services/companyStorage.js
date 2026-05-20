@@ -69,6 +69,14 @@ const CLEAN_COMPANY_DEFAULTS = {
   invefat_warehouse_transfers: [],
   invefat_dgii_606: [],
   invefat_dgii_607: [],
+  invefat_electronic_documents: [],
+  invefat_electronic_received_documents: [],
+  invefat_electronic_commercial_responses: [],
+  invefat_electronic_archive: [],
+  invefat_electronic_contingency_queue: [],
+  invefat_electronic_usage: {},
+  invefat_electronic_certificate: {},
+  invefat_electronic_dgii_config: {},
 }
 
 const DEFAULT_SYSTEM_PLANS = [
@@ -203,6 +211,14 @@ export const COMPANY_KEY_MAP = {
   invefat_reports: 'reports',
   invefat_dgii_606: 'dgii_606',
   invefat_dgii_607: 'dgii_607',
+  invefat_electronic_documents: 'electronic_documents',
+  invefat_electronic_received_documents: 'electronic_received_documents',
+  invefat_electronic_commercial_responses: 'electronic_commercial_responses',
+  invefat_electronic_archive: 'electronic_archive',
+  invefat_electronic_contingency_queue: 'electronic_contingency_queue',
+  invefat_electronic_usage: 'electronic_usage',
+  invefat_electronic_certificate: 'electronic_certificate',
+  invefat_electronic_dgii_config: 'electronic_dgii_config',
   invefat_chart_of_accounts: 'chart_of_accounts',
   invefat_journal_entries: 'journal_entries',
   invefat_accounting_settings: 'accounting_settings',
@@ -447,6 +463,9 @@ function buildDefaultLicense(company) {
     maxUsuarios: Number(company.maxUsuarios || 5),
     maxSucursales: Number(company.maxSucursales || 1),
     maxAlmacenes: Number(company.maxAlmacenes || 2),
+    limiteMensualDocumentosElectronicos: Number(company.limiteMensualDocumentosElectronicos || 0),
+    documentosElectronicosUsados: Number(company.documentosElectronicosUsados || 0),
+    bloquearAlLimiteElectronico: Boolean(company.bloquearAlLimiteElectronico),
     modulosActivos: cleanCode(company.companyCode) === DEFAULT_COMPANY_CODE || DEVELOPMENT_PLAN_NAMES.includes(String(company.plan || '').toLowerCase())
       ? ALL_COMPANY_MODULES
       : normalizeModuleList(Array.isArray(company.modulosActivos) && company.modulosActivos.length ? company.modulosActivos : plan.modules),

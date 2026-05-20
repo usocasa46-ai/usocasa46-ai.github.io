@@ -27,6 +27,7 @@ import {
 } from '../../utils/pdf/salesDocumentPdf.js'
 import { ACCOUNTING_KEYS, createSalesInvoiceEntry, readArray as readAccountingArray } from '../../utils/accountingEntries.js'
 import { generateNextNcf, markNcfAsUsed, peekNextNcf } from '../../utils/ncfGenerator.js'
+import { registerIssuedElectronicDocument } from '../../services/electronicBillingService.js'
 import './SalesInvoicePage.css'
 
 const INVOICES_KEY = 'invefat_sales_invoices'
@@ -924,6 +925,10 @@ export default function SalesInvoicePage({ controls, onAction, searchValue = '',
         total: savedInvoice.totals.total,
         usuario: savedInvoice.seller,
         moduloOrigen: 'Ventas > Factura',
+      })
+      registerIssuedElectronicDocument(savedInvoice, settings, {
+        sourceModule: 'Ventas > Factura',
+        documentType: 'Factura',
       })
     }
     const existingAccountingEntry = readAccountingArray(ACCOUNTING_KEYS.entries).some((entry) => entry.sourceDocument === savedInvoice.number && entry.sourceModule === 'Ventas')

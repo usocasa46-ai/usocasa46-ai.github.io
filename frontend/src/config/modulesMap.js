@@ -106,6 +106,7 @@ export const erpModules = [
       { id: 'finance-dgii-607', label: 'DGII 607 - Ventas' },
       { id: 'finance-ncf-sequences', label: 'Comprobantes fiscales / NCF' },
       { id: 'finance-rnc', label: 'RNC', keywords: ['rnc', 'dgii', 'contribuyente', 'razon social'] },
+      { id: 'accounting-electronic-billing', label: 'Facturacion Electronica e-CF', keywords: ['ecf', 'facturacion electronica', 'dgii', 'xml'] },
       { id: 'finance-accounting-settings', label: 'Configuracion contable' },
     ],
   },

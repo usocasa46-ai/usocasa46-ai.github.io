@@ -11,6 +11,7 @@ import BanksPage from '../pages/accounting/BanksPage.jsx'
 import ChartOfAccountsPage from '../pages/accounting/ChartOfAccountsPage.jsx'
 import Dgii606Page from '../pages/accounting/Dgii606Page.jsx'
 import Dgii607Page from '../pages/accounting/Dgii607Page.jsx'
+import ElectronicBillingPage from '../pages/accounting/ElectronicBillingPage.jsx'
 import FinanceAccountsPayablePage from '../pages/accounting/AccountsPayablePage.jsx'
 import FinanceAccountsReceivablePage from '../pages/accounting/AccountsReceivablePage.jsx'
 import GeneralLedgerPage from '../pages/accounting/GeneralLedgerPage.jsx'
@@ -152,6 +153,7 @@ const pageComponents = {
   'finance-dgii-607': Dgii607Page,
   'finance-ncf-sequences': NcfSequencesPage,
   'finance-rnc': RncRegistryPage,
+  'accounting-electronic-billing': ElectronicBillingPage,
   'finance-accounting-settings': AccountingSettingsPage,
   'reports-sales': SalesReportsPage,
   'reports-purchases': PurchaseReportsPage,
