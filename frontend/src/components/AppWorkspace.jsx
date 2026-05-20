@@ -21,6 +21,19 @@ import NcfSequencesPage from '../pages/accounting/NcfSequencesPage.jsx'
 import PettyCashPage from '../pages/accounting/PettyCashPage.jsx'
 import RncRegistryPage from '../pages/accounting/RncRegistryPage.jsx'
 import DashboardPage from '../pages/dashboard/DashboardPage.jsx'
+import HrAbsencesPage from '../pages/hr/HrAbsencesPage.jsx'
+import HrAttendancePage from '../pages/hr/HrAttendancePage.jsx'
+import HrContractsPage from '../pages/hr/HrContractsPage.jsx'
+import HrDashboardPage from '../pages/hr/HrDashboardPage.jsx'
+import HrDepartmentsPage from '../pages/hr/HrDepartmentsPage.jsx'
+import HrEmployeesPage from '../pages/hr/HrEmployeesPage.jsx'
+import HrOvertimePage from '../pages/hr/HrOvertimePage.jsx'
+import HrPaySlipsPage from '../pages/hr/HrPaySlipsPage.jsx'
+import HrPayrollPage from '../pages/hr/HrPayrollPage.jsx'
+import HrPayrollSettingsPage from '../pages/hr/HrPayrollSettingsPage.jsx'
+import HrPositionsPage from '../pages/hr/HrPositionsPage.jsx'
+import HrReportsPage from '../pages/hr/HrReportsPage.jsx'
+import HrVacationsPage from '../pages/hr/HrVacationsPage.jsx'
 import InventoryAdjustmentsPage from '../pages/inventory/InventoryAdjustmentsPage.jsx'
 import InventoryBarcodesPage from '../pages/inventory/InventoryBarcodesPage.jsx'
 import InventoryBrandsPage from '../pages/inventory/InventoryBrandsPage.jsx'
@@ -165,6 +178,19 @@ const pageComponents = {
   'reports-users': UserReportsPage,
   'reports-dgii': DgiiReportsPage,
   'reports-custom': CustomReportsPage,
+  'hr-dashboard': HrDashboardPage,
+  'hr-employees': HrEmployeesPage,
+  'hr-departments': HrDepartmentsPage,
+  'hr-positions': HrPositionsPage,
+  'hr-contracts': HrContractsPage,
+  'hr-attendance': HrAttendancePage,
+  'hr-absences': HrAbsencesPage,
+  'hr-vacations': HrVacationsPage,
+  'hr-overtime': HrOvertimePage,
+  'hr-payroll': HrPayrollPage,
+  'hr-pay-slips': HrPaySlipsPage,
+  'hr-payroll-settings': HrPayrollSettingsPage,
+  'hr-reports': HrReportsPage,
   'security-users': SecurityUsersPage,
   'security-roles': SecurityRolesPage,
   'security-permissions': SecurityPermissionsPage,
