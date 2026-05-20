@@ -198,7 +198,11 @@ export default function AuthGate() {
 
   const handleLogout = (reason) => {
     clearSession()
-    setLoginNotice(reason === 'inactivity' ? 'Sesion cerrada por inactividad' : '')
+    setLoginNotice(reason === 'inactivity'
+      ? 'Sesion cerrada por inactividad'
+      : reason === 'system-reset'
+        ? 'Sistema reiniciado correctamente. Inicie sesion nuevamente.'
+        : '')
     setSession(null)
     setUsers([])
   }

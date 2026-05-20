@@ -278,6 +278,7 @@ const rawStorage = {
   getItem: Storage.prototype.getItem,
   setItem: Storage.prototype.setItem,
   removeItem: Storage.prototype.removeItem,
+  clear: Storage.prototype.clear,
 }
 
 let storageScopeInstalled = false
@@ -314,6 +315,28 @@ function rawSet(key, value) {
 
 function rawRemove(key) {
   rawStorage.removeItem.call(localStorage, key)
+}
+
+export function getRawLocalStorageSnapshot() {
+  const snapshot = {}
+  for (let index = 0; index < localStorage.length; index += 1) {
+    const key = localStorage.key(index)
+    if (key) snapshot[key] = rawGet(key)
+  }
+  return snapshot
+}
+
+export function setRawLocalStorageItem(key, value) {
+  rawSet(key, value)
+  return value
+}
+
+export function removeRawLocalStorageItem(key) {
+  rawRemove(key)
+}
+
+export function clearRawLocalStorage() {
+  rawStorage.clear.call(localStorage)
 }
 
 function isAlreadyScopedCompanyKey(key) {

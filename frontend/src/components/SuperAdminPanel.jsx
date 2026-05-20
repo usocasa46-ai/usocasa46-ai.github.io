@@ -1,4 +1,5 @@
 import {
+  AlertTriangle,
   Ban,
   CheckCircle2,
   Copy,
@@ -38,6 +39,16 @@ import {
   testSupabaseIsolation,
   writeSupabaseEmp001Test,
 } from '../services/supabaseDiagnosticsService.js'
+import {
+  createCompleteSystemBackup,
+  createSingleCompanyBackup,
+  markBackupDownloaded,
+} from '../services/systemBackupService.js'
+import {
+  registerResetRequested,
+  resetCompanyLocalData,
+  resetEntireLocalSystem,
+} from '../services/systemResetService.js'
 import './SuperAdminPanel.css'
 
 const moduleOptions = ALL_COMPANY_MODULES
@@ -159,6 +170,7 @@ export default function SuperAdminPanel({
   const [planDraft, setPlanDraft] = useState(null)
   const [supportDraft, setSupportDraft] = useState(null)
   const [accessSummary, setAccessSummary] = useState(null)
+  const [resetDraft, setResetDraft] = useState(null)
   const [notice, setNotice] = useState('')
   const [refreshKey, setRefreshKey] = useState(0)
   const [supabaseDiagnostic, setSupabaseDiagnostic] = useState(() => ({
@@ -405,6 +417,63 @@ export default function SuperAdminPanel({
     reader.readAsText(file)
   }
 
+  const openResetModal = (type) => {
+    const selectedCompany = type === 'empresa' ? companies[0] || null : null
+    registerResetRequested({ session, type, company: selectedCompany })
+    setResetDraft({
+      type,
+      companyId: selectedCompany?.id || '',
+      confirmation: '',
+      backupDownloaded: false,
+      backupFilename: '',
+      busy: false,
+    })
+  }
+
+  const downloadResetBackup = () => {
+    if (!resetDraft) return
+    const company = companies.find((item) => item.id === resetDraft.companyId) || null
+    const backup = resetDraft.type === 'empresa' && company
+      ? createSingleCompanyBackup(company, { session })
+      : createCompleteSystemBackup({ session })
+
+    downloadJson(backup.filename, backup.payload)
+    markBackupDownloaded({
+      session,
+      scope: resetDraft.type,
+      company,
+    })
+    setResetDraft({
+      ...resetDraft,
+      backupDownloaded: true,
+      backupFilename: backup.filename,
+    })
+    setNotice(`Backup descargado: ${backup.filename}`)
+    refresh()
+  }
+
+  const executeReset = () => {
+    if (!resetDraft?.backupDownloaded) return
+
+    if (resetDraft.type === 'empresa') {
+      const company = companies.find((item) => item.id === resetDraft.companyId)
+      if (!company || resetDraft.confirmation !== 'REINICIAR EMPRESA') return
+      setResetDraft({ ...resetDraft, busy: true })
+      const result = resetCompanyLocalData(company, { session })
+      setResetDraft(null)
+      setNotice(result.message)
+      refresh()
+      return
+    }
+
+    if (resetDraft.confirmation !== 'REINICIAR SISTEMA') return
+    setResetDraft({ ...resetDraft, busy: true })
+    const result = resetEntireLocalSystem({ session, backupFilename: resetDraft.backupFilename })
+    setResetDraft(null)
+    setNotice(result.message)
+    onLogout?.('system-reset')
+  }
+
   const authorizeSupport = () => {
     const company = companies.find((item) => item.id === supportDraft?.companyId)
     if (!company) return
@@ -532,6 +601,23 @@ export default function SuperAdminPanel({
     <section className="super-admin-panel">
       <div className="super-admin-toolbar">
         <div><h2>Respaldos por empresa</h2><p>Exporta o importa JSON de una sola empresa.</p></div>
+      </div>
+      <div className="super-admin-danger-zone">
+        <div>
+          <span><AlertTriangle size={16} /> Reinicio del sistema</span>
+          <h3>Poner sistema en cero</h3>
+          <p>Accion exclusiva de Super Admin. Exige backup descargado y confirmacion fuerte antes de borrar datos locales.</p>
+          {supabaseDiagnostic.configured && (
+            <small>Supabase esta activo: el reinicio en nube requiere backend o SQL administrativo seguro. Desde aqui no se eliminan tablas en Supabase.</small>
+          )}
+        </div>
+        <div className="super-admin-danger-actions">
+          <button type="button" onClick={() => openResetModal('empresa')}>Reiniciar solo una empresa</button>
+          <button type="button" className="is-danger" onClick={() => openResetModal('sistema')}>
+            <AlertTriangle size={16} />
+            Poner sistema en cero
+          </button>
+        </div>
       </div>
       <div className="super-admin-card-grid">
         {companies.map((company) => {
@@ -744,6 +830,16 @@ export default function SuperAdminPanel({
       {licenseDraft && <LicenseModal draft={licenseDraft} setDraft={setLicenseDraft} onSave={saveLicense} plans={plans} />}
       {planDraft && <PlanModal draft={planDraft} setDraft={setPlanDraft} onSave={savePlan} />}
       {accessSummary && <AccessSummaryModal summary={accessSummary} setSummary={setAccessSummary} setNotice={setNotice} />}
+      {resetDraft && (
+        <SystemResetModal
+          draft={resetDraft}
+          setDraft={setResetDraft}
+          companies={companies}
+          supabaseActive={supabaseDiagnostic.configured}
+          onDownloadBackup={downloadResetBackup}
+          onExecute={executeReset}
+        />
+      )}
       {supportDraft && (
         <SupportModal
           draft={supportDraft}
@@ -753,6 +849,86 @@ export default function SuperAdminPanel({
         />
       )}
     </main>
+  )
+}
+
+function SystemResetModal({ draft, setDraft, companies, supabaseActive, onDownloadBackup, onExecute }) {
+  const isCompanyReset = draft.type === 'empresa'
+  const requiredText = isCompanyReset ? 'REINICIAR EMPRESA' : 'REINICIAR SISTEMA'
+  const canReset = draft.backupDownloaded && draft.confirmation === requiredText && !draft.busy
+
+  const selectedCompany = companies.find((company) => company.id === draft.companyId) || companies[0]
+
+  return (
+    <div className="super-admin-modal" role="dialog" aria-modal="true">
+      <div className="super-admin-card is-reset">
+        <header>
+          <h2>{isCompanyReset ? 'Reiniciar solo una empresa' : 'Poner sistema en cero'}</h2>
+          <button type="button" onClick={() => setDraft(null)}>X</button>
+        </header>
+        <div className="super-admin-reset-body">
+          <div className="super-admin-reset-warning">
+            <AlertTriangle size={20} />
+            <p>Esta accion pondra {isCompanyReset ? 'la empresa seleccionada' : 'el sistema'} en cero. Antes de continuar debe descargar una copia de seguridad completa. Esta accion no se puede deshacer.</p>
+          </div>
+
+          {supabaseActive && (
+            <div className="super-admin-reset-cloud-note">
+              Supabase esta activo. El reinicio en nube requiere permisos administrativos seguros y debe ejecutarse desde backend, funcion segura o SQL controlado. Esta accion solo reinicia datos locales.
+            </div>
+          )}
+
+          {isCompanyReset && (
+            <label className="super-admin-reset-label">
+              Empresa
+              <select
+                value={draft.companyId}
+                onChange={(event) => setDraft({
+                  ...draft,
+                  companyId: event.target.value,
+                  backupDownloaded: false,
+                  backupFilename: '',
+                  confirmation: '',
+                })}
+              >
+                {companies.map((company) => (
+                  <option key={company.id} value={company.id}>{company.companyCode} - {company.nombreComercial}</option>
+                ))}
+              </select>
+            </label>
+          )}
+
+          <section>
+            <span>Paso 1</span>
+            <h3>Descargar copia de seguridad</h3>
+            <p>{isCompanyReset ? `Se generara un backup de ${selectedCompany?.companyCode || 'la empresa'}.` : 'Se generara un backup completo con datos globales, empresas y claves locales.'}</p>
+            <button type="button" className="super-admin-backup-required-button" onClick={onDownloadBackup}>
+              <Download size={15} />
+              Descargar backup completo
+            </button>
+            {draft.backupDownloaded && <small>Backup descargado: {draft.backupFilename}</small>}
+          </section>
+
+          <section>
+            <span>Paso 2</span>
+            <h3>Confirmar reinicio</h3>
+            <p>Escriba exactamente: <strong>{requiredText}</strong></p>
+            <input
+              value={draft.confirmation}
+              onChange={(event) => setDraft({ ...draft, confirmation: event.target.value })}
+              placeholder={requiredText}
+            />
+          </section>
+        </div>
+        <footer>
+          <button type="button" onClick={() => setDraft(null)}>Cancelar</button>
+          <button type="button" className="is-danger" disabled={!canReset} onClick={onExecute}>
+            <AlertTriangle size={15} />
+            {draft.busy ? 'Reiniciando...' : isCompanyReset ? 'Reiniciar empresa' : 'Reiniciar sistema'}
+          </button>
+        </footer>
+      </div>
+    </div>
   )
 }
 
