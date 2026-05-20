@@ -25,7 +25,7 @@ function getSessionHeaders() {
     if (!session) return {}
 
     return {
-      'x-company-id': session.currentCompanyId || '',
+      'x-company-id': session.currentCompanyCode || session.currentCompanyId || '',
       'x-company-code': session.currentCompanyCode || '',
       'x-user-role': session.isSuperAdmin ? 'superadmin' : session.currentRole || '',
     }
@@ -53,7 +53,10 @@ export async function supabaseRequest(path, options = {}) {
 
   if (!response.ok) {
     const detail = await response.text()
-    throw new Error(detail || `Error Supabase ${response.status}`)
+    const error = new Error(detail || `Error Supabase ${response.status}`)
+    error.status = response.status
+    error.detail = detail
+    throw error
   }
 
   if (response.status === 204) return null

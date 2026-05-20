@@ -1,5 +1,8 @@
 import { isSupabaseConfigured, supabaseRequest } from '../lib/supabaseClient.js'
-import { getCurrentCompanyId as getStoredCurrentCompanyId } from './companyStorage.js'
+import {
+  getCurrentCompanyCode as getStoredCurrentCompanyCode,
+  getCurrentCompanyId as getStoredCurrentCompanyId,
+} from './companyStorage.js'
 
 export { isSupabaseConfigured }
 
@@ -22,6 +25,8 @@ function getRecordId(record, idField) {
 }
 
 export function getCurrentCompanyId() {
+  const companyCode = getStoredCurrentCompanyCode()
+  if (companyCode && companyCode !== 'SYSTEM') return companyCode
   const companyId = getStoredCurrentCompanyId()
   return companyId && companyId !== 'SYSTEM' ? companyId : ''
 }

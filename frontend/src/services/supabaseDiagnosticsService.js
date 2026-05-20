@@ -1,6 +1,8 @@
 import { getSupabaseConfigStatus, isSupabaseConfigured, supabaseRequest } from '../lib/supabaseClient.js'
 
 const TEST_PRODUCT_CODE = 'TEST-SUPABASE-001'
+const TEST_EMP001_CODE = 'TEST-EMP001'
+const TEST_EMP002_CODE = 'TEST-EMP002'
 
 function nowIso() {
   return new Date().toISOString()
@@ -12,25 +14,31 @@ function getCompanyByCode(companies = [], code) {
 }
 
 function companyHeaders(company) {
+  const companyCode = String(company?.companyCode || '').trim().toUpperCase()
   return {
-    'x-company-id': company?.id || '',
-    'x-company-code': company?.companyCode || '',
+    'x-company-id': companyCode,
+    'x-company-code': companyCode,
   }
 }
 
-function buildTestProduct(company) {
+function getSupabaseCompanyId(company) {
+  return String(company?.companyCode || '').trim().toUpperCase()
+}
+
+function buildTestProduct(company, code = TEST_PRODUCT_CODE, name = 'Producto prueba Supabase') {
+  const companyId = getSupabaseCompanyId(company)
   return {
-    id: TEST_PRODUCT_CODE,
-    company_id: company.id,
+    id: code,
+    company_id: companyId,
     data: {
-      id: TEST_PRODUCT_CODE,
-      code: TEST_PRODUCT_CODE,
-      name: 'Producto prueba Supabase',
-      nombre: 'Producto prueba Supabase',
-      status: 'Activo',
+      id: code,
+      code,
+      name,
+      nombre: name,
+      status: 'active',
       active: true,
-      company_id: company.id,
-      companyId: company.id,
+      company_id: companyId,
+      companyId,
       companyCode: company.companyCode,
       source: 'super-admin-diagnostic',
       updatedAt: nowIso(),
@@ -57,6 +65,35 @@ function fail(message, extra = {}) {
   }
 }
 
+function classifySupabaseError(error) {
+  const detail = String(error?.detail || error?.message || '')
+  const lower = detail.toLowerCase()
+
+  if (
+    error?.status === 404
+    || lower.includes('does not exist')
+    || lower.includes('could not find the table')
+    || lower.includes('pgrst205')
+    || lower.includes('42p01')
+  ) {
+    return 'Supabase conectado, pero falta ejecutar el SQL de tablas.'
+  }
+
+  if (
+    error?.status === 401
+    || error?.status === 403
+    || lower.includes('row-level security')
+    || lower.includes('rls')
+    || lower.includes('permission denied')
+    || lower.includes('42501')
+    || lower.includes('policy')
+  ) {
+    return 'Error de permisos o politicas RLS en Supabase.'
+  }
+
+  return `No se pudo conectar con Supabase: ${error.message}`
+}
+
 export function getSupabaseDiagnosticStatus() {
   const config = getSupabaseConfigStatus()
   return {
@@ -67,7 +104,7 @@ export function getSupabaseDiagnosticStatus() {
 
 export async function testSupabaseConnection() {
   if (!isSupabaseConfigured()) {
-    return ok('Supabase no configurado. El sistema esta usando localStorage.', {
+    return ok('Supabase no configurado. Revise .env.local y reinicie npm run dev.', {
       configured: false,
       mode: 'localStorage',
     })
@@ -75,12 +112,12 @@ export async function testSupabaseConnection() {
 
   try {
     await supabaseRequest('/companies?select=id&limit=1')
-    return ok('Conexion Supabase correcta.', {
+    return ok('Conexion correcta con Supabase.', {
       configured: true,
       mode: 'Supabase',
     })
   } catch (error) {
-    return fail(`No se pudo conectar con Supabase: ${error.message}`, {
+    return fail(classifySupabaseError(error), {
       configured: true,
       mode: 'localStorage fallback',
       error: error.message,
@@ -109,15 +146,15 @@ export async function writeSupabaseEmp001Test(companies = []) {
       body: JSON.stringify(buildTestProduct(company)),
     })
 
-    return ok('Producto prueba Supabase guardado para EMP001.', {
+    return ok('Escritura correcta en Supabase.', {
       configured: true,
       mode: 'Supabase',
       companyCode: company.companyCode,
-      companyId: company.id,
+      companyId: getSupabaseCompanyId(company),
       records: Array.isArray(rows) ? rows.length : 0,
     })
   } catch (error) {
-    return fail(`No se pudo escribir producto prueba EMP001: ${error.message}`, {
+    return fail(classifySupabaseError(error), {
       configured: true,
       mode: 'localStorage fallback',
       error: error.message,
@@ -137,19 +174,19 @@ export async function readSupabaseEmp001Test(companies = []) {
   if (!company) return fail('No existe EMP001 para ejecutar la lectura.')
 
   try {
-    const rows = await supabaseRequest(`/products?select=id,company_id,data&id=eq.${encodeURIComponent(TEST_PRODUCT_CODE)}&company_id=eq.${encodeURIComponent(company.id)}`, {
+    const rows = await supabaseRequest(`/products?select=id,company_id,data&id=eq.${encodeURIComponent(TEST_PRODUCT_CODE)}&company_id=eq.${encodeURIComponent(getSupabaseCompanyId(company))}`, {
       headers: companyHeaders(company),
     })
 
-    return ok(rows?.length ? 'Producto prueba EMP001 leido correctamente.' : 'No se encontro producto prueba EMP001.', {
+    return ok(rows?.length ? 'Lectura correcta desde Supabase.' : 'No se encontro producto prueba EMP001.', {
       configured: true,
       mode: 'Supabase',
       companyCode: company.companyCode,
-      companyId: company.id,
+      companyId: getSupabaseCompanyId(company),
       records: Array.isArray(rows) ? rows.length : 0,
     })
   } catch (error) {
-    return fail(`No se pudo leer producto prueba EMP001: ${error.message}`, {
+    return fail(classifySupabaseError(error), {
       configured: true,
       mode: 'localStorage fallback',
       error: error.message,
@@ -176,7 +213,7 @@ export async function testSupabaseIsolation(companies = []) {
         Prefer: 'resolution=merge-duplicates,return=minimal',
         ...companyHeaders(emp001),
       },
-      body: JSON.stringify(buildTestProduct(emp001)),
+      body: JSON.stringify(buildTestProduct(emp001, TEST_EMP001_CODE, 'Producto prueba aislamiento EMP001')),
     })
 
     await supabaseRequest('/products?on_conflict=company_id,id', {
@@ -185,25 +222,16 @@ export async function testSupabaseIsolation(companies = []) {
         Prefer: 'resolution=merge-duplicates,return=minimal',
         ...companyHeaders(emp002),
       },
-      body: JSON.stringify({
-        ...buildTestProduct(emp002),
-        data: {
-          ...buildTestProduct(emp002).data,
-          id: `${TEST_PRODUCT_CODE}-EMP002`,
-          code: `${TEST_PRODUCT_CODE}-EMP002`,
-          name: 'Producto prueba Supabase EMP002',
-          nombre: 'Producto prueba Supabase EMP002',
-        },
-      }),
+      body: JSON.stringify(buildTestProduct(emp002, TEST_EMP002_CODE, 'Producto prueba aislamiento EMP002')),
     })
 
-    const emp001Own = await supabaseRequest(`/products?select=id,company_id&id=eq.${encodeURIComponent(TEST_PRODUCT_CODE)}&company_id=eq.${encodeURIComponent(emp001.id)}`, {
+    const emp001Own = await supabaseRequest(`/products?select=id,company_id&id=eq.${encodeURIComponent(TEST_EMP001_CODE)}&company_id=eq.${encodeURIComponent(getSupabaseCompanyId(emp001))}`, {
       headers: companyHeaders(emp001),
     })
-    const emp001TryingEmp002 = await supabaseRequest(`/products?select=id,company_id&company_id=eq.${encodeURIComponent(emp002.id)}`, {
+    const emp001TryingEmp002 = await supabaseRequest(`/products?select=id,company_id&company_id=eq.${encodeURIComponent(getSupabaseCompanyId(emp002))}`, {
       headers: companyHeaders(emp001),
     })
-    const emp002TryingEmp001 = await supabaseRequest(`/products?select=id,company_id&company_id=eq.${encodeURIComponent(emp001.id)}`, {
+    const emp002TryingEmp001 = await supabaseRequest(`/products?select=id,company_id&company_id=eq.${encodeURIComponent(getSupabaseCompanyId(emp001))}`, {
       headers: companyHeaders(emp002),
     })
 
@@ -215,7 +243,7 @@ export async function testSupabaseIsolation(companies = []) {
       && emp002TryingEmp001.length === 0
 
     return (isolated ? ok : fail)(isolated
-      ? 'Aislamiento Supabase correcto entre EMP001 y EMP002.'
+      ? 'Aislamiento correcto.'
       : 'Advertencia: la prueba detecto posible lectura cruzada entre empresas.', {
       configured: true,
       mode: 'Supabase',
@@ -224,7 +252,7 @@ export async function testSupabaseIsolation(companies = []) {
       emp002SeesEmp001: Array.isArray(emp002TryingEmp001) ? emp002TryingEmp001.length : 0,
     })
   } catch (error) {
-    return fail(`No se pudo probar aislamiento Supabase: ${error.message}`, {
+    return fail(classifySupabaseError(error), {
       configured: true,
       mode: 'localStorage fallback',
       error: error.message,
