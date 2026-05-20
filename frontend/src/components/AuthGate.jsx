@@ -15,6 +15,7 @@ import {
   createSupportAccess,
   findCompanyByCode,
   getCompanyAccessStatus,
+  getCompanyLicense,
   installCompanyStorageScope,
   isCompanyActive,
   loadCompanies,
@@ -25,6 +26,15 @@ import {
   upsertCompanyLicense,
   updateCompany,
 } from '../services/companyStorage.js'
+import { isSupabaseConfigured } from '../lib/supabaseClient.js'
+import {
+  loadCompanyBundleForLogin,
+  loadSystemDataFromSupabase,
+  syncCompanyToSupabase,
+  syncCompanyUsersToSupabase,
+  syncLicenseToSupabase,
+  syncPlansToSupabase,
+} from '../services/systemDataSyncService.js'
 
 const AUTH_VERSION = 3
 const SYSTEM_COMPANY_CODE = 'SYSTEM'
@@ -82,6 +92,52 @@ export default function AuthGate() {
     return company ? loadCompanyUsers(company) : []
   })
   const [loginNotice, setLoginNotice] = useState('')
+  const [systemSyncStatus, setSystemSyncStatus] = useState(() => ({
+    source: isSupabaseConfigured() ? 'Supabase / localStorage' : 'localStorage',
+    message: isSupabaseConfigured()
+      ? 'Supabase configurado. Pendiente de sincronizar datos administrativos.'
+      : 'Modo localStorage.',
+    companies: companies.length,
+    users: 0,
+    licenses: 0,
+    plans: plans.length,
+  }))
+
+  useEffect(() => {
+    if (!session?.isSuperAdmin || !isSupabaseConfigured()) return undefined
+
+    let cancelled = false
+    loadSystemDataFromSupabase().then((result) => {
+      if (cancelled) return
+      if (result.ok) {
+        setCompanies(loadCompanies())
+        setPlans(loadSystemPlans())
+        setSystemSyncStatus({
+          source: result.source,
+          message: result.message,
+          companies: result.companies?.length || 0,
+          users: result.users?.length || 0,
+          licenses: result.licenses?.length || 0,
+          plans: result.plans?.length || 0,
+        })
+        return
+      }
+
+      setSystemSyncStatus({
+        source: result.source,
+        message: result.message,
+        error: result.error,
+        companies: loadCompanies().length,
+        users: 0,
+        licenses: 0,
+        plans: loadSystemPlans().length,
+      })
+    })
+
+    return () => {
+      cancelled = true
+    }
+  }, [session?.isSuperAdmin])
 
   useEffect(() => {
     if (!session) return undefined
@@ -111,7 +167,7 @@ export default function AuthGate() {
     setUsers(saved)
   }
 
-  const handleLogin = ({ companyCode, username, password }) => {
+  const handleLogin = async ({ companyCode, username, password }) => {
     const cleanCompanyCode = String(companyCode || '').trim().toUpperCase()
     const cleanUsername = String(username || '').trim()
     const cleanPassword = String(password || '').trim()
@@ -141,13 +197,22 @@ export default function AuthGate() {
       return { ok: true }
     }
 
-    const company = findCompanyByCode(cleanCompanyCode)
-    if (!company) return { ok: false, message: 'Codigo de empresa no encontrado.' }
+    let company = findCompanyByCode(cleanCompanyCode)
+    let companyUsers = company ? loadCompanyUsers(company) : []
+
+    if (!company && isSupabaseConfigured()) {
+      const bundle = await loadCompanyBundleForLogin(cleanCompanyCode)
+      if (bundle?.company) {
+        company = findCompanyByCode(cleanCompanyCode) || bundle.company
+        companyUsers = loadCompanyUsers(company)
+      }
+    }
+
+    if (!company) return { ok: false, message: 'Empresa no existe.' }
     if (!isCompanyActive(company)) return { ok: false, message: 'La empresa no esta activa.' }
     const accessStatus = getCompanyAccessStatus(company)
     if (!accessStatus.allowed) return { ok: false, message: accessStatus.message }
 
-    const companyUsers = loadCompanyUsers(company)
     const foundUser = companyUsers.find((user) => (
       String(user.username || '').toLowerCase() === cleanUsername.toLowerCase() &&
       user.password === cleanPassword &&
@@ -259,9 +324,11 @@ export default function AuthGate() {
     persistUsers(users.filter((user) => user.username !== username || user.isMainAdmin))
   }
 
-  const handleSaveCompany = (companyData) => {
+  const handleSaveCompany = async (companyData) => {
     if (companyData.id) {
       const saved = updateCompany(companyData.id, companyData)
+      await syncCompanyToSupabase(saved)
+      await syncLicenseToSupabase(getCompanyLicense(saved))
       refreshCompanies()
       return saved
     }
@@ -283,6 +350,10 @@ export default function AuthGate() {
       mustChangePassword: true,
     })
 
+    await syncCompanyToSupabase(saved)
+    await syncLicenseToSupabase(getCompanyLicense(saved))
+    await syncCompanyUsersToSupabase(saved, loadCompanyUsers(saved))
+
     refreshCompanies()
     return {
       company: saved,
@@ -301,11 +372,14 @@ export default function AuthGate() {
     }
   }
 
-  const handleCreateCompanyAdmin = (companyId, adminData) => {
+  const handleCreateCompanyAdmin = async (companyId, adminData) => {
     const company = companies.find((item) => item.id === companyId)
     if (!company) return { ok: false, message: 'Empresa no encontrada.' }
 
     const result = createCompanyAdminUser(company, adminData)
+    if (result?.ok !== false) {
+      await syncCompanyUsersToSupabase(company, loadCompanyUsers(company))
+    }
     refreshCompanies()
     return result
   }
@@ -355,22 +429,26 @@ export default function AuthGate() {
     const company = companies.find((item) => item.id === companyId)
     if (!company) return
 
-    updateCompany(companyId, {
+    const saved = updateCompany(companyId, {
       estado: isCompanyActive(company) ? 'suspendida' : 'activa',
     })
+    void syncCompanyToSupabase(saved)
+    void syncLicenseToSupabase(getCompanyLicense(saved))
     refreshCompanies()
   }
 
-  const handleSavePlans = (nextPlans) => {
+  const handleSavePlans = async (nextPlans) => {
     const saved = saveSystemPlans(nextPlans)
+    await syncPlansToSupabase(saved)
     setPlans(saved)
     return saved
   }
 
-  const handleUpdateCompanyLicense = (companyId, patch) => {
+  const handleUpdateCompanyLicense = async (companyId, patch) => {
     const company = companies.find((item) => item.id === companyId)
     if (!company) return null
     const license = upsertCompanyLicense(company, patch)
+    await syncLicenseToSupabase(license)
     refreshCompanies()
     return license
   }
@@ -404,6 +482,7 @@ export default function AuthGate() {
         onUpdateCompanyLicense={handleUpdateCompanyLicense}
         onCreateCompanyAdmin={handleCreateCompanyAdmin}
         onToggleCompanyStatus={handleToggleCompanyStatus}
+        systemSyncStatus={systemSyncStatus}
       />
     )
   }

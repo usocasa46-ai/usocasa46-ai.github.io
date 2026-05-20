@@ -1,8 +1,8 @@
 import { getSupabaseConfigStatus, isSupabaseConfigured, supabaseRequest } from '../lib/supabaseClient.js'
 
 const TEST_PRODUCT_CODE = 'TEST-SUPABASE-001'
-const TEST_EMP001_CODE = 'TEST-EMP001'
-const TEST_EMP002_CODE = 'TEST-EMP002'
+const TEST_COMPANY_A_CODE = 'TEST-COMPANY-A'
+const TEST_COMPANY_B_CODE = 'TEST-COMPANY-B'
 
 function nowIso() {
   return new Date().toISOString()
@@ -133,8 +133,8 @@ export async function writeSupabaseEmp001Test(companies = []) {
     })
   }
 
-  const company = getCompanyByCode(companies, 'EMP001')
-  if (!company) return fail('No existe EMP001 para ejecutar la prueba.')
+  const company = companies[0] || null
+  if (!company) return fail('No hay empresas creadas para ejecutar la prueba.')
 
   try {
     const rows = await supabaseRequest('/products?on_conflict=company_id,id', {
@@ -170,15 +170,15 @@ export async function readSupabaseEmp001Test(companies = []) {
     })
   }
 
-  const company = getCompanyByCode(companies, 'EMP001')
-  if (!company) return fail('No existe EMP001 para ejecutar la lectura.')
+  const company = companies[0] || null
+  if (!company) return fail('No hay empresas creadas para ejecutar la lectura.')
 
   try {
     const rows = await supabaseRequest(`/products?select=id,company_id,data&id=eq.${encodeURIComponent(TEST_PRODUCT_CODE)}&company_id=eq.${encodeURIComponent(getSupabaseCompanyId(company))}`, {
       headers: companyHeaders(company),
     })
 
-    return ok(rows?.length ? 'Lectura correcta desde Supabase.' : 'No se encontro producto prueba EMP001.', {
+    return ok(rows?.length ? 'Lectura correcta desde Supabase.' : 'No se encontro el producto prueba.', {
       configured: true,
       mode: 'Supabase',
       companyCode: company.companyCode,
@@ -202,9 +202,9 @@ export async function testSupabaseIsolation(companies = []) {
     })
   }
 
-  const emp001 = getCompanyByCode(companies, 'EMP001')
-  const emp002 = getCompanyByCode(companies, 'EMP002')
-  if (!emp001 || !emp002) return fail('Se necesitan EMP001 y EMP002 para probar aislamiento.')
+  const emp001 = companies[0] || null
+  const emp002 = companies.find((company) => getSupabaseCompanyId(company) !== getSupabaseCompanyId(emp001)) || null
+  if (!emp001 || !emp002) return fail('Se necesitan dos empresas creadas para probar aislamiento.')
 
   try {
     await supabaseRequest('/products?on_conflict=company_id,id', {
@@ -213,7 +213,7 @@ export async function testSupabaseIsolation(companies = []) {
         Prefer: 'resolution=merge-duplicates,return=minimal',
         ...companyHeaders(emp001),
       },
-      body: JSON.stringify(buildTestProduct(emp001, TEST_EMP001_CODE, 'Producto prueba aislamiento EMP001')),
+      body: JSON.stringify(buildTestProduct(emp001, TEST_COMPANY_A_CODE, `Producto prueba aislamiento ${emp001.companyCode}`)),
     })
 
     await supabaseRequest('/products?on_conflict=company_id,id', {
@@ -222,10 +222,10 @@ export async function testSupabaseIsolation(companies = []) {
         Prefer: 'resolution=merge-duplicates,return=minimal',
         ...companyHeaders(emp002),
       },
-      body: JSON.stringify(buildTestProduct(emp002, TEST_EMP002_CODE, 'Producto prueba aislamiento EMP002')),
+      body: JSON.stringify(buildTestProduct(emp002, TEST_COMPANY_B_CODE, `Producto prueba aislamiento ${emp002.companyCode}`)),
     })
 
-    const emp001Own = await supabaseRequest(`/products?select=id,company_id&id=eq.${encodeURIComponent(TEST_EMP001_CODE)}&company_id=eq.${encodeURIComponent(getSupabaseCompanyId(emp001))}`, {
+    const emp001Own = await supabaseRequest(`/products?select=id,company_id&id=eq.${encodeURIComponent(TEST_COMPANY_A_CODE)}&company_id=eq.${encodeURIComponent(getSupabaseCompanyId(emp001))}`, {
       headers: companyHeaders(emp001),
     })
     const emp001TryingEmp002 = await supabaseRequest(`/products?select=id,company_id&company_id=eq.${encodeURIComponent(getSupabaseCompanyId(emp002))}`, {

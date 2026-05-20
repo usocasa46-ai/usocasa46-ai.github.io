@@ -27,9 +27,9 @@ function savePasswordResetRequest(request) {
   localStorage.setItem(PASSWORD_RESET_KEY, JSON.stringify([request, ...current].slice(0, 500)))
 }
 
-function PasswordResetModal({ initialCompanyCode = 'EMP001', onClose }) {
+function PasswordResetModal({ initialCompanyCode = '', onClose }) {
   const [formData, setFormData] = useState({
-    companyCode: initialCompanyCode || 'EMP001',
+    companyCode: initialCompanyCode || '',
     usuarioOCorreo: '',
   })
   const [error, setError] = useState('')
@@ -129,7 +129,7 @@ function PasswordResetModal({ initialCompanyCode = 'EMP001', onClose }) {
             <input
               value={formData.companyCode}
               onChange={(event) => updateField('companyCode', event.target.value.toUpperCase())}
-              placeholder="EMP001"
+              placeholder="EMP100"
               autoComplete="organization"
             />
           </label>
@@ -161,7 +161,7 @@ function PasswordResetModal({ initialCompanyCode = 'EMP001', onClose }) {
 export default function LoginScreen({ onLogin, notice = '' }) {
   const currentYear = new Date().getFullYear()
   const [formData, setFormData] = useState({
-    companyCode: 'EMP001',
+    companyCode: '',
     username: '',
     password: '',
     remember: true,
@@ -169,6 +169,7 @@ export default function LoginScreen({ onLogin, notice = '' }) {
 
   const [error, setError] = useState('')
   const [passwordResetOpen, setPasswordResetOpen] = useState(false)
+  const [busy, setBusy] = useState(false)
 
   const updateField = (field, value) => {
     setFormData((current) => ({
@@ -177,7 +178,7 @@ export default function LoginScreen({ onLogin, notice = '' }) {
     }))
   }
 
-  const handleSubmit = (event) => {
+  const handleSubmit = async (event) => {
     event.preventDefault()
 
     if (!formData.companyCode.trim() || !formData.username.trim() || !formData.password.trim()) {
@@ -190,12 +191,17 @@ export default function LoginScreen({ onLogin, notice = '' }) {
       return
     }
 
-    const result = onLogin({
+    setBusy(true)
+    const result = await onLogin({
       companyCode: formData.companyCode.trim(),
       username: formData.username.trim(),
       password: formData.password.trim(),
       remember: formData.remember,
-    })
+    }).catch((loginError) => ({
+      ok: false,
+      message: loginError.message || 'No se pudo iniciar sesion.',
+    }))
+    setBusy(false)
 
     if (result && result.ok === false) {
       setError(result.message || 'Usuario o contrasena incorrectos.')
@@ -207,7 +213,7 @@ export default function LoginScreen({ onLogin, notice = '' }) {
 
   const handleMenuAction = (option) => {
     if (option === 'Limpiar formulario') {
-      setFormData({ companyCode: 'EMP001', username: '', password: '', remember: true })
+      setFormData({ companyCode: '', username: '', password: '', remember: true })
       setError('')
       return
     }
@@ -274,7 +280,7 @@ export default function LoginScreen({ onLogin, notice = '' }) {
             <input
               value={formData.companyCode}
               onChange={(event) => updateField('companyCode', event.target.value.toUpperCase())}
-              placeholder="EMP001 o SYSTEM"
+              placeholder="SYSTEM o codigo de empresa"
               autoComplete="organization"
             />
           </label>
@@ -315,8 +321,8 @@ export default function LoginScreen({ onLogin, notice = '' }) {
             </button>
           </div>
 
-          <button type="submit" className="login-submit">
-            Entrar al sistema
+          <button type="submit" className="login-submit" disabled={busy}>
+            {busy ? 'Validando...' : 'Entrar al sistema'}
           </button>
         </form>
       </section>

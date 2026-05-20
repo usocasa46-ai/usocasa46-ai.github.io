@@ -50,14 +50,28 @@ La empresa nueva entra limpia, sin productos, clientes, facturas ni datos de otr
 El frontend no borra Supabase con la anon public key. Para limpiar datos en nube:
 
 1. Descargar backup completo.
-2. Abrir Supabase SQL Editor.
-3. Ejecutar:
+2. Ejecutar el reset local desde el Panel del Sistema.
+3. Abrir Supabase SQL Editor.
+4. Ejecutar el contenido del archivo:
 
 ```sql
 supabase/reset_all_data.sql
 ```
 
-Este script usa `TRUNCATE`, no borra tablas ni esquema. Deja las tablas vacias y conserva la estructura.
+Este script usa un bloque seguro que limpia solo tablas existentes. No borra tablas ni esquema. Deja la nube sin empresas, sin `EMP001`, sin licencias, sin planes, sin usuarios de empresa y sin datos operativos.
+
+Si Supabase queda con datos antiguos y localStorage esta limpio, el Panel del Sistema puede volver a mostrar empresas porque Supabase es la fuente activa. En ese caso ejecute `supabase/reset_all_data.sql` y reinicie la aplicacion.
+
+## Login de empresa nueva
+
+Cuando Supabase esta configurado, el Super Admin guarda la empresa, licencia y usuario administrador tanto en localStorage como en Supabase. El login consulta la misma fuente:
+
+1. Crear empresa manual desde Super Admin.
+2. Crear usuario administrador en el formulario.
+3. Cerrar sesion.
+4. Entrar con codigo de empresa + usuario + contrasena.
+
+Si la empresa no existe, el login debe responder `Empresa no existe.` y no debe crear `EMP001` ni datos demo.
 
 ## Advertencia
 

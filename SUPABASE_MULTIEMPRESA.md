@@ -15,7 +15,7 @@ VITE_SUPABASE_URL=
 VITE_SUPABASE_ANON_KEY=
 ```
 
-6. Ejecutar el SQL `supabase/multiempresa_schema.sql` en el SQL Editor de Supabase.
+6. Ejecutar el SQL `supabase/multiempresa_schema.sql` en el SQL Editor de Supabase. Si ya existia el proyecto, volver a ejecutarlo para actualizar politicas de login por codigo de empresa.
 7. Reiniciar el servidor:
 
 ```bash
@@ -35,11 +35,11 @@ Si falta alguna variable, INVE-FAT SYSTEM sigue usando `localStorage` multiempre
    - Ultima prueba de conexion.
    - Estado de conexion.
 4. Pulsar **Probar conexion**.
-5. Pulsar **Probar escritura EMP001**.
+5. Pulsar **Probar escritura empresa**.
    - Esta prueba crea o actualiza solo el producto tecnico `TEST-SUPABASE-001`.
-   - El registro se guarda con `company_id` de EMP001.
-6. Pulsar **Probar lectura EMP001**.
-7. Pulsar **Probar aislamiento EMP001 / EMP002**.
+   - El registro se guarda con `company_id` de la primera empresa creada manualmente.
+6. Pulsar **Probar lectura empresa**.
+7. Pulsar **Probar aislamiento entre empresas**.
    - La prueba solo devuelve conteos y resultado.
    - No muestra productos, clientes, facturas ni datos privados.
 
@@ -100,16 +100,16 @@ Servicios principales listos para usar Supabase con fallback local:
 
 Si Supabase responde con error o las tablas aun no existen, el `dataClient` vuelve a `localStorage` para no dejar pantallas en blanco.
 
-## Probar EMP001 y EMP002
+## Probar dos empresas
 
 1. Entrar como `SYSTEM / superadmin / admin123`.
-2. Crear o verificar `EMP001`.
-3. Crear `EMP002`.
+2. Crear manualmente `EMP100`.
+3. Crear manualmente `EMP200`.
 4. Crear un admin por empresa.
-5. Entrar a EMP001 y crear un producto.
-6. Entrar a EMP002 y confirmar que no aparece el producto de EMP001.
-7. Crear una factura en EMP001.
-8. Confirmar que EMP002 no ve esa factura.
+5. Entrar a EMP100 y crear un producto.
+6. Entrar a EMP200 y confirmar que no aparece el producto de EMP100.
+7. Crear una factura en EMP100.
+8. Confirmar que EMP200 no ve esa factura.
 9. En Supabase, revisar que los registros tengan `company_id`.
 
 ## RLS sugerido

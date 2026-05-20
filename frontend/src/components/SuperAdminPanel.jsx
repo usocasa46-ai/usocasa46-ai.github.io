@@ -161,6 +161,7 @@ export default function SuperAdminPanel({
   onUpdateCompanyLicense,
   onCreateCompanyAdmin,
   onToggleCompanyStatus,
+  systemSyncStatus,
 }) {
   const [activeSection, setActiveSection] = useState('empresas')
   const [query, setQuery] = useState('')
@@ -201,8 +202,11 @@ export default function SuperAdminPanel({
         errors.push(`Codigo de empresa duplicado: ${code}`)
       }
       if (code) companyCodes.add(code)
+      if (code === 'EMP001') {
+        errors.push('EMP001 existe. Si no fue creada manualmente, revisar seed/default company.')
+      }
 
-      const license = licenses.find((item) => item.companyId === company.id)
+      const license = licenses.find((item) => item.companyId === company.id || String(item.companyCode || '').trim().toUpperCase() === code)
       if (!license) {
         warnings.push(`${code || company.nombreComercial}: sin licencia registrada.`)
       } else {
@@ -214,6 +218,9 @@ export default function SuperAdminPanel({
       }
 
       const users = loadCompanyUsers(company)
+      if (!users.some((user) => user.active && (user.isMainAdmin || String(user.role || '').toLowerCase().includes('administrador')))) {
+        warnings.push(`${code}: sin administrador activo registrado.`)
+      }
       const seenUsers = new Set()
       users.forEach((user) => {
         const username = String(user.username || '').trim().toLowerCase()
@@ -237,7 +244,8 @@ export default function SuperAdminPanel({
 
     const isolationByCompany = new Map(isolation.map((item) => [item.companyCode, item]))
     const rows = companies.map((company) => {
-      const license = licenses.find((item) => item.companyId === company.id)
+      const code = String(company.companyCode || '').trim().toUpperCase()
+      const license = licenses.find((item) => item.companyId === company.id || String(item.companyCode || '').trim().toUpperCase() === code)
       const modules = license?.modulosActivos || company.modulosActivos || []
       const lastBackup = backups.find((backup) => backup.companyId === company.id)
       return {
@@ -253,6 +261,7 @@ export default function SuperAdminPanel({
 
     return {
       rows,
+      companyUsersTotal: companies.reduce((sum, company) => sum + loadCompanyUsers(company).length, 0),
       warnings,
       errors,
       globalStorageWarnings,
@@ -289,7 +298,7 @@ export default function SuperAdminPanel({
     setNotice(result.message)
   }
 
-  const saveCompany = () => {
+  const saveCompany = async () => {
     try {
       if (!companyDraft?.companyCode || !companyDraft?.nombreComercial) {
         setNotice('Completa codigo y nombre comercial.')
@@ -308,7 +317,7 @@ export default function SuperAdminPanel({
         }
       }
 
-      const result = onSaveCompany?.(companyDraft)
+      const result = await onSaveCompany?.(companyDraft)
       if (result?.ok === false) {
         setNotice(result.message)
         return
@@ -322,13 +331,13 @@ export default function SuperAdminPanel({
     }
   }
 
-  const saveAdmin = () => {
+  const saveAdmin = async () => {
     if (!adminDraft?.fullName || !adminDraft?.username || !adminDraft?.password) {
       setNotice('Completa nombre, usuario y contrasena del admin.')
       return
     }
 
-    const result = onCreateCompanyAdmin?.(adminDraft.companyId, adminDraft)
+    const result = await onCreateCompanyAdmin?.(adminDraft.companyId, adminDraft)
     if (result?.ok === false) {
       setNotice(result.message)
       return
@@ -339,7 +348,7 @@ export default function SuperAdminPanel({
     refresh()
   }
 
-  const saveLicense = () => {
+  const saveLicense = async () => {
     if (!licenseDraft?.companyId) {
       setNotice('La licencia debe estar asociada a una empresa.')
       return
@@ -348,13 +357,13 @@ export default function SuperAdminPanel({
       setNotice('La licencia debe tener al menos un modulo activo.')
       return
     }
-    onUpdateCompanyLicense?.(licenseDraft.companyId, licenseDraft)
+    await onUpdateCompanyLicense?.(licenseDraft.companyId, licenseDraft)
     setLicenseDraft(null)
     setNotice('Licencia actualizada.')
     refresh()
   }
 
-  const savePlan = () => {
+  const savePlan = async () => {
     if (!planDraft?.name) {
       setNotice('Completa el nombre del plan.')
       return
@@ -373,7 +382,7 @@ export default function SuperAdminPanel({
     const nextPlans = plans.some((plan) => plan.id === nextPlan.id)
       ? plans.map((plan) => (plan.id === nextPlan.id ? nextPlan : plan))
       : [nextPlan, ...plans]
-    onSavePlans?.(nextPlans)
+    await onSavePlans?.(nextPlans)
     setPlanDraft(null)
     setNotice('Plan guardado.')
   }
@@ -711,6 +720,10 @@ export default function SuperAdminPanel({
 
       <div className="super-admin-grid">
         <article>
+          <h3>Fuente actual de datos</h3>
+          <p>{systemSyncStatus?.source || supabaseDiagnostic.mode || 'localStorage'}</p>
+        </article>
+        <article>
           <h3>Estado general</h3>
           <p>{diagnostics.status}</p>
         </article>
@@ -721,6 +734,14 @@ export default function SuperAdminPanel({
         <article>
           <h3>Auditoria</h3>
           <p>{auditLog.length} eventos registrados.</p>
+        </article>
+        <article>
+          <h3>Usuarios de empresa</h3>
+          <p>{diagnostics.companyUsersTotal} detectados.</p>
+        </article>
+        <article>
+          <h3>Licencias</h3>
+          <p>{licenses.length} registradas.</p>
         </article>
         <article>
           <h3>Advertencias</h3>
@@ -740,20 +761,22 @@ export default function SuperAdminPanel({
         <div>
           <span>Estado de Supabase</span>
           <h3>{supabaseDiagnostic.configured ? 'Supabase configurado' : 'Supabase no configurado'}</h3>
-          <p>{supabaseDiagnostic.message}</p>
+          <p>{systemSyncStatus?.message || supabaseDiagnostic.message}</p>
         </div>
         <dl>
           <div><dt>Configurado</dt><dd>{supabaseDiagnostic.configured ? 'Si' : 'No'}</dd></div>
           <div><dt>Modo actual</dt><dd>{supabaseDiagnostic.mode}</dd></div>
           <div><dt>Ultima prueba</dt><dd>{formatDateTime(supabaseDiagnostic.lastCheckedAt)}</dd></div>
           <div><dt>Estado</dt><dd>{supabaseDiagnostic.connectionStatus}</dd></div>
+          <div><dt>Empresas nube/cache</dt><dd>{systemSyncStatus?.companies ?? companies.length}</dd></div>
+          <div><dt>Usuarios nube/cache</dt><dd>{systemSyncStatus?.users ?? diagnostics.companyUsersTotal}</dd></div>
         </dl>
-        {supabaseDiagnostic.error && <small>{supabaseDiagnostic.error}</small>}
+        {(supabaseDiagnostic.error || systemSyncStatus?.error) && <small>{supabaseDiagnostic.error || systemSyncStatus?.error}</small>}
         <div className="super-admin-test-actions">
           <button type="button" disabled={supabaseDiagnostic.busy} onClick={() => runSupabaseTest(testSupabaseConnection)}>Probar conexion</button>
-          <button type="button" disabled={supabaseDiagnostic.busy} onClick={() => runSupabaseTest(() => writeSupabaseEmp001Test(companies))}>Probar escritura EMP001</button>
-          <button type="button" disabled={supabaseDiagnostic.busy} onClick={() => runSupabaseTest(() => readSupabaseEmp001Test(companies))}>Probar lectura EMP001</button>
-          <button type="button" disabled={supabaseDiagnostic.busy} onClick={() => runSupabaseTest(() => testSupabaseIsolation(companies))}>Probar aislamiento EMP001 / EMP002</button>
+          <button type="button" disabled={supabaseDiagnostic.busy} onClick={() => runSupabaseTest(() => writeSupabaseEmp001Test(companies))}>Probar escritura empresa</button>
+          <button type="button" disabled={supabaseDiagnostic.busy} onClick={() => runSupabaseTest(() => readSupabaseEmp001Test(companies))}>Probar lectura empresa</button>
+          <button type="button" disabled={supabaseDiagnostic.busy} onClick={() => runSupabaseTest(() => testSupabaseIsolation(companies))}>Probar aislamiento entre empresas</button>
         </div>
       </div>
 

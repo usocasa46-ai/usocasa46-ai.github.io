@@ -206,8 +206,26 @@ alter table public.inventory_movements enable row level security;
 drop policy if exists "super_admin_companies" on public.companies;
 create policy "super_admin_companies" on public.companies for all using (public.invefat_is_super_admin()) with check (public.invefat_is_super_admin());
 
+drop policy if exists "company_login_companies" on public.companies;
+create policy "company_login_companies" on public.companies
+  for select
+  using (
+    company_id = public.invefat_request_company_id()
+    or data ->> 'companyCode' = public.invefat_request_company_id()
+    or data ->> 'companyCode' = public.invefat_request_header('x-company-code')
+  );
+
 drop policy if exists "super_admin_company_licenses" on public.company_licenses;
 create policy "super_admin_company_licenses" on public.company_licenses for all using (public.invefat_is_super_admin()) with check (public.invefat_is_super_admin());
+
+drop policy if exists "company_login_licenses" on public.company_licenses;
+create policy "company_login_licenses" on public.company_licenses
+  for select
+  using (
+    company_id = public.invefat_request_company_id()
+    or data ->> 'companyCode' = public.invefat_request_company_id()
+    or data ->> 'companyCode' = public.invefat_request_header('x-company-code')
+  );
 
 drop policy if exists "super_admin_system_plans" on public.system_plans;
 create policy "super_admin_system_plans" on public.system_plans for all using (public.invefat_is_super_admin()) with check (public.invefat_is_super_admin());

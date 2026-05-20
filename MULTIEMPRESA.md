@@ -28,23 +28,15 @@ Puede:
 
 No puede ver productos, clientes, facturas, compras, contabilidad ni reportes privados de una empresa.
 
-## Empresa demo
+## Sistema en cero
 
-Si no existe ninguna empresa, el sistema crea:
+Si no existe ninguna empresa, el sistema queda vacio. No se crea `EMP001`, no se crea empresa demo y no se crea administrador demo.
 
-```text
-Codigo empresa: EMP001
-Nombre comercial: Empresa Demo
-RNC: 000000000
-Estado: activa
-Plan: Demo
-```
-
-Tambien crea un administrador de prueba dentro de EMP001:
+El unico acceso disponible en cero es:
 
 ```text
-Codigo empresa: EMP001
-Usuario: admin
+Codigo empresa: SYSTEM
+Usuario: superadmin
 Contrasena: admin123
 ```
 
@@ -59,18 +51,18 @@ Contrasena: admin123
 7. Cerrar sesion.
 8. Entrar con codigo de empresa + usuario + contrasena.
 
-## Prueba EMP001 / EMP002
+## Prueba de aislamiento con dos empresas
 
 1. Entrar como `SYSTEM / superadmin / admin123`.
-2. Crear o verificar `EMP001`.
-3. Crear `EMP002`.
-4. Crear un admin para EMP001.
-5. Crear un admin para EMP002.
-6. Entrar a EMP001 y crear `Producto A`.
+2. Crear manualmente `EMP100`.
+3. Crear manualmente `EMP200`.
+4. Crear un admin para EMP100.
+5. Crear un admin para EMP200.
+6. Entrar a EMP100 y crear `Producto A`.
 7. Cerrar sesion.
-8. Entrar a EMP002 y confirmar que `Producto A` no aparece.
+8. Entrar a EMP200 y confirmar que `Producto A` no aparece.
 9. Crear `Producto B`.
-10. Volver a EMP001 y confirmar que solo aparece `Producto A`.
+10. Volver a EMP100 y confirmar que solo aparece `Producto A`.
 
 ## Validacion rapida del estado del sistema
 
