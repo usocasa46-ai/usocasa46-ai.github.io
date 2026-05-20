@@ -67,14 +67,14 @@
 
 .pos-operator-bar {
   display: grid;
-  grid-template-columns: minmax(176px, 0.75fr) minmax(245px, 0.85fr) minmax(260px, 1fr) minmax(360px, 1.35fr);
+  grid-template-columns: minmax(176px, 0.7fr) minmax(245px, 0.85fr) minmax(260px, 1fr) minmax(380px, 1.45fr);
   align-items: center;
-  gap: 12px;
-  min-height: 62px;
+  gap: 10px;
+  min-height: 58px;
   border-radius: 14px;
   background: linear-gradient(135deg, var(--pos-blue-deep), #06465b);
   color: #ffffff;
-  padding: 9px 12px;
+  padding: 8px 12px;
   box-shadow: 0 18px 38px rgba(4, 45, 63, 0.22);
 }
 
@@ -108,7 +108,7 @@
 
 .pos-brand-block span,
 .pos-session-metrics span {
-  color: rgba(255, 255, 255, 0.78);
+  color: rgba(255, 255, 255, 0.9);
   font-size: 12px;
   font-weight: 800;
 }
@@ -129,7 +129,8 @@
   gap: 7px;
   margin-top: 4px;
   overflow: hidden;
-  font-size: 14px;
+  color: #ffffff;
+  font-size: 13px;
   font-weight: 900;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -152,8 +153,8 @@
   gap: 9px;
   border: 1px solid rgba(255, 255, 255, 0.18);
   border-radius: 13px;
-  background: rgba(255, 255, 255, 0.96);
-  color: #6d7f92;
+  background: #ffffff;
+  color: #405468;
   padding: 0 10px;
   box-shadow: 0 10px 28px rgba(0, 0, 0, 0.14);
 }
@@ -196,7 +197,7 @@
   max-width: 92px;
   border: 0;
   background: transparent;
-  color: #ffffff;
+  color: rgba(255, 255, 255, 0.96);
   display: grid;
   justify-items: center;
   gap: 4px;
@@ -213,7 +214,8 @@
 }
 
 .pos-quick-actions button svg {
-  color: #ff9d30;
+  color: #ffae48;
+  filter: drop-shadow(0 1px 1px rgba(0, 0, 0, 0.28));
 }
 
 .pos-quick-actions button span {
@@ -222,6 +224,7 @@
   text-align: center;
   text-overflow: ellipsis;
   white-space: nowrap;
+  text-shadow: 0 1px 1px rgba(0, 0, 0, 0.28);
 }
 
 .pos-quick-actions button:disabled {
@@ -246,7 +249,8 @@
 .pos-fiscal-card,
 .pos-cart-list,
 .pos-payment-panel,
-.pos-total-panel {
+.pos-total-panel,
+.pos-action-panel {
   border: 1px solid var(--pos-border);
   border-radius: 12px;
   background: var(--pos-card);
@@ -269,11 +273,11 @@
   top: 0;
   align-self: start;
   display: grid;
-  grid-template-rows: minmax(150px, 1fr) auto auto auto;
-  gap: 8px;
+  grid-template-rows: minmax(160px, 1fr) auto auto auto auto;
+  gap: 5px;
   height: min(100%, calc(100vh - 150px));
   max-height: 100%;
-  padding: 9px;
+  padding: 8px;
   min-width: 0;
   min-height: 0;
   overflow: hidden;
@@ -583,8 +587,8 @@
 .pos-customer-card {
   display: grid;
   grid-template-columns: minmax(0, 1fr);
-  gap: 7px;
-  padding: 10px;
+  gap: 5px;
+  padding: 8px;
   border-top: 0;
 }
 
@@ -623,7 +627,7 @@
 .pos-fiscal-card select,
 .pos-payment-fields input {
   width: 100%;
-  min-height: 38px;
+  min-height: 32px;
   border: 1px solid #d7e1ec;
   border-radius: 9px;
   background: #fbfdff;
@@ -635,8 +639,8 @@
 
 .pos-fiscal-card {
   display: grid;
-  gap: 8px;
-  padding: 10px;
+  gap: 6px;
+  padding: 8px;
   border-top: 0;
 }
 
@@ -679,7 +683,7 @@
 
 .pos-fiscal-toggle button {
   min-width: 45px;
-  min-height: 30px;
+  min-height: 26px;
   border: 0;
   border-radius: 999px;
   background: transparent;
@@ -698,7 +702,7 @@
 .pos-fiscal-note {
   border-radius: 10px;
   background: #f7f9fc;
-  padding: 9px 10px;
+  padding: 7px 9px;
 }
 
 .pos-fiscal-grid {
@@ -755,7 +759,7 @@
   justify-content: space-between;
   gap: 12px;
   color: var(--pos-blue);
-  padding: 12px 14px;
+  padding: 9px 12px;
   border-bottom: 1px solid #e3ebf3;
   background: #ffffff;
 }
@@ -768,12 +772,12 @@
 }
 
 .pos-cart-heading strong {
-  font-size: 16px;
+  font-size: 15px;
 }
 
 .pos-empty-cart {
   margin: 10px;
-  min-height: 150px;
+  min-height: 190px;
   border: 1px dashed #cbd8e5;
   border-radius: 12px;
   background: #f8fbfe;
@@ -855,7 +859,7 @@
   grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
   gap: 8px;
   min-height: 0;
-  max-height: min(205px, 26vh);
+  max-height: min(76px, 11vh);
   overflow: auto;
 }
 
@@ -910,33 +914,38 @@
 
 .pos-payment-panel {
   display: grid;
-  gap: 8px;
-  padding: 8px;
-  max-height: min(190px, 24vh);
+  gap: 5px;
+  padding: 6px;
+  max-height: min(76px, 11vh);
   overflow: auto;
 }
 
 .pos-payment-methods {
   display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
-  gap: 8px;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: 5px;
 }
 
 .pos-payment-methods button {
-  min-height: 46px;
+  min-height: 34px;
   display: inline-flex;
-  flex-direction: column;
+  flex-direction: row;
   align-items: center;
   justify-content: center;
-  gap: 5px;
-  padding: 6px 8px;
-  font-size: 12px;
+  gap: 4px;
+  padding: 5px 6px;
+  font-size: 11px;
+}
+
+.pos-payment-methods button svg {
+  width: 14px;
+  height: 14px;
 }
 
 .pos-payment-fields {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 7px;
+  gap: 5px;
 }
 
 .pos-credit-note {
@@ -944,7 +953,8 @@
   border-radius: 10px;
   background: #f7f9fc;
   color: #53687e;
-  padding: 10px;
+  padding: 7px 9px;
+  font-size: 12px;
   font-weight: 800;
 }
 
@@ -953,8 +963,8 @@
   z-index: 1;
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 5px;
-  padding: 9px;
+  gap: 4px 8px;
+  padding: 6px 8px;
   border-top: 1px solid #e1e9f2;
   box-shadow: 0 -12px 28px rgba(15, 39, 66, 0.06);
 }
@@ -963,12 +973,20 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 10px;
+  gap: 7px;
   min-width: 0;
 }
 
 .pos-total-panel strong {
   color: #10243a;
+}
+
+.pos-total-panel span {
+  font-size: 10.5px;
+}
+
+.pos-total-panel > div:not(.is-grand) strong {
+  font-size: 11.5px;
 }
 
 .pos-total-panel .is-grand {
@@ -977,24 +995,30 @@
   border-radius: 0;
   background: transparent;
   color: #0e2135;
-  padding: 7px 0 5px;
+  padding: 4px 0 2px;
 }
 
 .pos-total-panel .is-grand span,
 .pos-total-panel .is-grand strong {
   color: #0e2135;
-  font-size: 17px;
+  font-size: 15px;
   text-transform: uppercase;
 }
 
 .pos-total-panel .is-grand strong {
   color: var(--pos-orange);
-  font-size: clamp(24px, 2.1vw, 32px);
+  font-size: clamp(22px, 1.8vw, 28px);
+}
+
+.pos-action-panel {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(110px, 0.38fr);
+  gap: 6px;
+  padding: 6px;
 }
 
 .pos-charge-button {
-  grid-column: 1 / -1;
-  min-height: 50px;
+  min-height: 40px;
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -1004,14 +1028,13 @@
   background: var(--pos-orange);
   color: #ffffff;
   font: inherit;
-  font-size: 16px;
+  font-size: 15px;
   font-weight: 950;
   cursor: pointer;
   box-shadow: 0 14px 30px rgba(241, 135, 45, 0.28);
 }
 
 .pos-clear-button {
-  grid-column: 1 / -1;
   min-height: 40px;
   display: inline-flex;
   align-items: center;
@@ -1022,7 +1045,7 @@
   background: #ffffff;
   color: #18334e;
   font: inherit;
-  font-size: 13px;
+  font-size: 12px;
   font-weight: 850;
   cursor: pointer;
 }
@@ -1155,6 +1178,7 @@ body.theme-dark .pos-fiscal-card,
 body.theme-dark .pos-cart-list,
 body.theme-dark .pos-payment-panel,
 body.theme-dark .pos-total-panel,
+body.theme-dark .pos-action-panel,
 body.theme-dark .pos-modal,
 body.theme-dark .pos-product-card,
 body.theme-dark .pos-cart-line,
@@ -1432,16 +1456,16 @@ body.theme-dark .pos-line-money strong {
   }
 
   .pos-checkout-details {
-    max-height: 170px;
+    max-height: 96px;
   }
 
   .pos-payment-methods button {
-    min-height: 44px;
+    min-height: 32px;
   }
 
   .pos-clear-button,
   .pos-charge-button {
-    min-height: 44px;
+    min-height: 40px;
   }
 }
 

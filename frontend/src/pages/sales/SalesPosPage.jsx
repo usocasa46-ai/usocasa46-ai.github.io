@@ -1491,6 +1491,15 @@ export default function SalesPosPage({ controls, onAction, searchValue = '', onS
               </div>
             </div>
 
+            <div className="pos-total-panel">
+              <div><span>Subtotal</span><strong>{currency(totals.subtotal, settings)}</strong></div>
+              <div><span>Descuento</span><strong>{currency(totals.discountTotal, settings)}</strong></div>
+              <div><span>Impuesto</span><strong>{currency(totals.taxTotal, settings)}</strong></div>
+              <div><span>Pagado</span><strong>{currency(totals.paid, settings)}</strong></div>
+              <div><span>Devuelta</span><strong>{currency(totals.change, settings)}</strong></div>
+              <div className="is-grand"><span>Total</span><strong>{currency(totals.total, settings)}</strong></div>
+            </div>
+
             <div className="pos-payment-panel">
               <div className="pos-payment-methods">
                 {paymentMethods.map((method) => (
@@ -1503,13 +1512,7 @@ export default function SalesPosPage({ controls, onAction, searchValue = '', onS
               {paymentInputs}
             </div>
 
-            <div className="pos-total-panel">
-              <div><span>Subtotal</span><strong>{currency(totals.subtotal, settings)}</strong></div>
-              <div><span>Descuento</span><strong>{currency(totals.discountTotal, settings)}</strong></div>
-              <div><span>Impuesto</span><strong>{currency(totals.taxTotal, settings)}</strong></div>
-              <div><span>Pagado</span><strong>{currency(totals.paid, settings)}</strong></div>
-              <div><span>Devuelta</span><strong>{currency(totals.change, settings)}</strong></div>
-              <div className="is-grand"><span>Total</span><strong>{currency(totals.total, settings)}</strong></div>
+            <div className="pos-action-panel">
               <button type="button" className="pos-charge-button" onClick={completeSale}>
                 <ReceiptText size={22} />
                 Cobrar {currency(totals.total, settings)}
