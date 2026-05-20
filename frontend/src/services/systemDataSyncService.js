@@ -150,6 +150,14 @@ function mergeById(current, record) {
     : [record, ...current]
 }
 
+async function verifyPersisted(path, message) {
+  const rows = await supabaseRequest(path, { headers: adminHeaders() })
+  if (!Array.isArray(rows) || rows.length === 0) {
+    throw new Error(message)
+  }
+  return rows
+}
+
 function persistCompanies(companies) {
   saveCompanies(Array.isArray(companies) ? companies : [])
 }
@@ -271,10 +279,10 @@ export async function syncCompanyToSupabase(company) {
   if (!isSupabaseConfigured() || !company) return { ok: false, skipped: true }
 
   try {
-    await supabaseRequest('/companies?on_conflict=id', {
+    const rows = await supabaseRequest('/companies?on_conflict=id', {
       method: 'POST',
       headers: {
-        Prefer: 'resolution=merge-duplicates,return=minimal',
+        Prefer: 'resolution=merge-duplicates,return=representation',
         ...adminHeaders(),
       },
       body: JSON.stringify(wrapRecord(company, {
@@ -283,7 +291,8 @@ export async function syncCompanyToSupabase(company) {
         companyCode: company.companyCode,
       })),
     })
-    return { ok: true }
+    await verifyPersisted(`/companies?select=id,company_id,company_code&id=eq.${encodeURIComponent(company.id)}`, 'Supabase no devolvio la empresa guardada.')
+    return { ok: true, rows: Array.isArray(rows) ? rows.length : 0 }
   } catch (error) {
     console.warn('No se pudo sincronizar empresa con Supabase:', error.message)
     return { ok: false, error: error.message }
@@ -294,10 +303,10 @@ export async function syncLicenseToSupabase(license) {
   if (!isSupabaseConfigured() || !license) return { ok: false, skipped: true }
 
   try {
-    await supabaseRequest('/company_licenses?on_conflict=id', {
+    const rows = await supabaseRequest('/company_licenses?on_conflict=id', {
       method: 'POST',
       headers: {
-        Prefer: 'resolution=merge-duplicates,return=minimal',
+        Prefer: 'resolution=merge-duplicates,return=representation',
         ...adminHeaders(),
       },
       body: JSON.stringify(wrapRecord(license, {
@@ -306,7 +315,8 @@ export async function syncLicenseToSupabase(license) {
         companyCode: license.companyCode,
       })),
     })
-    return { ok: true }
+    await verifyPersisted(`/company_licenses?select=id,company_id,company_code&id=eq.${encodeURIComponent(license.id)}`, 'Supabase no devolvio la licencia guardada.')
+    return { ok: true, rows: Array.isArray(rows) ? rows.length : 0 }
   } catch (error) {
     console.warn('No se pudo sincronizar licencia con Supabase:', error.message)
     return { ok: false, error: error.message }
@@ -317,10 +327,10 @@ export async function syncPlansToSupabase(plans) {
   if (!isSupabaseConfigured() || !Array.isArray(plans)) return { ok: false, skipped: true }
 
   try {
-    await supabaseRequest('/system_plans?on_conflict=id', {
+    const rows = await supabaseRequest('/system_plans?on_conflict=id', {
       method: 'POST',
       headers: {
-        Prefer: 'resolution=merge-duplicates,return=minimal',
+        Prefer: 'resolution=merge-duplicates,return=representation',
         ...adminHeaders(),
       },
       body: JSON.stringify(plans.map((plan) => ({
@@ -330,7 +340,7 @@ export async function syncPlansToSupabase(plans) {
         updated_at: nowIso(),
       }))),
     })
-    return { ok: true }
+    return { ok: true, rows: Array.isArray(rows) ? rows.length : 0 }
   } catch (error) {
     console.warn('No se pudo sincronizar planes con Supabase:', error.message)
     return { ok: false, error: error.message }
@@ -342,10 +352,10 @@ export async function syncCompanyUsersToSupabase(company, users) {
   const code = cleanCode(company.companyCode)
 
   try {
-    await supabaseRequest('/company_users?on_conflict=company_id,id', {
+    const rows = await supabaseRequest('/company_users?on_conflict=company_id,id', {
       method: 'POST',
       headers: {
-        Prefer: 'resolution=merge-duplicates,return=minimal',
+        Prefer: 'resolution=merge-duplicates,return=representation',
         ...adminHeaders(),
       },
       body: JSON.stringify(users.map((user) => wrapRecord({
@@ -358,7 +368,10 @@ export async function syncCompanyUsersToSupabase(company, users) {
         companyCode: code,
       }))),
     })
-    return { ok: true }
+    if (users.length > 0) {
+      await verifyPersisted(`/company_users?select=id,company_id,company_code&id=eq.${encodeURIComponent(users[0].username)}&company_id=eq.${encodeURIComponent(company.id)}`, 'Supabase no devolvio el usuario administrador guardado.')
+    }
+    return { ok: true, rows: Array.isArray(rows) ? rows.length : 0 }
   } catch (error) {
     console.warn('No se pudo sincronizar usuarios con Supabase:', error.message)
     return { ok: false, error: error.message }

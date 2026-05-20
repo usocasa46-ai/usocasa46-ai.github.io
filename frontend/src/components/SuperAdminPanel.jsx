@@ -350,7 +350,11 @@ export default function SuperAdminPanel({
       }
       if (result?.accessSummary) setAccessSummary(result.accessSummary)
       setCompanyDraft(null)
-      setNotice('Empresa guardada correctamente.')
+      if (result?.persistence) {
+        setNotice(`Empresa guardada. Fuente: ${result.persistence.source}. Empresa: ${result.persistence.company ? 'Si' : 'No'} · Admin: ${result.persistence.admin ? 'Si' : 'No'} · Licencia: ${result.persistence.license ? 'Si' : 'No'}`)
+      } else {
+        setNotice('Empresa guardada correctamente.')
+      }
       refresh()
     } catch (error) {
       setNotice(error.message || 'No se pudo guardar la empresa.')
@@ -383,7 +387,11 @@ export default function SuperAdminPanel({
       setNotice('La licencia debe tener al menos un modulo activo.')
       return
     }
-    await onUpdateCompanyLicense?.(licenseDraft.companyId, licenseDraft)
+    const result = await onUpdateCompanyLicense?.(licenseDraft.companyId, licenseDraft)
+    if (result?.ok === false) {
+      setNotice(result.message || 'No se pudo guardar la licencia.')
+      return
+    }
     setLicenseDraft(null)
     setNotice('Licencia actualizada.')
     refresh()
@@ -408,7 +416,11 @@ export default function SuperAdminPanel({
     const nextPlans = plans.some((plan) => plan.id === nextPlan.id)
       ? plans.map((plan) => (plan.id === nextPlan.id ? nextPlan : plan))
       : [nextPlan, ...plans]
-    await onSavePlans?.(nextPlans)
+    const result = await onSavePlans?.(nextPlans)
+    if (result?.ok === false) {
+      setNotice(result.message || 'No se pudo guardar el plan.')
+      return
+    }
     setPlanDraft(null)
     setNotice('Plan guardado.')
   }

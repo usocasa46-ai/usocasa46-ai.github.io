@@ -18,9 +18,12 @@ import {
   getCompanyLicense,
   installCompanyStorageScope,
   isCompanyActive,
+  loadCompanyLicenses,
   loadCompanies,
   loadSystemPlans,
   loadCompanyUsers,
+  saveCompanies,
+  saveCompanyLicenses,
   saveSystemPlans,
   saveCompanyUsers,
   upsertCompanyLicense,
@@ -158,6 +161,27 @@ export default function AuthGate() {
   }, [session])
 
   const refreshCompanies = () => setCompanies(loadCompanies())
+
+  const rollbackCreatedCompany = (company) => {
+    if (!company) return
+    saveCompanies(loadCompanies().filter((item) => item.id !== company.id))
+    saveCompanyLicenses(loadCompanyLicenses().filter((item) => (
+      item.companyId !== company.id && item.company_id !== company.id && item.companyCode !== company.companyCode
+    )))
+    saveCompanyUsers(company, [])
+  }
+
+  const requireSupabasePersistence = (results, context = 'guardar datos') => {
+    if (!isSupabaseConfigured()) return { ok: true }
+
+    const failed = results.find((item) => item && item.ok === false && !item.skipped)
+    if (!failed) return { ok: true }
+
+    return {
+      ok: false,
+      message: `No se pudo ${context} en Supabase. ${failed.error || 'Revise RLS, schema y conexion.'}`,
+    }
+  }
 
   const persistUsers = (nextUsers) => {
     const company = findCompanyByCode(session?.currentCompanyCode)
@@ -327,10 +351,12 @@ export default function AuthGate() {
   const handleSaveCompany = async (companyData) => {
     if (companyData.id) {
       const saved = updateCompany(companyData.id, companyData)
-      await syncCompanyToSupabase(saved)
-      await syncLicenseToSupabase(getCompanyLicense(saved))
+      const companySync = await syncCompanyToSupabase(saved)
+      const licenseSync = await syncLicenseToSupabase(getCompanyLicense(saved))
+      const persisted = requireSupabasePersistence([companySync, licenseSync], 'actualizar la empresa')
+      if (!persisted.ok) return persisted
       refreshCompanies()
-      return saved
+      return { ok: true, company: saved }
     }
 
     const saved = createCompany({
@@ -350,15 +376,33 @@ export default function AuthGate() {
       mustChangePassword: true,
     })
 
-    await syncCompanyToSupabase(saved)
-    await syncLicenseToSupabase(getCompanyLicense(saved))
-    await syncCompanyUsersToSupabase(saved, loadCompanyUsers(saved))
+    if (result?.ok === false) {
+      rollbackCreatedCompany(saved)
+      return result
+    }
+
+    const companySync = await syncCompanyToSupabase(saved)
+    const licenseSync = await syncLicenseToSupabase(getCompanyLicense(saved))
+    const usersSync = await syncCompanyUsersToSupabase(saved, loadCompanyUsers(saved))
+    const persisted = requireSupabasePersistence([companySync, licenseSync, usersSync], 'crear la empresa')
+    if (!persisted.ok) {
+      rollbackCreatedCompany(saved)
+      refreshCompanies()
+      return persisted
+    }
 
     refreshCompanies()
     return {
+      ok: true,
       company: saved,
       admin: result.user,
       initialPassword: admin.password,
+      persistence: {
+        company: companySync.ok,
+        license: licenseSync.ok,
+        admin: usersSync.ok,
+        source: isSupabaseConfigured() ? 'Supabase' : 'localStorage',
+      },
       accessSummary: {
         companyCode: saved.companyCode,
         companyName: saved.nombreComercial,
@@ -378,7 +422,9 @@ export default function AuthGate() {
 
     const result = createCompanyAdminUser(company, adminData)
     if (result?.ok !== false) {
-      await syncCompanyUsersToSupabase(company, loadCompanyUsers(company))
+      const usersSync = await syncCompanyUsersToSupabase(company, loadCompanyUsers(company))
+      const persisted = requireSupabasePersistence([usersSync], 'guardar el administrador')
+      if (!persisted.ok) return persisted
     }
     refreshCompanies()
     return result
@@ -425,32 +471,39 @@ export default function AuthGate() {
     return { ok: true, user }
   }
 
-  const handleToggleCompanyStatus = (companyId) => {
+  const handleToggleCompanyStatus = async (companyId) => {
     const company = companies.find((item) => item.id === companyId)
     if (!company) return
 
     const saved = updateCompany(companyId, {
       estado: isCompanyActive(company) ? 'suspendida' : 'activa',
     })
-    void syncCompanyToSupabase(saved)
-    void syncLicenseToSupabase(getCompanyLicense(saved))
+    const companySync = await syncCompanyToSupabase(saved)
+    const licenseSync = await syncLicenseToSupabase(getCompanyLicense(saved))
+    const persisted = requireSupabasePersistence([companySync, licenseSync], 'actualizar estado de empresa')
+    if (!persisted.ok) return persisted
     refreshCompanies()
+    return { ok: true }
   }
 
   const handleSavePlans = async (nextPlans) => {
     const saved = saveSystemPlans(nextPlans)
-    await syncPlansToSupabase(saved)
+    const plansSync = await syncPlansToSupabase(saved)
+    const persisted = requireSupabasePersistence([plansSync], 'guardar planes')
+    if (!persisted.ok) return persisted
     setPlans(saved)
-    return saved
+    return { ok: true, plans: saved }
   }
 
   const handleUpdateCompanyLicense = async (companyId, patch) => {
     const company = companies.find((item) => item.id === companyId)
     if (!company) return null
     const license = upsertCompanyLicense(company, patch)
-    await syncLicenseToSupabase(license)
+    const licenseSync = await syncLicenseToSupabase(license)
+    const persisted = requireSupabasePersistence([licenseSync], 'guardar licencia')
+    if (!persisted.ok) return persisted
     refreshCompanies()
-    return license
+    return { ok: true, license }
   }
 
   const handleAuthorizeSupport = ({ hours, motivo }) => {
