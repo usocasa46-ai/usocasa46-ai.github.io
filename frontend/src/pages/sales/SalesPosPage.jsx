@@ -1428,48 +1428,48 @@ export default function SalesPosPage({ controls, onAction, searchValue = '', onS
             </div>
 
             <div className="pos-checkout-details">
-              <div className="pos-customer-card">
-                <div>
-                  <span>Cliente</span>
-                  <strong>{customer.name}</strong>
-                  <small>{customer.fiscalId || 'Consumidor final'}</small>
-                </div>
-                <label>
-                  Buscar cliente
-                  <input value={customerQuery} onChange={(event) => updateCustomerQuery(event.target.value)} placeholder="Codigo, nombre o RNC" list="pos-customers" />
-                </label>
-                <select value={customer.code} onChange={(event) => selectCustomer(event.target.value)}>
-                  {filteredCustomers.map((item) => <option key={item.code} value={item.code}>{item.code} - {item.name}</option>)}
-                </select>
-                <datalist id="pos-customers">
-                  {filteredCustomers.map((item) => <option key={item.code} value={`${item.code} - ${item.name}`} />)}
-                </datalist>
-              </div>
-
-              <div className="pos-fiscal-card">
-                <div className="pos-fiscal-header">
+              <div className="pos-fiscal-card pos-sale-data-card">
+                <div className="pos-sale-data-header">
                   <div>
-                    <span>Comprobante</span>
-                    <strong>{fiscalReceipt.enabled ? fiscalReceipt.receiptType : 'Consumidor final'}</strong>
+                    <span>Datos fiscales</span>
+                    <strong>{fiscalReceipt.enabled ? 'Con comprobante' : 'Consumidor final'}</strong>
                   </div>
                   <div className="pos-fiscal-toggle" role="group" aria-label="Factura con comprobante fiscal">
-                    <button type="button" className={!fiscalReceipt.enabled ? 'is-active' : ''} onClick={() => toggleFiscalReceipt(false)} aria-pressed={!fiscalReceipt.enabled}>No</button>
-                    <button type="button" className={fiscalReceipt.enabled ? 'is-active' : ''} onClick={() => toggleFiscalReceipt(true)} aria-pressed={fiscalReceipt.enabled}>Si</button>
+                    <button type="button" className={!fiscalReceipt.enabled ? 'is-active' : ''} onClick={() => toggleFiscalReceipt(false)} aria-pressed={!fiscalReceipt.enabled}>Final</button>
+                    <button type="button" className={fiscalReceipt.enabled ? 'is-active' : ''} onClick={() => toggleFiscalReceipt(true)} aria-pressed={fiscalReceipt.enabled}>Fiscal</button>
                   </div>
                 </div>
 
-                {!fiscalReceipt.enabled && (
-                  <div className="pos-fiscal-note">
-                    Venta como consumidor final.
-                  </div>
-                )}
+                <div className="pos-sale-data-grid">
+                  <label>
+                    Cliente
+                    <select value={customer.code} onChange={(event) => selectCustomer(event.target.value)}>
+                      {filteredCustomers.map((item) => <option key={item.code} value={item.code}>{item.code} - {item.name}</option>)}
+                    </select>
+                  </label>
+                  <label>
+                    Buscar
+                    <input value={customerQuery} onChange={(event) => updateCustomerQuery(event.target.value)} placeholder="Codigo, nombre o RNC" list="pos-customers" />
+                  </label>
+                  <label>
+                    RNC / Cedula
+                    {fiscalReceipt.enabled ? (
+                      <input value={fiscalReceipt.fiscalId} onChange={(event) => updateFiscalRnc(event.target.value)} placeholder="RNC obligatorio" />
+                    ) : (
+                      <input readOnly value={customer.fiscalId || ''} placeholder="Consumidor final" />
+                    )}
+                  </label>
+                  <label>
+                    Tipo venta
+                    <input readOnly value={fiscalReceipt.enabled ? fiscalReceipt.receiptType : 'Consumidor final'} />
+                  </label>
+                  <datalist id="pos-customers">
+                    {filteredCustomers.map((item) => <option key={item.code} value={`${item.code} - ${item.name}`} />)}
+                  </datalist>
+                </div>
 
                 {fiscalReceipt.enabled && (
                   <div className="pos-fiscal-grid">
-                    <label>
-                      RNC cliente
-                      <input value={fiscalReceipt.fiscalId} onChange={(event) => updateFiscalRnc(event.target.value)} placeholder="RNC obligatorio" />
-                    </label>
                     <label>
                       Razon social
                       <input value={fiscalReceipt.name} onChange={(event) => setFiscalReceipt((current) => ({ ...current, name: event.target.value }))} placeholder="Nombre fiscal" />
@@ -1501,6 +1501,10 @@ export default function SalesPosPage({ controls, onAction, searchValue = '', onS
             </div>
 
             <div className="pos-payment-panel">
+              <div className="pos-panel-mini-title">
+                <span>Método de pago</span>
+                <strong>{payment.method}</strong>
+              </div>
               <div className="pos-payment-methods">
                 {paymentMethods.map((method) => (
                   <button type="button" key={method} className={payment.method === method ? 'is-active' : ''} onClick={() => updatePaymentMethod(method)}>
