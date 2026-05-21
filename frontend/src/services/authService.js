@@ -11,6 +11,10 @@ import {
   saveCompanyLicenses,
   saveCompanyUsers,
 } from './companyStorage.js'
+import {
+  ensureTrialCompany,
+  TRIAL_COMPANY_CODE,
+} from './trialCompanyService.js'
 
 export const AUTH_VERSION = 3
 export const SYSTEM_COMPANY_CODE = 'SYSTEM'
@@ -41,8 +45,9 @@ function nowIso() {
 function companyHeaders(companyCode) {
   const code = cleanCode(companyCode)
   return {
-    'x-company-id': code,
+    'x-company-id': `COMP-${code}`,
     'x-company-code': code,
+    'x-user-role': 'superadmin',
   }
 }
 
@@ -384,8 +389,16 @@ export async function loginCompanyUser(companyCodeOrPayload, usernameArg = '', p
   }
 
   if (isSupabaseConfigured()) {
+    if (cleanCompanyCode === TRIAL_COMPANY_CODE) {
+      const ensured = await ensureTrialCompany()
+      if (!ensured.ok) return { ok: false, message: ensured.message || 'No se pudo preparar la empresa PRUEBA.' }
+    }
     return loginWithSupabase(cleanCompanyCode, cleanUsername, cleanPassword)
   }
 
+  if (cleanCompanyCode === TRIAL_COMPANY_CODE) {
+    const ensured = await ensureTrialCompany()
+    if (!ensured.ok) return { ok: false, message: ensured.message || 'No se pudo preparar la empresa PRUEBA.' }
+  }
   return loginWithLocalStorage(cleanCompanyCode, cleanUsername, cleanPassword)
 }

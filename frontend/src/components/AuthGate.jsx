@@ -40,6 +40,11 @@ import { AUTH_VERSION, loginCompanyUser } from '../services/authService.js'
 import { createCompany as createSourceCompany } from '../services/companiesService.js'
 import { createCompanyAdmin as createSourceCompanyAdmin } from '../services/usersService.js'
 import { createCompanyLicense as createSourceCompanyLicense } from '../services/licensesService.js'
+import {
+  ensureTrialCompany,
+  filterVisibleTrialCompanies,
+  TRIAL_COMPANY_CODE,
+} from '../services/trialCompanyService.js'
 
 installCompanyStorageScope()
 
@@ -108,18 +113,36 @@ export default function AuthGate() {
   }))
 
   useEffect(() => {
-    if (!session?.isSuperAdmin || !isSupabaseConfigured()) return undefined
+    if (!session?.isSuperAdmin) return undefined
 
     let cancelled = false
-    loadSystemDataFromSupabase().then((result) => {
+    const loadSuperAdminData = async () => {
+      const trialResult = await ensureTrialCompany()
+      if (cancelled) return
+
+      if (!isSupabaseConfigured()) {
+        setCompanies(loadCompanies())
+        setPlans(loadSystemPlans())
+        setSystemSyncStatus({
+          source: 'localStorage',
+          message: trialResult.ok ? 'Empresa PRUEBA preparada localmente.' : trialResult.message,
+          companies: filterVisibleTrialCompanies(loadCompanies()).length,
+          users: 1,
+          licenses: 1,
+          plans: loadSystemPlans().length,
+        })
+        return
+      }
+
+      const result = await loadSystemDataFromSupabase()
       if (cancelled) return
       if (result.ok) {
         setCompanies(loadCompanies())
         setPlans(loadSystemPlans())
         setSystemSyncStatus({
           source: result.source,
-          message: result.message,
-          companies: result.companies?.length || 0,
+          message: trialResult.ok ? 'Empresa PRUEBA preparada y datos administrativos leidos desde Supabase.' : trialResult.message,
+          companies: filterVisibleTrialCompanies(result.companies || []).length,
           users: result.users?.length || 0,
           licenses: result.licenses?.length || 0,
           plans: result.plans?.length || 0,
@@ -136,7 +159,9 @@ export default function AuthGate() {
         licenses: 0,
         plans: loadSystemPlans().length,
       })
-    })
+    }
+
+    loadSuperAdminData()
 
     return () => {
       cancelled = true
@@ -297,6 +322,10 @@ export default function AuthGate() {
   }
 
   const handleSaveCompany = async (companyData) => {
+    if (String(companyData?.companyCode || '').trim().toUpperCase() !== TRIAL_COMPANY_CODE) {
+      return { ok: false, message: 'Temporalmente solo se permite administrar la empresa PRUEBA.' }
+    }
+
     if (companyData.id) {
       const saved = updateCompany(companyData.id, companyData)
       const companySync = await syncCompanyToSupabase(saved)
@@ -620,7 +649,7 @@ export default function AuthGate() {
     return (
       <SuperAdminPanel
         session={session}
-        companies={companies}
+        companies={filterVisibleTrialCompanies(companies)}
         plans={plans}
         onLogout={handleLogout}
         onSaveCompany={handleSaveCompany}

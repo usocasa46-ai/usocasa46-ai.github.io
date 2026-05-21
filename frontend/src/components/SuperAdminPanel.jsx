@@ -58,6 +58,10 @@ import {
   resetLocalSystem,
   SUPABASE_RESET_SQL,
 } from '../services/systemResetService.js'
+import {
+  diagnoseTrialCompany,
+  TRIAL_COMPANY_CODE,
+} from '../services/trialCompanyService.js'
 import './SuperAdminPanel.css'
 
 const moduleOptions = COMPANY_LICENSE_MODULES
@@ -200,7 +204,7 @@ export default function SuperAdminPanel({
     message: 'Ejecuta una prueba para validar la conexion.',
     busy: false,
   }))
-  const [companyDiagnosticCode, setCompanyDiagnosticCode] = useState('')
+  const [companyDiagnosticCode, setCompanyDiagnosticCode] = useState(TRIAL_COMPANY_CODE)
   const [companyDiagnostic, setCompanyDiagnostic] = useState(null)
   const [companyDiagnosticBusy, setCompanyDiagnosticBusy] = useState(false)
   const [supabaseFootprint, setSupabaseFootprint] = useState(() => ({
@@ -213,8 +217,15 @@ export default function SuperAdminPanel({
   }))
   const [localBrowserFootprint, setLocalBrowserFootprint] = useState(() => getLocalResetFootprint())
   const [localBrowserBusy, setLocalBrowserBusy] = useState(false)
+  const [trialDiagnostic, setTrialDiagnostic] = useState(null)
 
-  const licenses = useMemo(() => loadCompanyLicenses(), [companies, refreshKey])
+  const visibleCompanyCodes = useMemo(
+    () => new Set(companies.map((company) => String(company.companyCode || '').trim().toUpperCase())),
+    [companies],
+  )
+  const licenses = useMemo(() => (
+    loadCompanyLicenses().filter((license) => visibleCompanyCodes.has(String(license.companyCode || license.company_code || '').trim().toUpperCase()))
+  ), [visibleCompanyCodes, refreshKey])
   const backups = useMemo(() => loadBackupLog(), [refreshKey])
   const supportAccess = useMemo(() => loadSupportAccess(), [refreshKey])
   const auditLog = useMemo(() => loadSystemAudit(), [refreshKey])
@@ -393,6 +404,16 @@ export default function SuperAdminPanel({
     }
   }, [refreshKey])
 
+  useEffect(() => {
+    let cancelled = false
+    diagnoseTrialCompany().then((result) => {
+      if (!cancelled) setTrialDiagnostic(result)
+    })
+    return () => {
+      cancelled = true
+    }
+  }, [refreshKey, companies.length])
+
   const runSupabaseTest = async (runner) => {
     setSupabaseDiagnostic((current) => ({ ...current, busy: true, message: 'Probando Supabase...' }))
     const result = await runner()
@@ -413,6 +434,16 @@ export default function SuperAdminPanel({
     setCompanyDiagnostic(result)
     setCompanyDiagnosticBusy(false)
     setNotice(result.message || result.problem || (result.loginShouldWork ? 'Login deberia funcionar.' : 'Diagnostico completado.'))
+  }
+
+  const runTrialDiagnostic = async () => {
+    setCompanyDiagnosticBusy(true)
+    const result = await diagnoseTrialCompany()
+    setTrialDiagnostic(result)
+    setCompanyDiagnosticCode(TRIAL_COMPANY_CODE)
+    setCompanyDiagnostic(result)
+    setCompanyDiagnosticBusy(false)
+    setNotice(result.loginShouldWork ? 'Diagnostico PRUEBA correcto. Login directo deberia funcionar.' : (result.message || 'Diagnostico PRUEBA con advertencias.'))
   }
 
   const repairDiagnosedCompany = async () => {
@@ -984,6 +1015,28 @@ export default function SuperAdminPanel({
         <div className="super-admin-test-actions">
           <button type="button" disabled={localBrowserBusy} onClick={verifyLocalBrowserData}>Verificar datos locales</button>
           <button type="button" className="is-danger" onClick={() => openResetModal('sistema')}>Limpiar datos locales avanzados</button>
+        </div>
+      </div>
+
+      <div className="super-admin-supabase-panel">
+        <div>
+          <span>Diagnostico empresa PRUEBA</span>
+          <h3>Empresa unica de prueba</h3>
+          <p>Valida que PRUEBA tenga empresa, admin, licencia activa y modulos contratados sin incluir system.</p>
+        </div>
+        <dl>
+          <div><dt>Existe en companies</dt><dd>{trialDiagnostic?.companyExists ? 'Si' : 'No'}</dd></div>
+          <div><dt>Existe admin</dt><dd>{trialDiagnostic?.adminExists ? 'Si' : 'No'}</dd></div>
+          <div><dt>Existe licencia</dt><dd>{trialDiagnostic?.licenseExists ? 'Si' : 'No'}</dd></div>
+          <div><dt>Usuario activo</dt><dd>{trialDiagnostic?.userActive ? 'Si' : 'No'}</dd></div>
+          <div><dt>Licencia activa</dt><dd>{trialDiagnostic?.licenseActive ? 'Si' : 'No'}</dd></div>
+          <div><dt>Modulos activos</dt><dd>{trialDiagnostic?.modulesActive ? 'Si' : 'No'}</dd></div>
+          <div><dt>company_id coincide</dt><dd>{trialDiagnostic?.companyIdOk === false ? 'No' : 'Si'}</dd></div>
+          <div><dt>Login directo</dt><dd>{trialDiagnostic?.loginShouldWork ? 'Si' : 'No'}</dd></div>
+        </dl>
+        {trialDiagnostic?.error && <small>{trialDiagnostic.error}</small>}
+        <div className="super-admin-test-actions">
+          <button type="button" disabled={companyDiagnosticBusy} onClick={runTrialDiagnostic}>Diagnosticar PRUEBA</button>
         </div>
       </div>
 
