@@ -49,6 +49,7 @@ import InventoryRotationPage from '../pages/inventory/InventoryRotationPage.jsx'
 import InventoryStockPage from '../pages/inventory/InventoryStockPage.jsx'
 import InventoryUnitsPage from '../pages/inventory/InventoryUnitsPage.jsx'
 import AccountsPayablePage from '../pages/purchases/AccountsPayablePage.jsx'
+import PurchaseAnalyticsPage from '../pages/purchases/PurchaseAnalyticsPage.jsx'
 import PurchaseOrdersPage from '../pages/purchases/PurchaseOrdersPage.jsx'
 import PurchaseHistoryPage from '../pages/purchases/PurchaseHistoryPage.jsx'
 import PurchaseRequestsPage from '../pages/purchases/PurchaseRequestsPage.jsx'
@@ -88,6 +89,7 @@ import SettingsGeneralPage from '../pages/settings/SettingsGeneralPage.jsx'
 import WarehouseDamagesPage from '../pages/warehouse/WarehouseDamagesPage.jsx'
 import WarehouseDispatchPage from '../pages/warehouse/WarehouseDispatchPage.jsx'
 import WarehouseListPage from '../pages/warehouse/WarehouseListPage.jsx'
+import WarehouseLabelsCodesPage from '../pages/warehouse/WarehouseLabelsCodesPage.jsx'
 import WarehouseLocationsPage from '../pages/warehouse/WarehouseLocationsPage.jsx'
 import WarehousePickingPage from '../pages/warehouse/WarehousePickingPage.jsx'
 import WarehousePutawayPage from '../pages/warehouse/WarehousePutawayPage.jsx'
@@ -125,6 +127,7 @@ const pageComponents = {
   'purchase-credit-notes': SupplierCreditNotesPage,
   'purchase-suppliers': SuppliersPage,
   'purchase-payables': AccountsPayablePage,
+  'purchases-analytics': PurchaseAnalyticsPage,
   'purchase-history': PurchaseHistoryPage,
   'inventory-products': InventoryProductsPage,
   'inventory-categories': InventoryCategoriesPage,
@@ -141,6 +144,7 @@ const pageComponents = {
   'inventory-barcodes': InventoryBarcodesPage,
   'inventory-costs': InventoryCostsPage,
   'warehouse-list': WarehouseListPage,
+  'warehouse-labels-codes': WarehouseLabelsCodesPage,
   'warehouse-locations': WarehouseLocationsPage,
   'warehouse-receiving': WarehouseReceivingPage,
   'warehouse-dispatch': WarehouseDispatchPage,

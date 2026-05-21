@@ -1,0 +1,392 @@
+.warehouse-labels-page {
+  --wl-panel: var(--panel-bg, #fff);
+  --wl-card: var(--card-bg, #fff);
+  --wl-text: var(--text-main, #10243a);
+  --wl-muted: var(--text-muted, #60758a);
+  --wl-border: var(--border-color, #dce5ef);
+  --wl-input: var(--input-bg, #fbfdff);
+  --wl-accent: var(--accent-color, #f1872d);
+  display: grid;
+  gap: 12px;
+  color: var(--wl-text);
+}
+
+.warehouse-labels-mode-grid {
+  display: grid;
+  grid-template-columns: repeat(6, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.warehouse-labels-mode-grid button {
+  display: flex;
+  min-height: 50px;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  border: 1px solid var(--wl-border);
+  border-radius: 10px;
+  background: var(--wl-card);
+  color: var(--wl-text);
+  padding: 8px;
+  font-weight: 850;
+  cursor: pointer;
+}
+
+.warehouse-labels-mode-grid button svg {
+  color: var(--wl-accent);
+}
+
+.warehouse-labels-mode-grid button.is-active {
+  border-color: var(--wl-accent);
+  background: rgba(241, 135, 45, 0.12);
+  color: var(--wl-accent);
+}
+
+.warehouse-labels-layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1.1fr) minmax(360px, 0.9fr);
+  gap: 12px;
+  align-items: start;
+}
+
+.warehouse-labels-left {
+  display: grid;
+  gap: 12px;
+  min-width: 0;
+}
+
+.warehouse-labels-panel,
+.warehouse-labels-preview-panel {
+  border: 1px solid var(--wl-border);
+  border-radius: 10px;
+  background: var(--wl-panel);
+  box-shadow: 0 12px 30px rgba(15, 39, 66, 0.05);
+  overflow: hidden;
+}
+
+.warehouse-labels-preview-panel {
+  position: sticky;
+  top: 12px;
+}
+
+.warehouse-labels-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  border-bottom: 1px solid var(--wl-border);
+  padding: 11px 12px;
+}
+
+.warehouse-labels-heading span {
+  display: inline-flex;
+  min-height: 20px;
+  align-items: center;
+  border-radius: 999px;
+  background: rgba(78, 135, 188, 0.12);
+  color: #38688f;
+  padding: 2px 8px;
+  font-size: 11px;
+  font-weight: 900;
+}
+
+.warehouse-labels-heading h2 {
+  margin: 4px 0 0;
+  color: var(--wl-text);
+  font-size: 16px;
+  letter-spacing: 0;
+}
+
+.warehouse-labels-heading button,
+.warehouse-labels-preview-actions button,
+.warehouse-labels-table button {
+  display: inline-flex;
+  min-height: 31px;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  border: 1px solid var(--wl-border);
+  border-radius: 8px;
+  background: var(--wl-card);
+  color: var(--wl-text);
+  padding: 6px 9px;
+  font-size: 12px;
+  font-weight: 850;
+  cursor: pointer;
+}
+
+.warehouse-labels-heading button:hover,
+.warehouse-labels-preview-actions button:hover,
+.warehouse-labels-table button:hover {
+  border-color: var(--wl-accent);
+  color: var(--wl-accent);
+}
+
+.warehouse-labels-filter-grid,
+.warehouse-labels-options,
+.warehouse-labels-form-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 9px;
+  padding: 12px;
+}
+
+.warehouse-labels-filter-grid label,
+.warehouse-labels-options label,
+.warehouse-labels-form-grid label {
+  display: grid;
+  gap: 5px;
+  color: var(--wl-muted);
+  font-size: 11px;
+  font-weight: 850;
+}
+
+.warehouse-labels-filter-grid input,
+.warehouse-labels-filter-grid select,
+.warehouse-labels-options input,
+.warehouse-labels-options select,
+.warehouse-labels-form-grid select {
+  min-height: 34px;
+  border: 1px solid var(--wl-border);
+  border-radius: 8px;
+  background: var(--wl-input);
+  color: var(--wl-text);
+  padding: 6px 9px;
+  font: inherit;
+  outline: 0;
+}
+
+.warehouse-labels-check {
+  display: flex !important;
+  min-height: 34px;
+  flex-direction: row !important;
+  align-items: center;
+  gap: 8px !important;
+  border: 1px solid var(--wl-border);
+  border-radius: 8px;
+  background: var(--wl-input);
+  padding: 6px 9px;
+}
+
+.warehouse-labels-check input {
+  width: 15px;
+  height: 15px;
+}
+
+.warehouse-labels-table-wrap {
+  overflow: auto;
+  border-top: 1px solid var(--wl-border);
+}
+
+.warehouse-labels-table {
+  width: 100%;
+  min-width: 760px;
+  border-collapse: collapse;
+}
+
+.warehouse-labels-table th,
+.warehouse-labels-table td {
+  border-bottom: 1px solid var(--wl-border);
+  padding: 9px 10px;
+  text-align: left;
+  vertical-align: middle;
+  font-size: 12px;
+}
+
+.warehouse-labels-table th {
+  background: rgba(15, 39, 66, 0.045);
+  color: var(--wl-muted);
+  font-size: 11px;
+  text-transform: uppercase;
+}
+
+.warehouse-labels-table td strong,
+.warehouse-labels-table td small {
+  display: block;
+}
+
+.warehouse-labels-table td strong {
+  color: var(--wl-text);
+}
+
+.warehouse-labels-table td small,
+.warehouse-labels-muted {
+  margin-top: 3px;
+  color: var(--wl-muted);
+}
+
+.warehouse-labels-template-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+  padding: 12px;
+}
+
+.warehouse-labels-template-grid button {
+  display: grid;
+  gap: 4px;
+  min-height: 70px;
+  border: 1px solid var(--wl-border);
+  border-radius: 10px;
+  background: var(--wl-card);
+  color: var(--wl-text);
+  padding: 12px;
+  text-align: left;
+  cursor: pointer;
+}
+
+.warehouse-labels-template-grid button.is-active {
+  border-color: var(--wl-accent);
+  box-shadow: inset 3px 0 0 var(--wl-accent);
+}
+
+.warehouse-labels-template-grid span {
+  color: var(--wl-muted);
+  font-size: 12px;
+}
+
+.warehouse-labels-document-card {
+  grid-column: 1 / -1;
+  display: grid;
+  gap: 4px;
+  border: 1px solid var(--wl-border);
+  border-left: 4px solid var(--wl-accent);
+  border-radius: 10px;
+  background: var(--wl-card);
+  padding: 12px;
+}
+
+.warehouse-labels-document-card strong {
+  color: var(--wl-text);
+}
+
+.warehouse-labels-document-card span,
+.warehouse-labels-document-card small {
+  color: var(--wl-muted);
+}
+
+.warehouse-labels-preview-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 7px;
+}
+
+.warehouse-labels-preview-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+  max-height: calc(100vh - 290px);
+  min-height: 240px;
+  overflow: auto;
+  padding: 12px;
+}
+
+.warehouse-labels-preview-grid .print-label-card {
+  display: grid;
+  gap: 5px;
+  width: 100% !important;
+  min-height: 160px !important;
+  border: 1px solid var(--wl-border);
+  border-radius: 10px;
+  background: #fff;
+  color: #10243a;
+  padding: 9px;
+}
+
+.warehouse-labels-preview-grid .print-label-card strong {
+  color: #10243a;
+  font-size: 13px;
+  line-height: 1.2;
+}
+
+.warehouse-labels-preview-grid .print-label-card small {
+  color: #52677d;
+  font-size: 11px;
+}
+
+.warehouse-labels-preview-grid .print-label-card img {
+  max-width: 100%;
+  object-fit: contain;
+}
+
+.warehouse-labels-empty {
+  display: grid;
+  justify-items: center;
+  gap: 6px;
+  padding: 28px 18px;
+  color: var(--wl-muted);
+  text-align: center;
+}
+
+.warehouse-labels-empty svg {
+  color: var(--wl-accent);
+}
+
+.warehouse-labels-empty strong {
+  color: var(--wl-text);
+  font-size: 14px;
+}
+
+.warehouse-labels-empty span {
+  max-width: 520px;
+  font-size: 12px;
+}
+
+body.theme-dark .warehouse-labels-page,
+.app-shell.dark-theme .warehouse-labels-page {
+  --wl-panel: var(--panel-bg, #101f2e);
+  --wl-card: var(--card-bg, #13283b);
+  --wl-text: var(--text-main, #edf5ff);
+  --wl-muted: var(--text-muted, #a9bed2);
+  --wl-border: var(--border-color, #284057);
+  --wl-input: #0d1b29;
+}
+
+body.theme-dark .warehouse-labels-table th,
+.app-shell.dark-theme .warehouse-labels-table th {
+  background: rgba(255, 255, 255, 0.05);
+}
+
+body.theme-dark .warehouse-labels-heading span,
+.app-shell.dark-theme .warehouse-labels-heading span {
+  background: rgba(116, 160, 202, 0.18);
+  color: #b9d8f5;
+}
+
+@media (max-width: 1280px) {
+  .warehouse-labels-mode-grid {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+
+  .warehouse-labels-layout {
+    grid-template-columns: 1fr;
+  }
+
+  .warehouse-labels-preview-panel {
+    position: static;
+  }
+
+  .warehouse-labels-preview-grid {
+    max-height: none;
+  }
+}
+
+@media (max-width: 760px) {
+  .warehouse-labels-mode-grid,
+  .warehouse-labels-filter-grid,
+  .warehouse-labels-options,
+  .warehouse-labels-form-grid,
+  .warehouse-labels-template-grid,
+  .warehouse-labels-preview-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .warehouse-labels-heading {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .warehouse-labels-preview-actions {
+    display: grid;
+  }
+}

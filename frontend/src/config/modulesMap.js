@@ -44,6 +44,7 @@ export const erpModules = [
       { id: 'purchase-credit-notes', label: 'Notas de credito proveedor' },
       { id: 'purchase-suppliers', label: 'Proveedores' },
       { id: 'purchase-payables', label: 'Cuentas por pagar' },
+      { id: 'purchases-analytics', label: 'Análisis de datos', keywords: ['analisis', 'datos', 'compras', 'proveedores', 'rotacion'] },
       { id: 'purchase-history', label: 'Historial de compras' },
     ],
   },
@@ -85,6 +86,7 @@ export const erpModules = [
       { id: 'warehouse-quarantine', label: 'Cuarentena' },
       { id: 'warehouse-quality', label: 'Control de calidad' },
       { id: 'warehouse-routes', label: 'Rutas de despacho' },
+      { id: 'warehouse-labels-codes', label: 'Etiquetas y códigos', keywords: ['etiquetas', 'codigos', 'barcode', 'qr', 'impresion'] },
     ],
   },
   {
