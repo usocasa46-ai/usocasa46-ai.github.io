@@ -145,8 +145,7 @@ export function loadCompanies() {
     return companies
   }
 
-  localStorage.setItem('inveFatCompanies', JSON.stringify([DEFAULT_COMPANY]))
-  return [DEFAULT_COMPANY]
+  return []
 }
 
 export function saveCompanies(companies) {
@@ -179,8 +178,7 @@ export function loadSecureUsers() {
     }))
   }
 
-  localStorage.setItem('inveFatUsers', JSON.stringify([DEFAULT_MAIN_ADMIN]))
-  return [DEFAULT_MAIN_ADMIN]
+  return []
 }
 
 export function saveSecureUsers(users) {

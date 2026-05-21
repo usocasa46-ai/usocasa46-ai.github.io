@@ -51,6 +51,7 @@ import {
   markBackupDownloaded,
 } from '../services/systemBackupService.js'
 import {
+  getAdvancedLocalResetFootprint,
   getLocalResetFootprint,
   registerResetRequested,
   resetCompanyLocalData,
@@ -210,6 +211,8 @@ export default function SuperAdminPanel({
     message: '',
     error: '',
   }))
+  const [localBrowserFootprint, setLocalBrowserFootprint] = useState(() => getLocalResetFootprint())
+  const [localBrowserBusy, setLocalBrowserBusy] = useState(false)
 
   const licenses = useMemo(() => loadCompanyLicenses(), [companies, refreshKey])
   const backups = useMemo(() => loadBackupLog(), [refreshKey])
@@ -315,6 +318,16 @@ export default function SuperAdminPanel({
 
   const refresh = () => setRefreshKey((current) => current + 1)
 
+  const verifyLocalBrowserData = async () => {
+    setLocalBrowserBusy(true)
+    const result = await getAdvancedLocalResetFootprint()
+    setLocalBrowserFootprint(result)
+    setLocalBrowserBusy(false)
+    setNotice(result.clean
+      ? 'Datos locales del navegador limpios.'
+      : 'Se detectaron datos locales del sistema en este navegador.')
+  }
+
   const refreshSupabaseFootprint = async () => {
     if (!supabaseDiagnostic.configured) {
       setSupabaseFootprint({
@@ -369,6 +382,16 @@ export default function SuperAdminPanel({
       cancelled = true
     }
   }, [supabaseDiagnostic.configured, systemSyncStatus?.companies, systemSyncStatus?.users, systemSyncStatus?.licenses, refreshKey])
+
+  useEffect(() => {
+    let cancelled = false
+    getAdvancedLocalResetFootprint().then((result) => {
+      if (!cancelled) setLocalBrowserFootprint(result)
+    })
+    return () => {
+      cancelled = true
+    }
+  }, [refreshKey])
 
   const runSupabaseTest = async (runner) => {
     setSupabaseDiagnostic((current) => ({ ...current, busy: true, message: 'Probando Supabase...' }))
@@ -594,7 +617,7 @@ export default function SuperAdminPanel({
     refresh()
   }
 
-  const executeReset = () => {
+  const executeReset = async () => {
     if (!resetDraft?.backupDownloaded) return
 
     if (resetDraft.type === 'empresa') {
@@ -610,8 +633,9 @@ export default function SuperAdminPanel({
 
     if (resetDraft.confirmation !== 'REINICIAR SISTEMA') return
     setResetDraft({ ...resetDraft, busy: true })
-    const result = resetLocalSystem()
+    const result = await resetLocalSystem()
     setResetDraft(null)
+    setLocalBrowserFootprint(result.after)
     setNotice(result.message)
     refreshSupabaseFootprint()
     onLogout?.(result.supabaseWarning ? 'system-reset-local-supabase' : 'system-reset-local')
@@ -937,6 +961,34 @@ export default function SuperAdminPanel({
 
       <div className="super-admin-supabase-panel">
         <div>
+          <span>Verificacion local avanzada</span>
+          <h3>Datos del navegador</h3>
+          <p>Revisa localStorage, sessionStorage, IndexedDB y Cache Storage relacionados con INVE-FAT.</p>
+        </div>
+        <dl>
+          <div><dt>localStorage keys</dt><dd>{localBrowserFootprint.localStorageKeys ?? localFootprint.localStorageKeys}</dd></div>
+          <div><dt>sessionStorage keys</dt><dd>{localBrowserFootprint.sessionStorageKeys ?? localFootprint.sessionStorageKeys}</dd></div>
+          <div><dt>IndexedDB detectadas</dt><dd>{localBrowserFootprint.indexedDbCount ?? 'N/D'}</dd></div>
+          <div><dt>Caches detectadas</dt><dd>{localBrowserFootprint.cacheCount ?? 'N/D'}</dd></div>
+          <div><dt>localStorage limpio</dt><dd>{(localBrowserFootprint.localStorageClean ?? localFootprint.clean) ? 'Si' : 'No'}</dd></div>
+          <div><dt>sessionStorage limpio</dt><dd>{(localBrowserFootprint.sessionStorageClean ?? localFootprint.sessionStorageKeys === 0) ? 'Si' : 'No'}</dd></div>
+          <div><dt>IndexedDB limpio</dt><dd>{(localBrowserFootprint.indexedDbClean ?? true) ? 'Si' : 'No'}</dd></div>
+          <div><dt>Cache Storage limpio</dt><dd>{(localBrowserFootprint.cacheClean ?? true) ? 'Si' : 'No'}</dd></div>
+        </dl>
+        {localBrowserFootprint.activeSessionPresent && (
+          <small>Hay una sesion activa porque esta dentro del Panel del Sistema. No cuenta como residuo del reset local.</small>
+        )}
+        {localBrowserFootprint.clean && supabaseDiagnostic.configured && !supabaseFootprint.clean && (
+          <small>El reset local se completo, pero Supabase todavia contiene empresas. Ejecute reset_all_data.sql para limpiar la nube.</small>
+        )}
+        <div className="super-admin-test-actions">
+          <button type="button" disabled={localBrowserBusy} onClick={verifyLocalBrowserData}>Verificar datos locales</button>
+          <button type="button" className="is-danger" onClick={() => openResetModal('sistema')}>Limpiar datos locales avanzados</button>
+        </div>
+      </div>
+
+      <div className="super-admin-supabase-panel">
+        <div>
           <span>Diagnosticar empresa</span>
           <h3>Login multiempresa</h3>
           <p>Valida que existan empresa, administrador y licencia con el mismo company_id y company_code.</p>
@@ -1084,7 +1136,7 @@ function SystemResetModal({ draft, setDraft, companies, supabaseActive, onDownlo
     <div className="super-admin-modal" role="dialog" aria-modal="true">
       <div className="super-admin-card is-reset">
         <header>
-          <h2>{isCompanyReset ? 'Reiniciar solo una empresa' : 'Poner sistema en cero'}</h2>
+          <h2>{isCompanyReset ? 'Reiniciar solo una empresa' : 'Reiniciar datos locales'}</h2>
           <button type="button" onClick={() => setDraft(null)}>X</button>
         </header>
         <div className="super-admin-reset-body">

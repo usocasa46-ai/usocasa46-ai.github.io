@@ -373,8 +373,7 @@ export function loadUsers() {
     return nextUsers
   }
 
-  writeAll(SECURITY_STORAGE.users, [DEFAULT_MAIN_ADMIN])
-  return [DEFAULT_MAIN_ADMIN]
+  return []
 }
 
 export function saveUsers(users) {

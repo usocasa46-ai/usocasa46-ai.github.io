@@ -38,6 +38,8 @@ Resultado:
 
 - Se limpian claves locales del sistema en `localStorage`.
 - Se limpia la sesion en `sessionStorage`.
+- Se eliminan bases IndexedDB relacionadas con `invefat`, `INVEFAT`, `inve-fat` o `INVE-FAT` cuando el navegador permite detectarlas.
+- Se eliminan caches del sistema si existen en Cache Storage.
 - Se cierra sesion.
 - El navegador vuelve al login.
 - Si Supabase sigue con datos, esos datos no se eliminan.
@@ -74,11 +76,16 @@ El script:
 1. Volver al sistema.
 2. Entrar como `SYSTEM / superadmin / admin123`.
 3. Ir a **Estado del sistema**.
-4. Confirmar:
+4. Pulsar **Verificar datos locales**.
+5. Confirmar:
 
 - Empresas: 0
 - Usuarios por empresa: 0
 - Licencias: 0
+- localStorage limpio: Si
+- sessionStorage limpio: Si
+- IndexedDB limpio: Si
+- Cache Storage limpio: Si
 - Supabase limpio: Si
 - No existe `EMP001`
 - No hay datos demo
@@ -87,6 +94,12 @@ Si el navegador esta limpio pero Supabase todavia tiene empresas, el panel debe 
 
 ```text
 El navegador esta limpio, pero Supabase aun contiene empresas.
+```
+
+Tambien puede mostrar:
+
+```text
+El reset local se completo, pero Supabase todavia contiene empresas. Ejecute reset_all_data.sql para limpiar la nube.
 ```
 
 ## Crear empresa desde cero
