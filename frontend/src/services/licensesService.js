@@ -154,5 +154,11 @@ export async function createCompanyLicense(company, licenseData = {}) {
   })
   const saved = Array.isArray(rows) && rows[0] ? unwrapLicense(rows[0], company) : null
   if (!saved) throw new Error('Supabase no devolvio la licencia creada.')
-  return saved
+
+  const confirmed = await getActiveLicense(company.companyCode || company.company_code)
+  if (!confirmed) {
+    throw new Error('No se pudo confirmar la licencia activa en company_licenses despues de guardar.')
+  }
+
+  return confirmed
 }

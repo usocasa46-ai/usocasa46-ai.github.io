@@ -187,5 +187,11 @@ export async function createCompanyAdmin(company, adminData) {
   })
   const saved = Array.isArray(rows) && rows[0] ? unwrapUser(rows[0], company) : null
   if (!saved) throw new Error('Supabase no devolvio el administrador creado.')
-  return saved
+
+  const confirmed = await getCompanyUser(company.companyCode || company.company_code, username)
+  if (!confirmed) {
+    throw new Error('No se pudo confirmar el administrador en company_users despues de guardar.')
+  }
+
+  return confirmed
 }

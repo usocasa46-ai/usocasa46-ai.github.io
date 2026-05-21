@@ -483,24 +483,25 @@ export async function diagnoseCompanyLogin(companyCode) {
     const users = Array.isArray(userRows)
       ? userRows.map(unwrapRow).map((user) => normalizeUserForStorage(user, company))
       : []
+    const orphanLicense = licenses.find((item) => companyCodeOf(item) === code || item.companyId === code) || null
     const license = company
       ? licenses.find((item) => item.companyId === company.id || companyCodeOf(item) === code) || null
-      : null
-    const adminUser = company
-      ? users.find((user) => (
-        (user.companyId === company.id || companyCodeOf(user) === code)
-        && user.active
-        && (user.isMainAdmin || String(user.role || user.rol || '').toLowerCase().includes('admin'))
-      )) || null
-      : null
+      : orphanLicense
+    const relatedUsers = company
+      ? users.filter((user) => companyCodeOf(user) === code || user.companyId === company.id)
+      : users.filter((user) => companyCodeOf(user) === code || user.companyId === code)
+    const adminUser = relatedUsers.find((user) => (
+      user.active
+      && (user.isMainAdmin || String(user.role || user.rol || '').toLowerCase().includes('admin'))
+    )) || null
 
     const licenseCompanyIdOk = Boolean(company && license && license.companyId === company.id && license._supabase?.company_id === company.id)
     const licenseCompanyCodeOk = Boolean(company && license && companyCodeOf(license) === code && license._supabase?.company_code === code)
-    const relatedUsers = company ? users.filter((user) => companyCodeOf(user) === code || user.companyId === company.id) : []
     const userCompanyIdOk = Boolean(company && relatedUsers.length > 0 && relatedUsers.every((user) => user.companyId === company.id && user._supabase?.company_id === company.id))
     const userCompanyCodeOk = Boolean(company && relatedUsers.length > 0 && relatedUsers.every((user) => companyCodeOf(user) === code && user._supabase?.company_code === code))
     const licenseActive = Boolean(license && ['activa', 'activo', 'active', 'demo'].includes(String(license.estado || '').toLowerCase()))
     const loginShouldWork = Boolean(company && adminUser && licenseActive && licenseCompanyIdOk && licenseCompanyCodeOk)
+    const orphanLicenseOnly = Boolean(!company && orphanLicense)
 
     return {
       ok: true,
@@ -515,7 +516,9 @@ export async function diagnoseCompanyLogin(companyCode) {
       userCompanyIdOk,
       userCompanyCodeOk,
       loginShouldWork,
-      problem: !company
+      problem: orphanLicenseOnly
+        ? 'Licencia huerfana: falta empresa y usuario administrador.'
+        : !company
         ? 'La empresa no existe en companies.'
         : !adminUser
           ? 'No hay usuario administrador activo para esta empresa.'
@@ -546,11 +549,39 @@ export async function repairCompanyIdentifiers(companyCode) {
       supabaseRequest('/company_licenses?select=*', { headers }),
       supabaseRequest('/company_users?select=*', { headers }),
     ])
-    const companyRow = (Array.isArray(companyRows) ? companyRows : []).find((row) => companyCodeOf(unwrapRow(row)) === code)
+    let companyRow = (Array.isArray(companyRows) ? companyRows : []).find((row) => companyCodeOf(unwrapRow(row)) === code)
+    const orphanLicenseRow = (Array.isArray(licenseRows) ? licenseRows : []).find((row) => companyCodeOf(unwrapRow(row)) === code)
+    const touched = { companies: 0, licenses: 0, users: 0 }
+
+    if (!companyRow && orphanLicenseRow) {
+      const orphanLicense = normalizeLicenseForStorage(unwrapRow(orphanLicenseRow))
+      const companyId = orphanLicense.companyId && orphanLicense.companyId !== code ? orphanLicense.companyId : `COMP-${code}`
+      const rows = await supabaseRequest('/companies?on_conflict=id', {
+        method: 'POST',
+        headers: {
+          Prefer: 'resolution=merge-duplicates,return=representation',
+          ...headers,
+        },
+        body: JSON.stringify(companyPayload({
+          id: companyId,
+          companyId,
+          companyCode: code,
+          nombreComercial: `Empresa ${code}`,
+          razonSocial: `Empresa ${code}`,
+          estado: 'activa',
+          plan: orphanLicense.planContratado || 'Demo',
+          modulosActivos: orphanLicense.modulosActivos,
+          firstLoginPending: true,
+          onboardingCompleted: false,
+        })),
+      })
+      companyRow = Array.isArray(rows) ? rows[0] : null
+      touched.companies += 1
+    }
+
     if (!companyRow) return { ok: false, message: 'Empresa no encontrada en Supabase.' }
 
     const company = normalizeCompanyForStorage(unwrapRow(companyRow))
-    const touched = { companies: 0, licenses: 0, users: 0 }
 
     await supabaseRequest(`/companies?id=eq.${encodeURIComponent(companyRow.id)}`, {
       method: 'PATCH',
@@ -614,7 +645,18 @@ export async function repairCompanyIdentifiers(companyCode) {
     }
 
     await loadSystemDataFromSupabase()
-    return { ok: true, message: 'Empresa reparada correctamente.', touched }
+    const hasAdmin = relatedUsers.some((row) => {
+      const user = normalizeUserForStorage(unwrapRow(row), company)
+      return user.active && String(user.role || user.rol || '').toLowerCase().includes('admin')
+    })
+
+    return {
+      ok: true,
+      message: hasAdmin
+        ? 'Empresa reparada correctamente.'
+        : 'Empresa/licencia reparada. Falta crear un usuario administrador para completar el login.',
+      touched,
+    }
   } catch (error) {
     return { ok: false, message: error.message }
   }

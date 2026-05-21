@@ -828,7 +828,7 @@ export default function SuperAdminPanel({
         <div>
           <span>Diagnosticar empresa</span>
           <h3>Login multiempresa</h3>
-          <p>Valida que companies, company_users y company_licenses usen el mismo company_id y company_code.</p>
+          <p>Valida que existan empresa, administrador y licencia con el mismo company_id y company_code.</p>
         </div>
         <div className="super-admin-test-actions">
           <input
@@ -844,8 +844,8 @@ export default function SuperAdminPanel({
             <div><dt>Existe en companies</dt><dd>{companyDiagnostic.exists ? 'Si' : 'No'}</dd></div>
             <div><dt>company_id detectado</dt><dd>{companyDiagnostic.companyId || 'N/D'}</dd></div>
             <div><dt>company_code detectado</dt><dd>{companyDiagnostic.detectedCompanyCode || 'N/D'}</dd></div>
-            <div><dt>Admin activo</dt><dd>{companyDiagnostic.adminActive ? 'Si' : 'No'}</dd></div>
-            <div><dt>Licencia activa</dt><dd>{companyDiagnostic.licenseActive ? 'Si' : 'No'}</dd></div>
+            <div><dt>Existe admin en company_users</dt><dd>{companyDiagnostic.adminActive ? 'Si' : 'No'}</dd></div>
+            <div><dt>Existe licencia activa</dt><dd>{companyDiagnostic.licenseActive ? 'Si' : 'No'}</dd></div>
             <div><dt>Licencia company_id correcto</dt><dd>{companyDiagnostic.licenseCompanyIdOk ? 'Si' : 'No'}</dd></div>
             <div><dt>Licencia company_code correcto</dt><dd>{companyDiagnostic.licenseCompanyCodeOk ? 'Si' : 'No'}</dd></div>
             <div><dt>Usuario company_id correcto</dt><dd>{companyDiagnostic.userCompanyIdOk ? 'Si' : 'No'}</dd></div>

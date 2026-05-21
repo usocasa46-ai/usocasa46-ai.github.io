@@ -142,5 +142,11 @@ export async function createCompany(data) {
 
   const saved = Array.isArray(rows) && rows[0] ? unwrapCompany(rows[0]) : null
   if (!saved) throw new Error('Supabase no devolvio la empresa creada.')
-  return saved
+
+  const confirmed = await getCompanyByCode(code)
+  if (!confirmed) {
+    throw new Error('No se pudo confirmar la empresa en companies despues de guardar.')
+  }
+
+  return confirmed
 }

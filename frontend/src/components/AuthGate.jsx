@@ -280,16 +280,27 @@ export default function AuthGate() {
     }
 
     if (isSupabaseConfigured()) {
+      const admin = companyData.admin || {}
+      let saved = null
+      let createdAdmin = null
+      let license = null
+
       try {
-        const admin = companyData.admin || {}
-        const saved = await createSourceCompany({
+        saved = await createSourceCompany({
           ...companyData,
           firstLoginPending: true,
           onboardingCompleted: false,
           createdBy: session?.username || 'superadmin',
         })
+      } catch (error) {
+        return {
+          ok: false,
+          message: `No se pudo crear la empresa en Supabase. ${error.message || 'Revise schema, RLS y la migracion fix_multiempresa_core.sql.'}`,
+        }
+      }
 
-        const createdAdmin = await createSourceCompanyAdmin(saved, {
+      try {
+        createdAdmin = await createSourceCompanyAdmin(saved, {
           fullName: admin.fullName,
           username: admin.username,
           password: admin.password,
@@ -299,8 +310,15 @@ export default function AuthGate() {
           role: 'Administrador Principal',
           active: true,
         })
+      } catch (error) {
+        return {
+          ok: false,
+          message: `Empresa creada, pero no se pudo crear el administrador. ${error.message || 'Use Diagnosticar/Reparar empresa.'}`,
+        }
+      }
 
-        const license = await createSourceCompanyLicense(saved, {
+      try {
+        license = await createSourceCompanyLicense(saved, {
           id: `LIC-${saved.companyCode}`,
           codigoLicencia: `LIC-${saved.companyCode}-${String(Date.now()).slice(-6)}`,
           planContratado: companyData.plan || saved.plan || 'Demo',
@@ -313,7 +331,14 @@ export default function AuthGate() {
           maxAlmacenes: companyData.maxAlmacenes || saved.maxAlmacenes,
           tipoVersion: companyData.tipoVersion || saved.tipoVersion,
         })
+      } catch (error) {
+        return {
+          ok: false,
+          message: `Empresa y usuario creados, pero no se pudo crear la licencia. ${error.message || 'Use Diagnosticar/Reparar empresa.'}`,
+        }
+      }
 
+      try {
         const syncResult = await loadSystemDataFromSupabase()
         if (!syncResult.ok) {
           return {
@@ -376,7 +401,7 @@ export default function AuthGate() {
       } catch (error) {
         return {
           ok: false,
-          message: `No se pudo crear la empresa en Supabase. ${error.message || 'Revise schema, RLS y la migracion fix_multiempresa_core.sql.'}`,
+          message: `Empresa creada, pero no se pudo verificar el resultado completo. ${error.message || 'Use Diagnosticar/Reparar empresa.'}`,
         }
       }
     }
