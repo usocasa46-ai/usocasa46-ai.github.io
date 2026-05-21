@@ -37,6 +37,9 @@ import {
   syncPlansToSupabase,
 } from '../services/systemDataSyncService.js'
 import { AUTH_VERSION, loginCompanyUser } from '../services/authService.js'
+import { createCompany as createSourceCompany } from '../services/companiesService.js'
+import { createCompanyAdmin as createSourceCompanyAdmin } from '../services/usersService.js'
+import { createCompanyLicense as createSourceCompanyLicense } from '../services/licensesService.js'
 
 installCompanyStorageScope()
 
@@ -276,6 +279,108 @@ export default function AuthGate() {
       return { ok: true, company: saved }
     }
 
+    if (isSupabaseConfigured()) {
+      try {
+        const admin = companyData.admin || {}
+        const saved = await createSourceCompany({
+          ...companyData,
+          firstLoginPending: true,
+          onboardingCompleted: false,
+          createdBy: session?.username || 'superadmin',
+        })
+
+        const createdAdmin = await createSourceCompanyAdmin(saved, {
+          fullName: admin.fullName,
+          username: admin.username,
+          password: admin.password,
+          email: admin.email,
+          phone: admin.phone,
+          mustChangePassword: true,
+          role: 'Administrador Principal',
+          active: true,
+        })
+
+        const license = await createSourceCompanyLicense(saved, {
+          id: `LIC-${saved.companyCode}`,
+          codigoLicencia: `LIC-${saved.companyCode}-${String(Date.now()).slice(-6)}`,
+          planContratado: companyData.plan || saved.plan || 'Demo',
+          estado: 'activa',
+          modulosActivos: companyData.modulosActivos || saved.modulosActivos,
+          fechaActivacion: companyData.fechaActivacion || saved.fechaActivacion,
+          fechaVencimiento: companyData.fechaVencimiento || saved.fechaVencimiento,
+          maxUsuarios: companyData.maxUsuarios || saved.maxUsuarios,
+          maxSucursales: companyData.maxSucursales || saved.maxSucursales,
+          maxAlmacenes: companyData.maxAlmacenes || saved.maxAlmacenes,
+          tipoVersion: companyData.tipoVersion || saved.tipoVersion,
+        })
+
+        const syncResult = await loadSystemDataFromSupabase()
+        if (!syncResult.ok) {
+          return {
+            ok: false,
+            message: `Empresa creada parcialmente, pero no se pudo recargar desde Supabase. ${syncResult.error || syncResult.message || ''}`,
+          }
+        }
+
+        const refreshedCompanies = loadCompanies()
+        const persistedCompany = refreshedCompanies.find((item) => (
+          String(item.companyCode || '').trim().toUpperCase() === saved.companyCode
+        ))
+        if (!persistedCompany) {
+          return {
+            ok: false,
+            message: 'Supabase no devolvio la empresa al recargar. Ejecute Diagnosticar/Reparar empresa.',
+          }
+        }
+
+        setCompanies(refreshedCompanies)
+        setPlans(loadSystemPlans())
+        setSystemSyncStatus({
+          source: syncResult.source,
+          message: 'Empresa, administrador y licencia recargados desde Supabase.',
+          companies: syncResult.companies?.length || refreshedCompanies.length,
+          users: syncResult.users?.length || 0,
+          licenses: syncResult.licenses?.length || 0,
+          plans: syncResult.plans?.length || 0,
+        })
+
+        appendSystemAudit('Crear empresa', {
+          companyCode: saved.companyCode,
+          usuario: session?.username || 'superadmin',
+          descripcion: `Empresa ${saved.nombreComercial}`,
+        })
+
+        return {
+          ok: true,
+          company: persistedCompany,
+          admin: createdAdmin,
+          license,
+          initialPassword: admin.password,
+          persistence: {
+            company: true,
+            admin: true,
+            license: true,
+            source: 'Supabase',
+          },
+          accessSummary: {
+            companyCode: saved.companyCode,
+            companyName: saved.nombreComercial,
+            username: createdAdmin?.username || admin.username,
+            password: admin.password,
+            plan: license?.planContratado || saved.plan,
+            modules: license?.modulosActivos || saved.modulosActivos,
+            fechaActivacion: license?.fechaActivacion || saved.fechaActivacion,
+            fechaVencimiento: license?.fechaVencimiento || saved.fechaVencimiento,
+          },
+        }
+      } catch (error) {
+        return {
+          ok: false,
+          message: `No se pudo crear la empresa en Supabase. ${error.message || 'Revise schema, RLS y la migracion fix_multiempresa_core.sql.'}`,
+        }
+      }
+    }
+
     const saved = createCompany({
       ...companyData,
       firstLoginPending: true,
@@ -315,10 +420,10 @@ export default function AuthGate() {
       admin: result.user,
       initialPassword: admin.password,
       persistence: {
-        company: companySync.ok,
-        license: licenseSync.ok,
-        admin: usersSync.ok,
-        source: isSupabaseConfigured() ? 'Supabase' : 'localStorage',
+        company: true,
+        license: true,
+        admin: true,
+        source: 'localStorage',
       },
       accessSummary: {
         companyCode: saved.companyCode,
@@ -336,6 +441,24 @@ export default function AuthGate() {
   const handleCreateCompanyAdmin = async (companyId, adminData) => {
     const company = companies.find((item) => item.id === companyId)
     if (!company) return { ok: false, message: 'Empresa no encontrada.' }
+
+    if (isSupabaseConfigured()) {
+      try {
+        const user = await createSourceCompanyAdmin(company, adminData)
+        const syncResult = await loadSystemDataFromSupabase()
+        if (syncResult.ok) {
+          setCompanies(loadCompanies())
+          setPlans(loadSystemPlans())
+        }
+        refreshCompanies()
+        return { ok: true, user }
+      } catch (error) {
+        return {
+          ok: false,
+          message: `No se pudo crear el administrador en Supabase. ${error.message || ''}`,
+        }
+      }
+    }
 
     const result = createCompanyAdminUser(company, adminData)
     if (result?.ok !== false) {

@@ -563,6 +563,31 @@ export async function repairCompanyIdentifiers(companyCode) {
       const license = unwrapRow(row)
       return companyCodeOf(license) === code || license.companyId === company.id || license.company_id === company.id || license.company_id === code
     })
+    if (relatedLicenses.length === 0) {
+      await supabaseRequest('/company_licenses?on_conflict=id', {
+        method: 'POST',
+        headers: {
+          Prefer: 'resolution=merge-duplicates,return=representation',
+          ...headers,
+        },
+        body: JSON.stringify(licensePayload({
+          id: `LIC-${code}`,
+          companyId: company.id,
+          companyCode: code,
+          codigoLicencia: `LIC-${code}-${String(Date.now()).slice(-6)}`,
+          planContratado: company.plan || 'Demo',
+          estado: 'activa',
+          modulosActivos: company.modulosActivos,
+          fechaActivacion: company.fechaActivacion || new Date().toISOString().slice(0, 10),
+          fechaVencimiento: company.fechaVencimiento || '',
+          maxUsuarios: company.maxUsuarios || 5,
+          maxSucursales: company.maxSucursales || 1,
+          maxAlmacenes: company.maxAlmacenes || 2,
+          tipoVersion: company.tipoVersion || 'Cloud',
+        })),
+      })
+      touched.licenses += 1
+    }
     for (const row of relatedLicenses) {
       const license = normalizeLicenseForStorage(unwrapRow(row), company)
       await supabaseRequest(`/company_licenses?id=eq.${encodeURIComponent(row.id)}`, {

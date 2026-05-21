@@ -357,7 +357,11 @@ function loginWithLocalStorage(companyCode, username, password) {
   }
 }
 
-export async function loginCompanyUser({ companyCode, username, password }) {
+export async function loginCompanyUser(companyCodeOrPayload, usernameArg = '', passwordArg = '') {
+  const payload = typeof companyCodeOrPayload === 'object' && companyCodeOrPayload !== null
+    ? companyCodeOrPayload
+    : { companyCode: companyCodeOrPayload, username: usernameArg, password: passwordArg }
+  const { companyCode, username, password } = payload
   const cleanCompanyCode = cleanCode(companyCode)
   const cleanUsername = cleanText(username)
   const cleanPassword = cleanText(password)

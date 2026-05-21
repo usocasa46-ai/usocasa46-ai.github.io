@@ -351,7 +351,7 @@ export default function SuperAdminPanel({
       if (result?.accessSummary) setAccessSummary(result.accessSummary)
       setCompanyDraft(null)
       if (result?.persistence) {
-        setNotice(`Empresa guardada. Fuente: ${result.persistence.source}. Empresa: ${result.persistence.company ? 'Si' : 'No'} · Admin: ${result.persistence.admin ? 'Si' : 'No'} · Licencia: ${result.persistence.license ? 'Si' : 'No'}`)
+        setNotice(`Empresa guardada. Fuente: ${result.persistence.source}. Empresa: ${result.persistence.company ? 'Si' : 'No'} | Admin: ${result.persistence.admin ? 'Si' : 'No'} | Licencia: ${result.persistence.license ? 'Si' : 'No'}`)
       } else {
         setNotice('Empresa guardada correctamente.')
       }
