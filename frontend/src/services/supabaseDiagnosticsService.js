@@ -21,6 +21,10 @@ function companyHeaders(company) {
   }
 }
 
+function adminHeaders() {
+  return { 'x-user-role': 'superadmin' }
+}
+
 function getSupabaseCompanyId(company) {
   return String(company?.companyCode || '').trim().toUpperCase()
 }
@@ -120,6 +124,50 @@ export async function testSupabaseConnection() {
     return fail(classifySupabaseError(error), {
       configured: true,
       mode: 'localStorage fallback',
+      error: error.message,
+    })
+  }
+}
+
+export async function getSupabaseDataFootprint() {
+  if (!isSupabaseConfigured()) {
+    return ok('Supabase no configurado.', {
+      configured: false,
+      mode: 'localStorage',
+      companies: 0,
+      users: 0,
+      licenses: 0,
+      clean: true,
+    })
+  }
+
+  try {
+    const [companies, users, licenses] = await Promise.all([
+      supabaseRequest('/companies?select=id', { headers: adminHeaders() }),
+      supabaseRequest('/company_users?select=id', { headers: adminHeaders() }),
+      supabaseRequest('/company_licenses?select=id', { headers: adminHeaders() }),
+    ])
+    const companyCount = Array.isArray(companies) ? companies.length : 0
+    const userCount = Array.isArray(users) ? users.length : 0
+    const licenseCount = Array.isArray(licenses) ? licenses.length : 0
+    const clean = companyCount === 0 && userCount === 0 && licenseCount === 0
+
+    return ok(clean ? 'Supabase sin empresas, usuarios ni licencias.' : 'Supabase contiene datos administrativos.', {
+      configured: true,
+      mode: 'Supabase',
+      companies: companyCount,
+      users: userCount,
+      licenses: licenseCount,
+      clean,
+    })
+  } catch (error) {
+    return fail(classifySupabaseError(error), {
+      configured: true,
+      mode: 'Supabase',
+      companies: null,
+      users: null,
+      licenses: null,
+      clean: false,
       error: error.message,
     })
   }

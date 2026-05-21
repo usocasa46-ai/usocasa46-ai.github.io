@@ -1,77 +1,105 @@
 # Reinicio total del sistema
 
-El reinicio total deja INVE-FAT SYSTEM sin empresas, sin EMP001 demo, sin licencias, sin planes, sin usuarios de empresa y sin datos operativos locales.
+El reinicio tiene dos niveles:
 
-El unico acceso que permanece es tecnico y no cuenta como empresa:
+1. Reinicio local del navegador.
+2. Reinicio total de Supabase ejecutando SQL administrativo manual.
+
+El frontend no borra Supabase con anon key. Si Supabase esta conectado, limpiar localStorage no elimina empresas, usuarios ni licencias guardadas en la nube.
+
+El unico acceso tecnico que permanece en el codigo es:
 
 - Codigo empresa: `SYSTEM`
 - Usuario: `superadmin`
 - Contrasena: `admin123`
 
-## Reiniciar localStorage desde el panel
+`SYSTEM` no es una empresa cliente y no debe aparecer en la lista de empresas.
+
+## Paso 1: descargar backup
 
 1. Entrar como `SYSTEM / superadmin / admin123`.
 2. Ir a **Panel del Sistema > Respaldos por empresa**.
-3. Pulsar **Poner sistema en cero**.
-4. Descargar el backup completo obligatorio.
-5. Escribir exactamente:
+3. En **Reinicio del sistema**, descargar el backup completo.
+4. Conservar el archivo antes de cualquier reinicio.
+
+## Paso 2: reiniciar datos locales
+
+1. Pulsar **Reiniciar datos locales**.
+2. Descargar el backup obligatorio dentro del modal.
+3. Escribir exactamente:
 
 ```text
 REINICIAR SISTEMA
 ```
 
-6. Pulsar **Reiniciar sistema**.
-7. El sistema cierra sesion y vuelve al login.
-8. Entrar nuevamente como `SYSTEM / superadmin / admin123`.
+4. Pulsar **Reiniciar datos locales**.
 
-Resultado esperado:
+Resultado:
 
-- Empresas: 0
-- Licencias: 0
-- Usuarios por empresa: 0
-- Respaldos: 0
-- Soporte autorizado: 0
-- No existe `EMP001` hasta que el Super Admin la cree manualmente.
+- Se limpian claves locales del sistema en `localStorage`.
+- Se limpia la sesion en `sessionStorage`.
+- Se cierra sesion.
+- El navegador vuelve al login.
+- Si Supabase sigue con datos, esos datos no se eliminan.
 
-## Crear empresa desde cero
+Mensaje esperado con Supabase activo:
 
-Despues del reinicio, el Super Admin puede crear una empresa manualmente:
+```text
+Datos locales limpiados. Datos en Supabase no fueron eliminados.
+```
 
-1. Ir a **Empresas**.
-2. Pulsar **Crear primera empresa**.
-3. Crear `EMP001` u otra empresa.
-4. Crear el administrador de empresa.
-5. Entrar con codigo de empresa + usuario + contrasena.
+## Paso 3: dejar Supabase en cero
 
-La empresa nueva entra limpia, sin productos, clientes, facturas ni datos de otra empresa.
+Para limpiar la nube:
 
-## Limpiar Supabase
+1. Abrir Supabase SQL Editor.
+2. Ejecutar el contenido de:
 
-El frontend no borra Supabase con la anon public key. Para limpiar datos en nube:
-
-1. Descargar backup completo.
-2. Ejecutar el reset local desde el Panel del Sistema.
-3. Abrir Supabase SQL Editor.
-4. Ejecutar el contenido del archivo:
-
-```sql
+```text
 supabase/reset_all_data.sql
 ```
 
-Este script usa un bloque seguro que limpia solo tablas existentes. No borra tablas ni esquema. Deja la nube sin empresas, sin `EMP001`, sin licencias, sin planes, sin usuarios de empresa y sin datos operativos.
+El script:
 
-Si Supabase queda con datos antiguos y localStorage esta limpio, el Panel del Sistema puede volver a mostrar empresas porque Supabase es la fuente activa. En ese caso ejecute `supabase/reset_all_data.sql` y reinicie la aplicacion.
+- Limpia solo datos de tablas existentes.
+- No hace `DROP TABLE`.
+- No hace `DROP SCHEMA`.
+- No recrea `EMP001`.
+- No inserta empresas demo.
+- No inserta planes demo.
+- Termina con `notify pgrst, 'reload schema';`.
 
-## Login de empresa nueva
+## Paso 4: verificar
 
-Cuando Supabase esta configurado, el Super Admin guarda la empresa, licencia y usuario administrador tanto en localStorage como en Supabase. El login consulta la misma fuente:
+1. Volver al sistema.
+2. Entrar como `SYSTEM / superadmin / admin123`.
+3. Ir a **Estado del sistema**.
+4. Confirmar:
 
-1. Crear empresa manual desde Super Admin.
-2. Crear usuario administrador en el formulario.
-3. Cerrar sesion.
-4. Entrar con codigo de empresa + usuario + contrasena.
+- Empresas: 0
+- Usuarios por empresa: 0
+- Licencias: 0
+- Supabase limpio: Si
+- No existe `EMP001`
+- No hay datos demo
 
-Si la empresa no existe, el login debe responder `Empresa no existe.` y no debe crear `EMP001` ni datos demo.
+Si el navegador esta limpio pero Supabase todavia tiene empresas, el panel debe advertir:
+
+```text
+El navegador esta limpio, pero Supabase aun contiene empresas.
+```
+
+## Crear empresa desde cero
+
+Despues de limpiar local y Supabase, el Super Admin puede crear una empresa manualmente:
+
+1. Ir a **Empresas**.
+2. Pulsar **Crear primera empresa**.
+3. Crear `EMP001` u otra empresa solo si se desea.
+4. Crear el administrador de empresa.
+5. Entrar con codigo empresa + usuario + contrasena.
+
+La empresa nueva debe entrar limpia, sin productos, clientes, facturas ni datos de otra empresa.
 
 ## Advertencia
 

@@ -14,7 +14,7 @@ import {
   ShieldCheck,
   UserPlus,
 } from 'lucide-react'
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { erpModules } from '../config/modulesMap.js'
 import {
   createSupportAccess,
@@ -34,6 +34,7 @@ import {
   saveCompanyUsers,
 } from '../services/companyStorage.js'
 import {
+  getSupabaseDataFootprint,
   getSupabaseDiagnosticStatus,
   readSupabaseEmp001Test,
   testSupabaseConnection,
@@ -50,9 +51,11 @@ import {
   markBackupDownloaded,
 } from '../services/systemBackupService.js'
 import {
+  getLocalResetFootprint,
   registerResetRequested,
   resetCompanyLocalData,
-  resetEntireLocalSystem,
+  resetLocalSystem,
+  SUPABASE_RESET_SQL,
 } from '../services/systemResetService.js'
 import './SuperAdminPanel.css'
 
@@ -102,6 +105,16 @@ const moduleLabelById = Object.fromEntries(erpModules.map((module) => [module.id
 
 function downloadJson(filename, payload) {
   const blob = new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json;charset=utf-8' })
+  const url = URL.createObjectURL(blob)
+  const link = document.createElement('a')
+  link.href = url
+  link.download = filename
+  link.click()
+  URL.revokeObjectURL(url)
+}
+
+function downloadTextFile(filename, text, type = 'text/plain;charset=utf-8') {
+  const blob = new Blob([text], { type })
   const url = URL.createObjectURL(blob)
   const link = document.createElement('a')
   link.href = url
@@ -189,12 +202,21 @@ export default function SuperAdminPanel({
   const [companyDiagnosticCode, setCompanyDiagnosticCode] = useState('')
   const [companyDiagnostic, setCompanyDiagnostic] = useState(null)
   const [companyDiagnosticBusy, setCompanyDiagnosticBusy] = useState(false)
+  const [supabaseFootprint, setSupabaseFootprint] = useState(() => ({
+    companies: null,
+    users: null,
+    licenses: null,
+    clean: false,
+    message: '',
+    error: '',
+  }))
 
   const licenses = useMemo(() => loadCompanyLicenses(), [companies, refreshKey])
   const backups = useMemo(() => loadBackupLog(), [refreshKey])
   const supportAccess = useMemo(() => loadSupportAccess(), [refreshKey])
   const auditLog = useMemo(() => loadSystemAudit(), [refreshKey])
   const isolation = useMemo(() => getIsolationResults(companies), [companies, refreshKey])
+  const localFootprint = useMemo(() => getLocalResetFootprint(), [companies, plans, licenses, refreshKey])
   const diagnostics = useMemo(() => {
     const globalStorageWarnings = getGlobalOperationalStorageWarnings()
     const warnings = globalStorageWarnings.map((item) => item.message)
@@ -293,6 +315,61 @@ export default function SuperAdminPanel({
 
   const refresh = () => setRefreshKey((current) => current + 1)
 
+  const refreshSupabaseFootprint = async () => {
+    if (!supabaseDiagnostic.configured) {
+      setSupabaseFootprint({
+        companies: 0,
+        users: 0,
+        licenses: 0,
+        clean: true,
+        message: 'Supabase no configurado.',
+        error: '',
+      })
+      return
+    }
+
+    const result = await getSupabaseDataFootprint()
+    setSupabaseFootprint({
+      companies: result.companies,
+      users: result.users,
+      licenses: result.licenses,
+      clean: Boolean(result.clean),
+      message: result.message,
+      error: result.error || '',
+    })
+  }
+
+  useEffect(() => {
+    let cancelled = false
+    if (!supabaseDiagnostic.configured) {
+      setSupabaseFootprint({
+        companies: 0,
+        users: 0,
+        licenses: 0,
+        clean: true,
+        message: 'Supabase no configurado.',
+        error: '',
+      })
+      return undefined
+    }
+
+    getSupabaseDataFootprint().then((result) => {
+      if (cancelled) return
+      setSupabaseFootprint({
+        companies: result.companies,
+        users: result.users,
+        licenses: result.licenses,
+        clean: Boolean(result.clean),
+        message: result.message,
+        error: result.error || '',
+      })
+    })
+
+    return () => {
+      cancelled = true
+    }
+  }, [supabaseDiagnostic.configured, systemSyncStatus?.companies, systemSyncStatus?.users, systemSyncStatus?.licenses, refreshKey])
+
   const runSupabaseTest = async (runner) => {
     setSupabaseDiagnostic((current) => ({ ...current, busy: true, message: 'Probando Supabase...' }))
     const result = await runner()
@@ -304,6 +381,7 @@ export default function SuperAdminPanel({
       busy: false,
     })
     setNotice(result.message)
+    refreshSupabaseFootprint()
   }
 
   const runCompanyDiagnostic = async () => {
@@ -464,6 +542,23 @@ export default function SuperAdminPanel({
     reader.readAsText(file)
   }
 
+  const downloadCompleteBackupNow = () => {
+    const backup = createCompleteSystemBackup({ session })
+    downloadJson(backup.filename, backup.payload)
+    markBackupDownloaded({ session, scope: 'sistema' })
+    setNotice(`Backup completo descargado: ${backup.filename}`)
+    refresh()
+  }
+
+  const downloadSupabaseResetScript = () => {
+    downloadTextFile('reset_all_data.sql', SUPABASE_RESET_SQL, 'text/sql;charset=utf-8')
+    setNotice('Script reset_all_data.sql descargado. Ejecutelo manualmente en Supabase SQL Editor despues de verificar el backup.')
+  }
+
+  const showSupabaseResetInstructions = () => {
+    setNotice('Para dejar la nube en cero: descargue backup, reinicie datos locales, abra Supabase SQL Editor y ejecute supabase/reset_all_data.sql. El frontend no borra Supabase con anon key.')
+  }
+
   const openResetModal = (type) => {
     const selectedCompany = type === 'empresa' ? companies[0] || null : null
     registerResetRequested({ session, type, company: selectedCompany })
@@ -515,10 +610,11 @@ export default function SuperAdminPanel({
 
     if (resetDraft.confirmation !== 'REINICIAR SISTEMA') return
     setResetDraft({ ...resetDraft, busy: true })
-    const result = resetEntireLocalSystem()
+    const result = resetLocalSystem()
     setResetDraft(null)
     setNotice(result.message)
-    onLogout?.('system-reset')
+    refreshSupabaseFootprint()
+    onLogout?.(result.supabaseWarning ? 'system-reset-local-supabase' : 'system-reset-local')
   }
 
   const authorizeSupport = () => {
@@ -662,18 +758,21 @@ export default function SuperAdminPanel({
       <div className="super-admin-danger-zone">
         <div>
           <span><AlertTriangle size={16} /> Reinicio del sistema</span>
-          <h3>Poner sistema en cero</h3>
-          <p>Accion exclusiva de Super Admin. Exige backup descargado y confirmacion fuerte antes de borrar datos locales.</p>
+          <h3>Reinicio local y Supabase</h3>
+          <p>Modo actual: <strong>{supabaseDiagnostic.configured ? 'Supabase' : 'localStorage'}</strong>. El reinicio local exige backup descargado y confirmacion fuerte.</p>
           {supabaseDiagnostic.configured && (
-            <small>Supabase esta activo: el reinicio en nube requiere backend o SQL administrativo seguro. Desde aqui no se eliminan tablas en Supabase.</small>
+            <small>Supabase esta conectado. Este panel limpia datos locales del navegador; para dejar la nube en cero debe ejecutar el script de reinicio en Supabase.</small>
           )}
         </div>
         <div className="super-admin-danger-actions">
+          <button type="button" onClick={downloadCompleteBackupNow}><Download size={15} /> Descargar backup completo</button>
           <button type="button" onClick={() => openResetModal('empresa')}>Reiniciar solo una empresa</button>
           <button type="button" className="is-danger" onClick={() => openResetModal('sistema')}>
             <AlertTriangle size={16} />
-            Poner sistema en cero
+            Reiniciar datos locales
           </button>
+          <button type="button" onClick={downloadSupabaseResetScript}><Download size={15} /> Descargar reset_all_data.sql</button>
+          <button type="button" onClick={showSupabaseResetInstructions}>Ver instrucciones Supabase</button>
         </div>
       </div>
       <div className="super-admin-card-grid">
@@ -806,12 +905,24 @@ export default function SuperAdminPanel({
           <div><dt>Modo actual</dt><dd>{supabaseDiagnostic.mode}</dd></div>
           <div><dt>Ultima prueba</dt><dd>{formatDateTime(supabaseDiagnostic.lastCheckedAt)}</dd></div>
           <div><dt>Estado</dt><dd>{supabaseDiagnostic.connectionStatus}</dd></div>
-          <div><dt>Empresas nube/cache</dt><dd>{systemSyncStatus?.companies ?? companies.length}</dd></div>
-          <div><dt>Usuarios nube/cache</dt><dd>{systemSyncStatus?.users ?? diagnostics.companyUsersTotal}</dd></div>
+          <div><dt>Empresas locales detectadas</dt><dd>{localFootprint.companies}</dd></div>
+          <div><dt>Claves locales del sistema</dt><dd>{localFootprint.systemKeys}</dd></div>
+          <div><dt>Empresas en Supabase</dt><dd>{supabaseFootprint.companies ?? systemSyncStatus?.companies ?? 'N/D'}</dd></div>
+          <div><dt>Usuarios en Supabase</dt><dd>{supabaseFootprint.users ?? systemSyncStatus?.users ?? 'N/D'}</dd></div>
+          <div><dt>Licencias en Supabase</dt><dd>{supabaseFootprint.licenses ?? systemSyncStatus?.licenses ?? 'N/D'}</dd></div>
+          <div><dt>Supabase limpio</dt><dd>{supabaseDiagnostic.configured ? (supabaseFootprint.clean ? 'Si' : 'No') : 'No aplica'}</dd></div>
+          <div><dt>LocalStorage limpio</dt><dd>{localFootprint.clean ? 'Si' : 'No'}</dd></div>
         </dl>
-        {(supabaseDiagnostic.error || systemSyncStatus?.error) && <small>{supabaseDiagnostic.error || systemSyncStatus?.error}</small>}
+        {(supabaseDiagnostic.error || systemSyncStatus?.error || supabaseFootprint.error) && <small>{supabaseDiagnostic.error || systemSyncStatus?.error || supabaseFootprint.error}</small>}
+        {supabaseDiagnostic.configured && !supabaseFootprint.clean && (
+          <small>Supabase aun contiene empresas, usuarios o licencias. Si desea cero total, ejecute supabase/reset_all_data.sql en Supabase SQL Editor.</small>
+        )}
+        {localFootprint.clean && supabaseDiagnostic.configured && !supabaseFootprint.clean && (
+          <small>El navegador esta limpio, pero Supabase aun contiene empresas.</small>
+        )}
         <div className="super-admin-test-actions">
           <button type="button" disabled={supabaseDiagnostic.busy} onClick={() => runSupabaseTest(testSupabaseConnection)}>Probar conexion</button>
+          <button type="button" disabled={supabaseDiagnostic.busy} onClick={refreshSupabaseFootprint}>Actualizar diagnostico</button>
           <button type="button" disabled={supabaseDiagnostic.busy} onClick={() => runSupabaseTest(() => writeSupabaseEmp001Test(companies))}>Probar escritura empresa</button>
           <button type="button" disabled={supabaseDiagnostic.busy} onClick={() => runSupabaseTest(() => readSupabaseEmp001Test(companies))}>Probar lectura empresa</button>
           <button type="button" disabled={supabaseDiagnostic.busy} onClick={() => runSupabaseTest(() => testSupabaseIsolation(companies))}>Probar aislamiento entre empresas</button>
@@ -979,12 +1090,16 @@ function SystemResetModal({ draft, setDraft, companies, supabaseActive, onDownlo
         <div className="super-admin-reset-body">
           <div className="super-admin-reset-warning">
             <AlertTriangle size={20} />
-            <p>Esta accion pondra {isCompanyReset ? 'la empresa seleccionada' : 'el sistema'} en cero. Antes de continuar debe descargar una copia de seguridad completa. Esta accion no se puede deshacer.</p>
+            <p>{isCompanyReset
+              ? 'Esta accion reiniciara los datos locales de la empresa seleccionada.'
+              : supabaseActive
+                ? 'Supabase esta conectado. Esta accion limpiara los datos locales del navegador. Para dejar la nube en cero debe ejecutar el script de reinicio en Supabase.'
+                : 'Esta accion pondra el sistema local en cero.'} Antes de continuar debe descargar una copia de seguridad completa. Esta accion no se puede deshacer.</p>
           </div>
 
           {supabaseActive && (
             <div className="super-admin-reset-cloud-note">
-              Supabase esta activo. El reinicio en nube requiere permisos administrativos seguros y debe ejecutarse desde backend, funcion segura o SQL controlado. Esta accion solo reinicia datos locales.
+              Supabase esta activo. Datos en Supabase no seran eliminados desde el frontend con anon key. Use el archivo supabase/reset_all_data.sql en Supabase SQL Editor para limpiar la nube.
             </div>
           )}
 
@@ -1034,7 +1149,7 @@ function SystemResetModal({ draft, setDraft, companies, supabaseActive, onDownlo
           <button type="button" onClick={() => setDraft(null)}>Cancelar</button>
           <button type="button" className="is-danger" disabled={!canReset} onClick={onExecute}>
             <AlertTriangle size={15} />
-            {draft.busy ? 'Reiniciando...' : isCompanyReset ? 'Reiniciar empresa' : 'Reiniciar sistema'}
+            {draft.busy ? 'Reiniciando...' : isCompanyReset ? 'Reiniciar empresa' : 'Reiniciar datos locales'}
           </button>
         </footer>
       </div>

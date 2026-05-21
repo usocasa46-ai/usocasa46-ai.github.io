@@ -1,6 +1,6 @@
 -- INVE-FAT SYSTEM - reinicio total de datos en Supabase.
--- Esto borra todos los datos de prueba de Supabase y deja la base sin empresas.
--- Ejecutar manualmente en Supabase SQL Editor solo despues de descargar backup.
+-- ADVERTENCIA: esto borra todos los datos de prueba/produccion en las tablas listadas.
+-- Ejecutar manualmente en Supabase SQL Editor solo despues de descargar y verificar backup.
 -- Este script NO borra estructura, NO hace DROP TABLE y NO hace DROP SCHEMA.
 
 do $$
@@ -40,6 +40,7 @@ declare
     'supplier_invoices',
     'purchase_orders',
     'purchase_requests',
+    'purchases',
     'inventory_counts',
     'inventory_adjustments',
     'inventory_movements',
@@ -51,11 +52,12 @@ declare
     'suppliers',
     'customers',
     'products',
-    'system_audit_log',
+    'company_backups_log',
     'support_access',
+    'system_audit_log',
     'company_users',
-    'system_plans',
     'company_licenses',
+    'system_plans',
     'companies'
   ];
   truncate_list text;
@@ -71,5 +73,8 @@ begin
   end if;
 end $$;
 
+-- Recargar cache de PostgREST/Supabase.
+notify pgrst, 'reload schema';
+
 -- Si en fases futuras se agregan nuevas tablas multiempresa, incluirlas en
--- tables_to_clean antes de ejecutar un reinicio total en produccion.
+-- tables_to_clean antes de ejecutar un reinicio total.

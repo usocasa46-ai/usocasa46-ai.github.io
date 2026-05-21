@@ -87,7 +87,15 @@ export default function AuthGate() {
     const company = findCompanyByCode(loadValidSession()?.currentCompanyCode)
     return company ? loadCompanyUsers(company) : []
   })
-  const [loginNotice, setLoginNotice] = useState('')
+  const [loginNotice, setLoginNotice] = useState(() => {
+    try {
+      const saved = sessionStorage.getItem('invefat_reset_notice') || ''
+      if (saved) sessionStorage.removeItem('invefat_reset_notice')
+      return saved
+    } catch {
+      return ''
+    }
+  })
   const [systemSyncStatus, setSystemSyncStatus] = useState(() => ({
     source: isSupabaseConfigured() ? 'Supabase / localStorage' : 'localStorage',
     message: isSupabaseConfigured()
@@ -205,11 +213,31 @@ export default function AuthGate() {
 
   const handleLogout = (reason) => {
     clearSession()
+    const resetNotice = reason === 'system-reset-local-supabase'
+      ? 'Datos locales limpiados. Datos en Supabase no fueron eliminados. Para dejar la nube en cero ejecute reset_all_data.sql.'
+      : reason === 'system-reset-local'
+        ? 'Datos locales limpiados. Inicie sesion nuevamente.'
+        : ''
+    if (String(reason || '').startsWith('system-reset')) {
+      setCompanies([])
+      setPlans([])
+      setSystemSyncStatus({
+        source: isSupabaseConfigured() ? 'Supabase' : 'localStorage',
+        message: resetNotice,
+        companies: 0,
+        users: 0,
+        licenses: 0,
+        plans: 0,
+      })
+      try {
+        sessionStorage.setItem('invefat_reset_notice', resetNotice)
+        window.setTimeout(() => window.location.reload(), 200)
+      } catch {
+      }
+    }
     setLoginNotice(reason === 'inactivity'
       ? 'Sesion cerrada por inactividad'
-      : reason === 'system-reset'
-        ? 'Sistema reiniciado correctamente. Inicie sesion nuevamente.'
-        : '')
+      : resetNotice)
     setSession(null)
     setUsers([])
   }
