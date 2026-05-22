@@ -183,6 +183,7 @@ export default function SalesPromotionsPage({
   const [selectedPromotionId, setSelectedPromotionId] = useState('')
   const [historyPromotionId, setHistoryPromotionId] = useState('')
   const [message, setMessage] = useState('')
+  const [modalError, setModalError] = useState('')
   const [loading, setLoading] = useState(false)
 
   const notify = (text) => {
@@ -257,11 +258,13 @@ export default function SalesPromotionsPage({
 
   const openCreate = () => {
     setDraft(DEFAULT_DRAFT)
+    setModalError('')
     setModalMode('create')
   }
 
   const openEdit = (promotion) => {
     setDraft(promotionToDraft(promotion))
+    setModalError('')
     setModalMode('edit')
   }
 
@@ -269,13 +272,14 @@ export default function SalesPromotionsPage({
     const promotion = draftToPromotion(draft)
     const errors = validatePromotionDraft(promotion)
     if (errors.length) {
-      notify(errors[0])
+      setModalError(errors[0])
       return
     }
 
     const saved = modalMode === 'edit'
       ? await promotionsService.update(promotion.id, promotion)
       : await promotionsService.create(promotion)
+    setModalError('')
     setModalMode('')
     setSelectedPromotionId(saved.id)
     notify(`Oferta ${saved.name} guardada.`)
@@ -314,15 +318,24 @@ export default function SalesPromotionsPage({
     await loadData()
   }
 
-  const updateDraft = (field, value) => setDraft((current) => ({ ...current, [field]: value }))
-  const updateCondition = (field, value) => setDraft((current) => ({
-    ...current,
-    conditions: { ...current.conditions, [field]: value },
-  }))
-  const updateAction = (field, value) => setDraft((current) => ({
-    ...current,
-    actions: { ...current.actions, [field]: value },
-  }))
+  const updateDraft = (field, value) => {
+    setModalError('')
+    setDraft((current) => ({ ...current, [field]: value }))
+  }
+  const updateCondition = (field, value) => {
+    setModalError('')
+    setDraft((current) => ({
+      ...current,
+      conditions: { ...current.conditions, [field]: value },
+    }))
+  }
+  const updateAction = (field, value) => {
+    setModalError('')
+    setDraft((current) => ({
+      ...current,
+      actions: { ...current.actions, [field]: value },
+    }))
+  }
 
   const exportOffers = () => exportWorkbook(`ofertas-${formatDateTime()}.xlsx`, {
     Ofertas: promotionExportRows(promotions),
@@ -469,21 +482,27 @@ export default function SalesPromotionsPage({
       {modalMode && (
         <div className="sales-promo-modal-backdrop" role="presentation">
           <section className="sales-promo-modal" role="dialog" aria-modal="true" aria-label="Formulario de oferta">
-            <header><div><span>Ventas</span><h2>{modalMode === 'edit' ? 'Editar oferta' : 'Nueva oferta'}</h2></div><button type="button" onClick={() => setModalMode('')}><X size={18} /></button></header>
+            <header><div><span>Ventas</span><h2>{modalMode === 'edit' ? 'Editar oferta' : 'Nueva oferta'}</h2></div><button type="button" onClick={() => setModalMode('')} aria-label="Cerrar formulario"><X size={18} /></button></header>
             <div className="sales-promo-modal-body">
+              {modalError && <div className="sales-promo-modal-error">{modalError}</div>}
               <section>
                 <h3>Datos generales</h3>
                 <div className="sales-promo-form-grid">
-                  <label>Nombre<input value={draft.name} onChange={(event) => updateDraft('name', event.target.value)} /></label>
+                  <label>Nombre<input value={draft.name} onChange={(event) => updateDraft('name', event.target.value)} required aria-invalid={Boolean(modalError && !draft.name)} /></label>
                   <label>Tipo<select value={draft.type} onChange={(event) => updateDraft('type', event.target.value)}>{PROMOTION_TYPES.map((type) => <option key={type.id} value={type.id}>{type.label}</option>)}</select></label>
                   <label>Estado<select value={draft.status} onChange={(event) => updateDraft('status', event.target.value)}>{PROMOTION_STATUSES.map((status) => <option key={status}>{status}</option>)}</select></label>
                   <label>Prioridad<input type="number" min="0" value={draft.priority} onChange={(event) => updateDraft('priority', event.target.value)} /></label>
+                  <label className="sales-promo-span-2">Descripcion<textarea value={draft.description} onChange={(event) => updateDraft('description', event.target.value)} /></label>
+                </div>
+              </section>
+
+              <section>
+                <h3>Vigencia</h3>
+                <div className="sales-promo-form-grid">
                   <label>Fecha inicio<input type="date" value={draft.startDate} onChange={(event) => updateDraft('startDate', event.target.value)} /></label>
                   <label>Fecha fin<input type="date" value={draft.endDate} onChange={(event) => updateDraft('endDate', event.target.value)} /></label>
                   <label>Hora inicio<input type="time" value={draft.startTime} onChange={(event) => updateDraft('startTime', event.target.value)} /></label>
                   <label>Hora fin<input type="time" value={draft.endTime} onChange={(event) => updateDraft('endTime', event.target.value)} /></label>
-                  <label className="sales-promo-span-2">Descripcion<textarea value={draft.description} onChange={(event) => updateDraft('description', event.target.value)} /></label>
-                  <label className="sales-promo-check"><input type="checkbox" checked={draft.stackable} onChange={(event) => updateDraft('stackable', event.target.checked)} /> Permitir combinar con otras ofertas</label>
                 </div>
               </section>
 
@@ -491,8 +510,8 @@ export default function SalesPromotionsPage({
                 <h3>Aplicacion y condiciones</h3>
                 <div className="sales-promo-form-grid">
                   <label>Aplicacion<select value={draft.application} onChange={(event) => updateDraft('application', event.target.value)}><option value="all">Todos los productos</option><option value="products">Productos especificos</option><option value="categories">Categorias</option><option value="suppliers">Proveedor</option><option value="customers">Cliente o grupo</option><option value="branch">Sucursal / almacen</option></select></label>
-                  <label>Productos<input value={draft.productsText} onChange={(event) => updateDraft('productsText', event.target.value)} placeholder={options.products.slice(0, 3).join(', ')} /></label>
-                  <label>Categorias<input value={draft.categoriesText} onChange={(event) => updateDraft('categoriesText', event.target.value)} placeholder={options.categories.slice(0, 3).join(', ')} /></label>
+                  <label>Productos<input value={draft.productsText} onChange={(event) => updateDraft('productsText', event.target.value)} placeholder={options.products.length ? options.products.slice(0, 3).join(', ') : 'No hay productos disponibles'} />{!options.products.length && <small className="sales-promo-field-note">No hay productos disponibles.</small>}</label>
+                  <label>Categorias<input value={draft.categoriesText} onChange={(event) => updateDraft('categoriesText', event.target.value)} placeholder={options.categories.length ? options.categories.slice(0, 3).join(', ') : 'No hay categorias disponibles'} />{!options.categories.length && <small className="sales-promo-field-note">No hay categorias disponibles.</small>}</label>
                   <label>Proveedores<input value={draft.suppliersText} onChange={(event) => updateDraft('suppliersText', event.target.value)} placeholder={options.suppliers.slice(0, 3).join(', ')} /></label>
                   <label>Clientes<input value={draft.customersText} onChange={(event) => updateDraft('customersText', event.target.value)} placeholder={options.customers.slice(0, 3).join(', ')} /></label>
                   <label>Grupos cliente<input value={draft.customerGroupsText} onChange={(event) => updateDraft('customerGroupsText', event.target.value)} placeholder="Mayorista, fidelidad" /></label>
@@ -507,6 +526,7 @@ export default function SalesPromotionsPage({
                   <label className="sales-promo-check"><input type="checkbox" checked={draft.conditions.nearExpiry} onChange={(event) => updateCondition('nearExpiry', event.target.checked)} /> Cercano a vencimiento</label>
                   <label>Dias vencimiento<input type="number" min="1" value={draft.conditions.expiryDays} onChange={(event) => updateCondition('expiryDays', event.target.value)} /></label>
                   <label className="sales-promo-check"><input type="checkbox" checked={draft.conditions.lowRotation} onChange={(event) => updateCondition('lowRotation', event.target.checked)} /> Baja rotacion</label>
+                  <label className="sales-promo-check"><input type="checkbox" checked={draft.stackable} onChange={(event) => updateDraft('stackable', event.target.checked)} /> Permitir combinar con otras ofertas</label>
                 </div>
               </section>
 
@@ -533,4 +553,3 @@ export default function SalesPromotionsPage({
     </ModulePageLayout>
   )
 }
-

@@ -65,6 +65,24 @@
   outline: 0;
 }
 
+.sales-promo-form-grid input::placeholder,
+.sales-promo-form-grid textarea::placeholder {
+  color: color-mix(in srgb, var(--promo-muted) 88%, transparent);
+  opacity: 1;
+}
+
+.sales-promo-form-grid input:focus,
+.sales-promo-form-grid select:focus,
+.sales-promo-form-grid textarea:focus {
+  border-color: color-mix(in srgb, var(--promo-accent) 68%, var(--promo-border));
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--promo-accent) 18%, transparent);
+}
+
+.sales-promo-form-grid input[aria-invalid="true"] {
+  border-color: #dc5959;
+  box-shadow: 0 0 0 3px rgba(220, 89, 89, 0.14);
+}
+
 .sales-promo-form-grid textarea {
   min-height: 70px;
   resize: vertical;
@@ -89,6 +107,12 @@
 .sales-promo-check input {
   width: 16px;
   min-height: 16px;
+}
+
+.sales-promo-field-note {
+  color: var(--promo-muted);
+  font-size: 10px;
+  font-weight: 800;
 }
 
 .sales-promo-section-head {
@@ -365,22 +389,33 @@
 .sales-promo-modal-backdrop {
   position: fixed;
   inset: 0;
-  z-index: 145;
+  z-index: 950;
   display: grid;
   place-items: center;
-  background: rgba(15, 39, 66, 0.46);
+  overflow: auto;
+  background: rgba(8, 22, 38, 0.56);
   padding: 24px;
 }
 
 .sales-promo-modal {
-  width: min(1180px, 100%);
-  max-height: calc(100vh - 48px);
+  --promo-panel: var(--panel-bg, #ffffff);
+  --promo-card: var(--card-bg, #f7faff);
+  --promo-input: var(--input-bg, #ffffff);
+  --promo-text: var(--text-main, #10243a);
+  --promo-muted: var(--text-muted, #60758b);
+  --promo-border: var(--border-color, #d2deea);
+  --promo-accent: var(--accent-color, #f1872d);
+  width: min(920px, 100%);
+  max-height: min(85vh, calc(100vh - 48px));
+  min-height: 0;
   display: grid;
   grid-template-rows: auto minmax(0, 1fr) auto;
   overflow: hidden;
   border: 1px solid var(--promo-border);
   border-radius: 14px;
   background: var(--promo-panel);
+  color: var(--promo-text);
+  color-scheme: light;
   box-shadow: 0 28px 72px rgba(10, 28, 48, 0.28);
 }
 
@@ -391,6 +426,7 @@
   justify-content: space-between;
   gap: 12px;
   border-bottom: 1px solid var(--promo-border);
+  background: var(--promo-panel);
   padding: 13px 15px;
 }
 
@@ -430,6 +466,7 @@
   justify-content: flex-end;
   border-top: 1px solid var(--promo-border);
   border-bottom: 0;
+  box-shadow: 0 -10px 24px rgba(10, 28, 48, 0.06);
 }
 
 .sales-promo-modal footer button.is-primary {
@@ -439,23 +476,68 @@
 }
 
 .sales-promo-modal-body {
+  min-height: 0;
   overflow: auto;
-  display: grid;
+  display: flex;
+  flex-direction: column;
   gap: 12px;
-  background: rgba(15, 39, 66, 0.035);
+  background: color-mix(in srgb, var(--promo-card) 70%, var(--promo-panel));
   padding: 14px;
 }
 
 .sales-promo-modal-body section {
+  flex: 0 0 auto;
+  overflow: hidden;
   border: 1px solid var(--promo-border);
   border-radius: 10px;
   background: var(--promo-panel);
+  box-shadow: 0 1px 0 rgba(255, 255, 255, 0.36) inset;
 }
 
 .sales-promo-modal-body h3 {
   border-bottom: 1px solid var(--promo-border);
   font-size: 15px;
   padding: 11px 12px;
+}
+
+.sales-promo-modal .sales-promo-form-grid {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  padding: 12px;
+}
+
+.sales-promo-modal .sales-promo-form-grid label {
+  color: var(--promo-muted);
+  font-size: 12px;
+}
+
+.sales-promo-modal .sales-promo-form-grid input,
+.sales-promo-modal .sales-promo-form-grid select,
+.sales-promo-modal .sales-promo-form-grid textarea {
+  min-height: 39px;
+  background: var(--promo-input);
+  color: var(--promo-text);
+  font-size: 13px;
+}
+
+.sales-promo-modal .sales-promo-form-grid select option {
+  background: var(--promo-panel);
+  color: var(--promo-text);
+}
+
+.sales-promo-modal .sales-promo-check {
+  color: var(--promo-text);
+  min-height: 39px;
+}
+
+.sales-promo-modal-error {
+  border: 1px solid rgba(211, 73, 73, 0.32);
+  border-left: 4px solid #d34949;
+  border-radius: 10px;
+  background: #fff2f2;
+  color: #9f2727;
+  padding: 10px 12px;
+  font-size: 13px;
+  font-weight: 850;
 }
 
 body.theme-dark .sales-promotions-page,
@@ -468,11 +550,30 @@ body.theme-dark .sales-promotions-page,
   --promo-border: var(--border-color, #284057);
 }
 
+body.theme-dark .sales-promo-modal,
+.app-shell.dark-theme .sales-promo-modal {
+  --promo-panel: var(--panel-bg, #102030);
+  --promo-card: var(--card-bg, #12283b);
+  --promo-input: var(--input-bg, #0d1b29);
+  --promo-text: var(--text-main, #edf5ff);
+  --promo-muted: var(--text-muted, #a9bed2);
+  --promo-border: var(--border-color, #284057);
+  color-scheme: dark;
+  box-shadow: 0 30px 84px rgba(0, 0, 0, 0.56);
+}
+
 body.theme-dark .sales-promo-message,
 .app-shell.dark-theme .sales-promo-message {
   border-color: rgba(31, 157, 85, 0.42);
   background: rgba(31, 157, 85, 0.12);
   color: #bcefd0;
+}
+
+body.theme-dark .sales-promo-modal-error,
+.app-shell.dark-theme .sales-promo-modal-error {
+  border-color: rgba(244, 121, 121, 0.4);
+  background: rgba(206, 67, 67, 0.16);
+  color: #ffd0d0;
 }
 
 @media (max-width: 980px) {
@@ -496,5 +597,24 @@ body.theme-dark .sales-promo-message,
 
   .sales-promo-span-2 {
     grid-column: auto;
+  }
+
+  .sales-promo-modal-backdrop {
+    place-items: stretch;
+    padding: 10px;
+  }
+
+  .sales-promo-modal {
+    width: 100%;
+    max-height: calc(100vh - 20px);
+    border-radius: 12px;
+  }
+
+  .sales-promo-modal footer {
+    flex-wrap: wrap;
+  }
+
+  .sales-promo-modal footer button {
+    flex: 1 1 140px;
   }
 }
