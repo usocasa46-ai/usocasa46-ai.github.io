@@ -436,6 +436,11 @@
   font-weight: 900;
 }
 
+.sales-product-cell .sales-promo-line-note {
+  color: #a95711;
+  font-weight: 900;
+}
+
 .sales-table td input {
   width: 88px;
   min-height: 30px;
@@ -500,6 +505,52 @@
 .sales-total-line.is-grand strong {
   color: #fff;
   font-size: 18px;
+}
+
+.sales-promotion-coupon {
+  display: grid;
+  gap: 7px;
+  border: 1px solid #f3dfc7;
+  border-radius: 10px;
+  background: #fffaf3;
+  padding: 9px;
+}
+
+.sales-promotion-coupon label {
+  display: grid;
+  gap: 5px;
+  color: #52677d;
+  font-size: 11px;
+  font-weight: 850;
+}
+
+.sales-promotion-coupon label span {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 6px;
+}
+
+.sales-promotion-coupon input {
+  min-width: 0;
+}
+
+.sales-promotion-coupon button {
+  min-height: 32px;
+  border: 1px solid #f0c18e;
+  border-radius: 8px;
+  background: #fff;
+  color: #9b5313;
+  padding: 5px 8px;
+  font: inherit;
+  font-size: 11px;
+  font-weight: 900;
+  cursor: pointer;
+}
+
+.sales-promotion-coupon small {
+  color: #815015;
+  font-size: 11px;
+  font-weight: 850;
 }
 
 .sales-state-badge {
@@ -887,6 +938,28 @@
   padding-top: 8px;
   font-size: 18px;
   font-weight: 900;
+}
+
+body.theme-dark .sales-promotion-coupon,
+.app-shell.dark-theme .sales-promotion-coupon {
+  border-color: rgba(241, 135, 45, 0.34);
+  background: rgba(241, 135, 45, 0.1);
+}
+
+body.theme-dark .sales-promotion-coupon label,
+body.theme-dark .sales-promotion-coupon small,
+body.theme-dark .sales-product-cell .sales-promo-line-note,
+.app-shell.dark-theme .sales-promotion-coupon label,
+.app-shell.dark-theme .sales-promotion-coupon small,
+.app-shell.dark-theme .sales-product-cell .sales-promo-line-note {
+  color: #ffd4aa;
+}
+
+body.theme-dark .sales-promotion-coupon button,
+.app-shell.dark-theme .sales-promotion-coupon button {
+  border-color: rgba(241, 135, 45, 0.38);
+  background: #13283b;
+  color: #ffd4aa;
 }
 
 @media (max-width: 1180px) {

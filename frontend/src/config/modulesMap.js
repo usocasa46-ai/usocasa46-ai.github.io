@@ -23,6 +23,7 @@ export const erpModules = [
     pages: [
       { id: 'sales-invoice', label: 'Factura', keywords: ['factura', 'venta', 'cliente'] },
       { id: 'sales-pos', label: 'Punto de venta', keywords: ['pos', 'caja', 'touch', 'ticket'] },
+      { id: 'sales-promotions', label: 'Ofertas y promociones', keywords: ['ofertas', 'promociones', 'cupon', 'descuento', 'combo'] },
       { id: 'sales-quotes', label: 'Cotizaciones' },
       { id: 'sales-customer-orders', label: 'Pedidos de clientes' },
       { id: 'sales-customers', label: 'Clientes' },

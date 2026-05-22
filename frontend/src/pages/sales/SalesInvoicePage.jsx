@@ -17,6 +17,7 @@ import ModulePageLayout from '../shared/ModulePageLayout.jsx'
 import { customersService } from '../../services/customersService.js'
 import { invoicesService } from '../../services/invoicesService.js'
 import { productsService } from '../../services/productsService.js'
+import { promotionsService } from '../../services/promotionsService.js'
 import { settingsService } from '../../services/settingsService.js'
 import { normalizeRnc, rncService } from '../../services/rncService.js'
 import {
@@ -28,6 +29,8 @@ import {
 import { ACCOUNTING_KEYS, createSalesInvoiceEntry, readArray as readAccountingArray } from '../../utils/accountingEntries.js'
 import { generateNextNcf, markNcfAsUsed, peekNextNcf } from '../../utils/ncfGenerator.js'
 import { registerIssuedElectronicDocument } from '../../services/electronicBillingService.js'
+import { applyPromotionsToLines, collectAppliedPromotions } from '../../utils/promotions/promotionEngine.js'
+import { validateCouponPromotion } from '../../utils/promotions/promotionValidator.js'
 import './SalesInvoicePage.css'
 
 const INVOICES_KEY = 'invefat_sales_invoices'
@@ -418,6 +421,9 @@ export default function SalesInvoicePage({ controls, onAction, searchValue = '',
   const [message, setMessage] = useState('')
   const [activeModal, setActiveModal] = useState('')
   const [invoiceModalState, setInvoiceModalState] = useState('normal')
+  const [promotions, setPromotions] = useState([])
+  const [couponInput, setCouponInput] = useState('')
+  const [appliedCoupon, setAppliedCoupon] = useState('')
 
   useEffect(() => {
     let isActive = true
@@ -427,7 +433,8 @@ export default function SalesInvoicePage({ controls, onAction, searchValue = '',
       productsService.getAll(),
       invoicesService.getAll(),
       customersService.getAll(),
-    ]).then(([storedSettings, storedProducts, storedInvoices, storedCustomers]) => {
+      promotionsService.getAll(),
+    ]).then(([storedSettings, storedProducts, storedInvoices, storedCustomers, storedPromotions]) => {
       if (!isActive) return
 
       if (storedSettings && Object.keys(storedSettings).length > 0) {
@@ -449,6 +456,8 @@ export default function SalesInvoicePage({ controls, onAction, searchValue = '',
         localStorage.setItem('invefat_customers', JSON.stringify(storedCustomers))
         setCustomers(loadCustomers(Array.isArray(storedInvoices) ? storedInvoices : loadInvoices()))
       }
+
+      setPromotions(Array.isArray(storedPromotions) ? storedPromotions : [])
     })
 
     return () => {
@@ -514,6 +523,27 @@ export default function SalesInvoicePage({ controls, onAction, searchValue = '',
     onAction?.(text)
   }
 
+  const promotionContext = (currentInvoice, couponCode = appliedCoupon) => ({
+    couponCode,
+    customerCode: currentInvoice.customerCode,
+    customerGroup: currentInvoice.customerGroup || '',
+    paymentMethod: currentInvoice.paymentMethod,
+    branch: currentInvoice.branch,
+    warehouse: currentInvoice.warehouse,
+    fiscalReceipt: currentInvoice.receiptType && currentInvoice.receiptType !== 'Consumidor final',
+  })
+
+  const priceInvoiceLines = (currentInvoice, nextLines = currentInvoice.lines, couponCode = appliedCoupon) => {
+    const result = applyPromotionsToLines(nextLines, promotions, promotionContext(currentInvoice, couponCode))
+    return {
+      ...currentInvoice,
+      lines: result.lines,
+      appliedPromotions: result.appliedPromotions,
+      promotionSavings: result.savings,
+      promotionCoupon: couponCode,
+    }
+  }
+
   const closePageOrModal = () => {
     if (activeModal === 'invoice' && invoiceModalState === 'maximized') {
       setInvoiceModalState('normal')
@@ -535,14 +565,14 @@ export default function SalesInvoicePage({ controls, onAction, searchValue = '',
   }
 
   const updateInvoice = (field, value) => {
-    setInvoice((current) => ({
+    setInvoice((current) => priceInvoiceLines({
       ...current,
       [field]: value,
     }))
   }
 
   const handleBranchChange = (branchCode) => {
-    setInvoice((current) => ({
+    setInvoice((current) => priceInvoiceLines({
       ...current,
       branch: branchCode,
       warehouse: defaultWarehouse(settings, branchCode),
@@ -553,7 +583,7 @@ export default function SalesInvoicePage({ controls, onAction, searchValue = '',
     const customer = customers.find((item) => item.code === customerCode)
     if (!customer) return
 
-    setInvoice((current) => ({
+    setInvoice((current) => priceInvoiceLines({
       ...current,
       customerCode: customer.code,
       customer: customer.name,
@@ -622,7 +652,7 @@ export default function SalesInvoicePage({ controls, onAction, searchValue = '',
       return
     }
 
-    setInvoice((current) => ({
+    setInvoice((current) => priceInvoiceLines({
       ...current,
       customerCode: 'CLI-CONTADO',
       customer: name,
@@ -653,6 +683,8 @@ export default function SalesInvoicePage({ controls, onAction, searchValue = '',
     setSelectedProductCode('')
     setProductQuery('')
     setCustomerQuery('')
+    setCouponInput('')
+    setAppliedCoupon('')
     setActiveModal('invoice')
     setInvoiceModalState('normal')
     notify('Nueva factura lista para registrar.')
@@ -690,7 +722,7 @@ export default function SalesInvoicePage({ controls, onAction, searchValue = '',
       const existingLine = current.lines.find((line) => line.code === selectedProduct.code)
 
       if (existingLine) {
-        return {
+        return priceInvoiceLines({
           ...current,
           lines: current.lines.map((line) => (
             line.code === selectedProduct.code
@@ -700,10 +732,10 @@ export default function SalesInvoicePage({ controls, onAction, searchValue = '',
                 }
               : line
           )),
-        }
+        })
       }
 
-      return {
+      return priceInvoiceLines({
         ...current,
         lines: [
           ...current.lines,
@@ -715,14 +747,18 @@ export default function SalesInvoicePage({ controls, onAction, searchValue = '',
             unit: selectedProduct.unit,
             barcode: selectedProduct.barcode,
             image: selectedProduct.image,
+            category: selectedProduct.category,
+            supplierCode: selectedProduct.supplierCode,
+            supplierName: selectedProduct.supplierName,
             stock: selectedProduct.stock,
             quantity,
             price: selectedProduct.price,
             discount: 0,
+            manualDiscount: 0,
             taxRate: productTax || 0,
           },
         ],
-      }
+      })
     })
 
     setSelectedProductCode('')
@@ -731,19 +767,36 @@ export default function SalesInvoicePage({ controls, onAction, searchValue = '',
   }
 
   const updateLine = (lineId, field, value) => {
-    setInvoice((current) => ({
-      ...current,
-      lines: current.lines.map((line) => (
-        line.id === lineId ? { ...line, [field]: value } : line
-      )),
-    }))
+    setInvoice((current) => priceInvoiceLines(current, current.lines.map((line) => (
+      line.id === lineId
+        ? { ...line, [field]: value, ...(field === 'discount' ? { manualDiscount: value } : {}) }
+        : line
+    ))))
   }
 
   const removeLine = (lineId) => {
-    setInvoice((current) => ({
-      ...current,
-      lines: current.lines.filter((line) => line.id !== lineId),
-    }))
+    setInvoice((current) => priceInvoiceLines(current, current.lines.filter((line) => line.id !== lineId)))
+  }
+
+  const applyCoupon = () => {
+    const couponCode = couponInput.trim().toUpperCase()
+    const validation = validateCouponPromotion(promotions, couponCode, promotionContext(invoice, couponCode), invoice.lines)
+    if (!validation.ok) {
+      notify(validation.message)
+      return
+    }
+
+    setAppliedCoupon(couponCode)
+    setCouponInput(couponCode)
+    setInvoice((current) => priceInvoiceLines(current, current.lines, couponCode))
+    notify(validation.message)
+  }
+
+  const clearCoupon = () => {
+    setAppliedCoupon('')
+    setCouponInput('')
+    setInvoice((current) => priceInvoiceLines(current, current.lines, ''))
+    notify('Cupon removido de la factura.')
   }
 
   const validateInvoice = () => {
@@ -903,6 +956,8 @@ export default function SalesInvoicePage({ controls, onAction, searchValue = '',
       state: finalState(fiscalInvoice, nextTotals),
       totals: nextTotals,
       inventoryApplied: Boolean(existing?.inventoryApplied || invoice.inventoryApplied || shouldApplyInventory),
+      appliedPromotions: collectAppliedPromotions(fiscalInvoice.lines),
+      promotionCoupon: appliedCoupon,
       pdf: pdfInfo,
       updatedAt: new Date().toISOString(),
     }
@@ -935,6 +990,11 @@ export default function SalesInvoicePage({ controls, onAction, searchValue = '',
     if (!existingAccountingEntry && savedInvoice.state !== 'Anulada') {
       createSalesInvoiceEntry(savedInvoice)
     }
+    void promotionsService.recordSaleUsage({
+      invoice: savedInvoice,
+      source: 'Factura',
+      userId: savedInvoice.seller,
+    })
     setInvoice(savedInvoice)
     setSelectedInvoiceNumber(savedInvoice.number)
     setCustomers(loadCustomers(nextInvoices))
@@ -953,10 +1013,13 @@ export default function SalesInvoicePage({ controls, onAction, searchValue = '',
   }
 
   const openInvoiceEditor = (targetInvoice) => {
-    setInvoice({
+    const couponCode = targetInvoice.promotionCoupon || ''
+    setAppliedCoupon(couponCode)
+    setCouponInput(couponCode)
+    setInvoice(priceInvoiceLines({
       ...targetInvoice,
       lines: Array.isArray(targetInvoice.lines) ? targetInvoice.lines : [],
-    })
+    }, Array.isArray(targetInvoice.lines) ? targetInvoice.lines : [], couponCode))
     setSelectedInvoiceNumber(targetInvoice.number)
     setCustomerQuery(`${targetInvoice.customerCode || ''} ${targetInvoice.customer || ''} ${targetInvoice.fiscalId || ''}`.trim())
     setActiveModal('invoice')
@@ -1402,6 +1465,7 @@ export default function SalesInvoicePage({ controls, onAction, searchValue = '',
                                 <div>
                                   <strong>{line.name}</strong>
                                   <small>{line.description || 'Sin descripcion adicional'}</small>
+                                  {line.promotionApplications?.length > 0 && <small className="sales-promo-line-note">Oferta: {line.promotionApplications.map((promotion) => promotion.name).join(', ')}</small>}
                                 </div>
                               </div>
                             </td>
@@ -1415,7 +1479,7 @@ export default function SalesInvoicePage({ controls, onAction, searchValue = '',
                               <input type="number" min="0" step="0.01" value={line.price} onChange={(event) => updateLine(line.id, 'price', event.target.value)} />
                             </td>
                             <td>
-                              <input type="number" min="0" step="0.01" value={line.discount} onChange={(event) => updateLine(line.id, 'discount', event.target.value)} />
+                              <input type="number" min="0" step="0.01" value={line.manualDiscount ?? line.discount} onChange={(event) => updateLine(line.id, 'discount', event.target.value)} />
                             </td>
                             <td>{formatNumber(line.taxRate)}%</td>
                             <td>{currency(lineTotal(line), settings)}</td>
@@ -1438,6 +1502,17 @@ export default function SalesInvoicePage({ controls, onAction, searchValue = '',
                   </div>
                   <aside className="sales-totals-panel">
                     <h2>Totales</h2>
+                    <div className="sales-promotion-coupon">
+                      <label>
+                        Aplicar cupon / oferta
+                        <span>
+                          <input value={couponInput} onChange={(event) => setCouponInput(event.target.value.toUpperCase())} placeholder="VERANO10" />
+                          <button type="button" onClick={applyCoupon}>Aplicar</button>
+                        </span>
+                      </label>
+                      {appliedCoupon && <button type="button" onClick={clearCoupon}>Quitar {appliedCoupon}</button>}
+                      {invoice.appliedPromotions?.length > 0 && <small>Ofertas: {invoice.appliedPromotions.map((promotion) => promotion.name).join(', ')}. Ahorro {currency(invoice.promotionSavings || 0, settings)}.</small>}
+                    </div>
                     <div className="sales-total-line"><span>Subtotal</span><strong>{currency(totals.subtotal, settings)}</strong></div>
                     <div className="sales-total-line"><span>Descuento</span><strong>{currency(totals.discountTotal, settings)}</strong></div>
                     <div className="sales-total-line"><span>Impuesto</span><strong>{currency(totals.taxTotal, settings)}</strong></div>

@@ -24,12 +24,15 @@ import { useEffect, useMemo, useState } from 'react'
 import ModulePageLayout from '../shared/ModulePageLayout.jsx'
 import { invoicesService } from '../../services/invoicesService.js'
 import { productsService } from '../../services/productsService.js'
+import { promotionsService } from '../../services/promotionsService.js'
 import { normalizeRnc, rncService } from '../../services/rncService.js'
 import { registerIssuedElectronicDocument } from '../../services/electronicBillingService.js'
 import { createSalesInvoiceEntry, readArray as readAccountingArray, ACCOUNTING_KEYS } from '../../utils/accountingEntries.js'
 import { createPdfMetadata, downloadSalesDocumentPdf } from '../../utils/pdf/salesDocumentPdf.js'
 import { consumeNextNcf, generateNextNcf, markNcfAsUsed, peekNextNcf, previewNextNcf } from '../../utils/ncfGenerator.js'
 import { openThermalTicket } from '../../utils/posThermalPrint.js'
+import { applyPromotionsToLines, collectAppliedPromotions } from '../../utils/promotions/promotionEngine.js'
+import { validateCouponPromotion } from '../../utils/promotions/promotionValidator.js'
 import './SalesPosPage.css'
 
 const PRODUCTS_KEY = 'inveFatInventoryProducts'
@@ -346,10 +349,14 @@ function makeLine(product) {
     unit: product.unit,
     barcode: product.barcode,
     image: product.image,
+    category: product.category,
+    supplierCode: product.supplierCode,
+    supplierName: product.supplierName,
     stock: product.stock,
     quantity: 1,
     price: product.price,
     discount: 0,
+    manualDiscount: 0,
     taxRate: product.tax || 0,
   }
 }
@@ -659,11 +666,15 @@ export default function SalesPosPage({ controls, onAction, searchValue = '', onS
   const [showSuspended, setShowSuspended] = useState(false)
   const [fullscreen, setFullscreen] = useState(false)
   const [lastAddedCode, setLastAddedCode] = useState('')
+  const [promotions, setPromotions] = useState([])
+  const [couponInput, setCouponInput] = useState('')
+  const [appliedCoupon, setAppliedCoupon] = useState('')
 
   useEffect(() => {
     setProducts(loadProducts())
     setCustomers(loadCustomers())
     setInvoices(readArray(INVOICES_KEY))
+    promotionsService.getAll().then((storedPromotions) => setPromotions(Array.isArray(storedPromotions) ? storedPromotions : []))
   }, [])
 
   useEffect(() => {
@@ -680,7 +691,23 @@ export default function SalesPosPage({ controls, onAction, searchValue = '', onS
 
   const branch = defaultBranch(settings)
   const warehouse = defaultWarehouse(settings, branch.code)
+  const priceSaleLines = (nextLines, overrides = {}) => {
+    const nextCustomer = overrides.customer || customer
+    const nextFiscalReceipt = overrides.fiscalReceipt || fiscalReceipt
+    const result = applyPromotionsToLines(nextLines, overrides.promotions || promotions, {
+      couponCode: overrides.couponCode ?? appliedCoupon,
+      customerCode: nextCustomer.code,
+      customerGroup: nextCustomer.group || nextCustomer.customerGroup || '',
+      paymentMethod: overrides.paymentMethod || payment.method,
+      branch: branch.code,
+      warehouse,
+      fiscalReceipt: Boolean(nextFiscalReceipt.enabled),
+    })
+    return result.lines
+  }
   const totals = useMemo(() => calculateTotals(lines, payment), [lines, payment])
+  const appliedPromotions = useMemo(() => collectAppliedPromotions(lines), [lines])
+  const promotionSavings = useMemo(() => appliedPromotions.reduce((sum, promotion) => sum + toNumber(promotion.discountAmount), 0), [appliedPromotions])
   const categories = useMemo(() => ['Todas', ...Array.from(new Set(products.map((product) => product.category).filter(Boolean))).sort()], [products])
   const fiscalPreview = useMemo(() => (
     fiscalReceipt.enabled ? previewNextNcf(fiscalReceipt.receiptType, branch.code) : { ncf: '', validUntil: '', error: '' }
@@ -795,6 +822,8 @@ export default function SalesPosPage({ controls, onAction, searchValue = '', onS
     setFiscalReceipt(defaultFiscalReceipt)
     setRncLookupNote('')
     setCompletedInvoice(null)
+    setCouponInput('')
+    setAppliedCoupon('')
   }
 
   const selectCustomer = (code) => {
@@ -802,8 +831,10 @@ export default function SalesPosPage({ controls, onAction, searchValue = '', onS
     setCustomer(nextCustomer)
     setCustomerQuery(`${nextCustomer.code} - ${nextCustomer.name}${nextCustomer.fiscalId ? ` - ${nextCustomer.fiscalId}` : ''}`)
     setFiscalReceipt((current) => current.enabled ? mergeFiscalCustomer(current, nextCustomer) : current)
+    setLines((current) => priceSaleLines(current, { customer: nextCustomer }))
     if (nextCustomer.paymentCondition === 'Credito') {
       setPayment((current) => ({ ...current, method: 'Credito' }))
+      setLines((current) => priceSaleLines(current, { customer: nextCustomer, paymentMethod: 'Credito' }))
     }
   }
 
@@ -811,9 +842,13 @@ export default function SalesPosPage({ controls, onAction, searchValue = '', onS
     setFiscalReceipt((current) => {
       if (!enabled) {
         setRncLookupNote('')
-        return { ...defaultFiscalReceipt, enabled: false }
+        const next = { ...defaultFiscalReceipt, enabled: false }
+        setLines((linesNow) => priceSaleLines(linesNow, { fiscalReceipt: next }))
+        return next
       }
-      return mergeFiscalCustomer({ ...current, enabled: true, receiptType: current.receiptType || 'Credito fiscal' }, customer)
+      const next = mergeFiscalCustomer({ ...current, enabled: true, receiptType: current.receiptType || 'Credito fiscal' }, customer)
+      setLines((linesNow) => priceSaleLines(linesNow, { fiscalReceipt: next }))
+      return next
     })
   }
 
@@ -871,9 +906,9 @@ export default function SalesPosPage({ controls, onAction, searchValue = '', onS
     setLines((current) => {
       const existing = current.find((line) => line.code === product.code)
       if (existing) {
-        return current.map((line) => line.code === product.code ? { ...line, quantity: toNumber(line.quantity) + 1 } : line)
+        return priceSaleLines(current.map((line) => line.code === product.code ? { ...line, quantity: toNumber(line.quantity) + 1 } : line))
       }
-      return [...current, makeLine(product)]
+      return priceSaleLines([...current, makeLine(product)])
     })
     setProductQuery('')
     setLastAddedCode(product.code)
@@ -881,18 +916,53 @@ export default function SalesPosPage({ controls, onAction, searchValue = '', onS
   }
 
   const updateLine = (lineId, field, value) => {
-    setLines((current) => current.map((line) => line.id === lineId ? { ...line, [field]: value } : line))
+    setLines((current) => priceSaleLines(current.map((line) => (
+      line.id === lineId
+        ? { ...line, [field]: value, ...(field === 'discount' ? { manualDiscount: value } : {}) }
+        : line
+    ))))
   }
 
   const changeQty = (lineId, step) => {
-    setLines((current) => current.map((line) => {
+    setLines((current) => priceSaleLines(current.map((line) => {
       if (line.id !== lineId) return line
       return { ...line, quantity: Math.max(1, toNumber(line.quantity) + step) }
-    }))
+    })))
   }
 
   const removeLine = (lineId) => {
-    setLines((current) => current.filter((line) => line.id !== lineId))
+    setLines((current) => priceSaleLines(current.filter((line) => line.id !== lineId)))
+  }
+
+  const couponContext = (couponCode = couponInput) => ({
+    couponCode,
+    customerCode: customer.code,
+    customerGroup: customer.group || customer.customerGroup || '',
+    paymentMethod: payment.method,
+    branch: branch.code,
+    warehouse,
+    fiscalReceipt: Boolean(fiscalReceipt.enabled),
+  })
+
+  const applyCoupon = () => {
+    const couponCode = couponInput.trim().toUpperCase()
+    const validation = validateCouponPromotion(promotions, couponCode, couponContext(couponCode), lines)
+    if (!validation.ok) {
+      notify(validation.message)
+      return
+    }
+
+    setAppliedCoupon(couponCode)
+    setCouponInput(couponCode)
+    setLines((current) => priceSaleLines(current, { couponCode }))
+    notify(validation.message)
+  }
+
+  const clearCoupon = () => {
+    setAppliedCoupon('')
+    setCouponInput('')
+    setLines((current) => priceSaleLines(current, { couponCode: '' }))
+    notify('Cupon removido de la venta.')
   }
 
   const validateSale = () => {
@@ -1075,6 +1145,8 @@ export default function SalesPosPage({ controls, onAction, searchValue = '', onS
       paidAmount: payment.method === 'Credito' ? 0 : invoiceTotals.paid,
       totals: invoiceTotals,
       lines,
+      appliedPromotions,
+      promotionCoupon: appliedCoupon,
       source: 'POS',
       inventoryApplied: true,
       printFormat: ticketSettings().billing.printFormat,
@@ -1099,6 +1171,11 @@ export default function SalesPosPage({ controls, onAction, searchValue = '', onS
     saveReport(savedInvoice, invoiceTotals)
     saveCashMovement(savedInvoice, invoiceTotals)
     savePosSale(savedInvoice)
+    await promotionsService.recordSaleUsage({
+      invoice: savedInvoice,
+      source: 'POS',
+      userId: session?.username || session?.fullName || 'Caja',
+    })
     if (savedInvoice.ncf) {
       markNcfAsUsed(savedInvoice.ncf, savedInvoice.number, 'Factura POS', {
         tipoComprobante: savedInvoice.tipoComprobante || savedInvoice.receiptType,
@@ -1174,6 +1251,7 @@ export default function SalesPosPage({ controls, onAction, searchValue = '', onS
       lines,
       payment,
       fiscalReceipt,
+      promotionCoupon: appliedCoupon,
       total: totals.total,
       user: session?.fullName || 'Caja',
     }
@@ -1189,6 +1267,8 @@ export default function SalesPosPage({ controls, onAction, searchValue = '', onS
     setLines(record.lines || [])
     setPayment(record.payment || { method: 'Efectivo', received: '', card: '', transfer: '', reference: '', bank: '' })
     setFiscalReceipt(record.fiscalReceipt || defaultFiscalReceipt)
+    setAppliedCoupon(record.promotionCoupon || '')
+    setCouponInput(record.promotionCoupon || '')
     const next = suspendedSales.filter((item) => item.id !== record.id)
     setSuspendedSales(next)
     writeStorage(SUSPENDED_KEY, next)
@@ -1213,6 +1293,7 @@ export default function SalesPosPage({ controls, onAction, searchValue = '', onS
       method,
       received: method === 'Efectivo' ? current.received : '',
     }))
+    setLines((current) => priceSaleLines(current, { paymentMethod: method }))
   }
 
   const clearProductFilters = () => {
@@ -1407,6 +1488,7 @@ export default function SalesPosPage({ controls, onAction, searchValue = '', onS
                       <div>
                         <strong>{line.name}</strong>
                         <span>{line.code} | {line.unit}</span>
+                        {line.promotionApplications?.length > 0 && <small className="pos-promotion-line-note">{line.promotionApplications.map((promotion) => promotion.name).join(', ')}</small>}
                       </div>
                     </div>
                     <div className="pos-qty-controls">
@@ -1416,7 +1498,7 @@ export default function SalesPosPage({ controls, onAction, searchValue = '', onS
                     </div>
                     <div className="pos-line-money">
                       <input type="number" min="0" value={line.price} onChange={(event) => updateLine(line.id, 'price', event.target.value)} title="Precio" />
-                      <input type="number" min="0" value={line.discount} onChange={(event) => updateLine(line.id, 'discount', event.target.value)} title="Descuento" />
+                      <input type="number" min="0" value={line.manualDiscount ?? line.discount} onChange={(event) => updateLine(line.id, 'discount', event.target.value)} title="Descuento manual" />
                       <strong>{currency(lineTotal(line), settings)}</strong>
                     </div>
                     <button type="button" className="pos-remove-line" onClick={() => removeLine(line.id)} title="Eliminar linea">
@@ -1504,6 +1586,17 @@ export default function SalesPosPage({ controls, onAction, searchValue = '', onS
               <div className="pos-panel-mini-title">
                 <span>Método de pago</span>
                 <strong>{payment.method}</strong>
+              </div>
+              <div className="pos-promotion-tools">
+                <label>
+                  Aplicar cupon / oferta
+                  <span>
+                    <input value={couponInput} onChange={(event) => setCouponInput(event.target.value.toUpperCase())} placeholder="VERANO10" />
+                    <button type="button" onClick={applyCoupon}>Aplicar</button>
+                  </span>
+                </label>
+                {appliedCoupon && <button type="button" onClick={clearCoupon}>Quitar {appliedCoupon}</button>}
+                {appliedPromotions.length > 0 && <small>Oferta aplicada: {appliedPromotions.map((promotion) => promotion.name).join(', ')}. Ahorro {currency(promotionSavings, settings)}.</small>}
               </div>
               <div className="pos-payment-methods">
                 {paymentMethods.map((method) => (

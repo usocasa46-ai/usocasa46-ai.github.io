@@ -912,6 +912,17 @@
   white-space: nowrap;
 }
 
+.pos-cart-product .pos-promotion-line-note {
+  display: block;
+  overflow: hidden;
+  color: #ad5a12;
+  font-size: 10px;
+  font-style: normal;
+  font-weight: 900;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
 .pos-checkout-details {
   display: grid;
   grid-template-columns: minmax(0, 1fr);
@@ -983,6 +994,59 @@
   align-items: center;
   justify-content: space-between;
   gap: 8px;
+}
+
+.pos-promotion-tools {
+  display: grid;
+  gap: 5px;
+  border: 1px solid #f2dbbf;
+  border-radius: 10px;
+  background: #fff8ef;
+  padding: 6px;
+}
+
+.pos-promotion-tools label {
+  display: grid;
+  gap: 4px;
+  color: #60758b;
+  font-size: 10.5px;
+  font-weight: 900;
+}
+
+.pos-promotion-tools label span {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 4px;
+}
+
+.pos-promotion-tools input {
+  min-width: 0;
+  min-height: 29px;
+  border: 1px solid #d8e2ed;
+  border-radius: 8px;
+  background: #fff;
+  color: #172d43;
+  padding: 5px 7px;
+  font: inherit;
+}
+
+.pos-promotion-tools button {
+  min-height: 29px;
+  border: 1px solid #f0c18e;
+  border-radius: 8px;
+  background: #fff;
+  color: #9b5313;
+  padding: 5px 7px;
+  font: inherit;
+  font-size: 10.5px;
+  font-weight: 900;
+  cursor: pointer;
+}
+
+.pos-promotion-tools small {
+  color: #8b5419;
+  font-size: 10.5px;
+  font-weight: 850;
 }
 
 .pos-payment-methods {
@@ -1296,6 +1360,24 @@ body.theme-dark .pos-line-money input {
   background: #0f1e2d;
   border-color: #29445f;
   color: #f3f7fb;
+}
+
+body.theme-dark .pos-promotion-tools {
+  border-color: rgba(241, 135, 45, 0.35);
+  background: rgba(241, 135, 45, 0.12);
+}
+
+body.theme-dark .pos-promotion-tools input,
+body.theme-dark .pos-promotion-tools button {
+  background: #0f1e2d;
+  border-color: rgba(241, 135, 45, 0.35);
+  color: #ffd7ad;
+}
+
+body.theme-dark .pos-promotion-tools label,
+body.theme-dark .pos-promotion-tools small,
+body.theme-dark .pos-cart-product .pos-promotion-line-note {
+  color: #ffd7ad;
 }
 
 body.theme-dark .pos-cart-line.is-recent {

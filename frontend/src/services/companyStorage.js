@@ -70,6 +70,8 @@ const CLEAN_COMPANY_DEFAULTS = {
   invefat_pay_slips: [],
   invefat_payroll_settings: {},
   invefat_payroll_email_queue: [],
+  invefat_promotions: [],
+  invefat_promotion_usage: [],
 }
 
 const DEFAULT_SYSTEM_PLANS = [
@@ -248,6 +250,10 @@ export const COMPANY_KEY_MAP = {
   payroll_settings: 'payroll_settings',
   invefat_payroll_email_queue: 'payroll_email_queue',
   payroll_email_queue: 'payroll_email_queue',
+  invefat_promotions: 'promotions',
+  promotions: 'promotions',
+  invefat_promotion_usage: 'promotion_usage',
+  promotion_usage: 'promotion_usage',
 }
 
 const OPERATIONAL_SUFFIXES = new Set(Object.values(COMPANY_KEY_MAP))

@@ -75,6 +75,7 @@ import SalesHistoryPage from '../pages/sales/SalesHistoryPage.jsx'
 import SalesInvoicePage from '../pages/sales/SalesInvoicePage.jsx'
 import SalesOrdersPage from '../pages/sales/SalesOrdersPage.jsx'
 import SalesPosPage from '../pages/sales/SalesPosPage.jsx'
+import SalesPromotionsPage from '../pages/sales/SalesPromotionsPage.jsx'
 import SalesQuotesPage from '../pages/sales/SalesQuotesPage.jsx'
 import AccountsReceivablePage from '../pages/sales/AccountsReceivablePage.jsx'
 import SalesReturnsPage from '../pages/sales/SalesReturnsPage.jsx'
@@ -113,6 +114,7 @@ const pageComponents = {
   'system-alerts': AlertsCenterPage,
   'sales-invoice': SalesInvoicePage,
   'sales-pos': SalesPosPage,
+  'sales-promotions': SalesPromotionsPage,
   'sales-quotes': SalesQuotesPage,
   'sales-customer-orders': SalesOrdersPage,
   'sales-customers': SalesCustomersPage,
